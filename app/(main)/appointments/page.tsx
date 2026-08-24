@@ -20,6 +20,7 @@ const AppointmentsContent = () => {
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedFilter, setSelectedFilter] = useState("all");
+    const [selectedType, setSelectedType] = useState("all");
 
     useEffect(() => {
         setIsMounted(true);
@@ -79,11 +80,17 @@ const AppointmentsContent = () => {
     // ✅ Filters
     const applyFilters = (list: any[]) => {
         return list.filter((apt) => {
-            const name = apt.patient?.name?.toLowerCase() || "";
-            const matchesSearch = name.includes(searchQuery.toLowerCase());
+            const name = apt.patient?.name?.toLowerCase() || apt.patient_name?.toLowerCase() || "";
+            const reason = apt.reason?.toLowerCase() || apt.appointment_reason?.toLowerCase() || "";
+            const matchesSearch = name.includes(searchQuery.toLowerCase()) || reason.includes(searchQuery.toLowerCase());
             const matchesStatus =
                 selectedFilter === "all" || apt.status === selectedFilter;
-            return matchesSearch && matchesStatus;
+            const type = (apt.consultation_type || "").toLowerCase();
+            const matchesType =
+                selectedType === "all" ||
+                (selectedType === "video" && type === "video") ||
+                (selectedType === "in-person" && (type === "in-person" || type === "clinic"));
+            return matchesSearch && matchesStatus && matchesType;
         });
     };
 
@@ -160,8 +167,10 @@ const AppointmentsContent = () => {
             <AppointmentFilters
                 searchQuery={searchQuery}
                 selectedFilter={selectedFilter}
+                selectedType={selectedType}
                 setSearchQuery={setSearchQuery}
                 setSelectedFilter={setSelectedFilter}
+                setSelectedType={setSelectedType}
                 statusOptions={statusOptions}
             />
 

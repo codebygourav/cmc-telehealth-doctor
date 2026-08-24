@@ -46,7 +46,7 @@ const DoctorOpdSchedule = ({
             </CardHeader>
 
             {/* Scrollable Content Area */}
-            <CardContent className="pt-4 flex-1 overflow-y-auto max-h-[400px]">
+            <CardContent className="pt-4 flex-1 overflow-y-auto max-h-[500px]">
                 <div className="space-y-3">
                     {count > 0 ?
                         OPDSlotsForSelectedDate.map((slot, index) => (

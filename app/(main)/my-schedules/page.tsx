@@ -269,40 +269,43 @@ const MySchedulesPage = () => {
                                     </div>
                                 </CardHeader>
 
-                                {filteredAppointments.length ? (
-                                    filteredAppointments.map((appointment) => (
-                                        <CardContent key={appointment.appointment_id}>
-                                            <BookAppointments
-                                                type="patient"
-                                                title={
-                                                    appointment.patient?.name ||
-                                                    "Unknown Patient"
-                                                }
-                                                avatar={appointment.patient?.avatar || ""}
-                                                time={(appointment as any).appointment_time_formatted || (appointment as any).appointment_time || (appointment as any).appointmentTime}
-                                                appointmentType={
-                                                    (appointment as any).consultation_type === "video"
-                                                        ? "Video"
-                                                        : "In-Person"
-                                                }
-                                                status={((appointment as any).status_label || (appointment as any).status) as any}
-                                                onClick={() => {
-                                                    if (appointment.appointment_id) {
-                                                        router.push(`/appointments/${appointment.appointment_id}`);
+                                <CardContent className="pt-4 flex-1 overflow-y-auto max-h-[500px]">
+                                    <div className="space-y-3">
+                                        {filteredAppointments.length ? (
+                                            filteredAppointments.map((appointment) => (
+                                                <BookAppointments
+                                                    key={appointment.appointment_id}
+                                                    type="patient"
+                                                    title={
+                                                        appointment.patient_name ||
+                                                        "Unknown Patient"
                                                     }
-                                                }}
-                                            />
-                                        </CardContent>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-10 border rounded-lg border-dashed text-muted-foreground">
-                                        <p className="text-sm">
-                                            {selectedSlot
-                                                ? "No appointments booked for this slot"
-                                                : "Select an OPD slot to view appointments"}
-                                        </p>
+                                                    avatar={appointment.patient_avatar || ""}
+                                                    time={(appointment as any).start_time + " - " + (appointment as any).end_time}
+                                                    appointmentType={
+                                                        (appointment as any).consultation_type === "video"
+                                                            ? "Video"
+                                                            : "In-Person"
+                                                    }
+                                                    status={((appointment as any).status_label || (appointment as any).status) as any}
+                                                    onClick={() => {
+                                                        if (appointment.appointment_id) {
+                                                            router.push(`/appointments/${appointment.appointment_id}`);
+                                                        }
+                                                    }}
+                                                />
+                                            ))
+                                        ) : (
+                                            <div className="text-center py-10 border rounded-lg border-dashed text-muted-foreground">
+                                                <p className="text-sm">
+                                                    {selectedSlot
+                                                        ? "No appointments booked for this slot"
+                                                        : "Select an OPD slot to view appointments"}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
+                                </CardContent>
 
                             </Card>
                         </div>

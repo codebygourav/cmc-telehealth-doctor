@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Video, Edit } from "lucide-react";
+import { Video, Edit, MapPin } from "lucide-react";
 import { OPDSlot } from "@/types/schedule";
 
 
@@ -33,7 +33,13 @@ export const OPDSlotCard = ({
             </div>
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                <Video className="h-3 w-3" />
+                {
+                    slot.consultation_type === "video" ? (
+                        <Video className="h-3 w-3" />
+                    ) : (
+                        <MapPin className="h-3 w-3" />
+                    )
+                }
                 <span>{slot.consultation_type_label}</span>
             </div>
 

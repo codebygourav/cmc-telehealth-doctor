@@ -8,17 +8,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface AppointmentFiltersProps {
     searchQuery: string;
     selectedFilter: string;
+    selectedType: string;
     setSearchQuery: (value: string) => void;
     setSelectedFilter: (value: string) => void;
+    setSelectedType: (value: string) => void;
     statusOptions: { value: string; label: string }[];
+    typeOptions?: { value: string; label: string }[];
 }
 
 export default function AppointmentFilters({
     searchQuery,
     selectedFilter,
+    selectedType,
     setSearchQuery,
     setSelectedFilter,
+    setSelectedType,
     statusOptions,
+    typeOptions = [
+        { value: "all", label: "All Types" },
+        { value: "video", label: "Video" },
+        { value: "in-person", label: "In Person" },
+    ],
 }: AppointmentFiltersProps) {
     return (
 
@@ -37,7 +47,21 @@ export default function AppointmentFilters({
                     </div>
                 </div>
 
-                <div className="flex gap-2 rounded">
+                <div className="flex gap-2 rounded flex-wrap sm:flex-nowrap">
+                    <Select value={selectedType} onValueChange={setSelectedType}>
+                        <SelectTrigger className="w-auto !h-full !p-4 !rounded-md">
+                            <Filter className="mr-2 h-4 w-4" />
+                            <SelectValue placeholder="All Types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {typeOptions.map((type) => (
+                                <SelectItem key={type.value} value={type.value}>
+                                    {type.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
                     <Select value={selectedFilter} onValueChange={setSelectedFilter}>
                         <SelectTrigger className="w-auto !h-full !p-4 !rounded-md">
                             <Filter className="mr-2 h-4 w-4" />
