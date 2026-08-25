@@ -61,7 +61,7 @@ export default function AppointmentCard({
     const [openRescheduleDialog, setOpenRescheduleDialog] = useState(false);
     const [customDialogOpen, setCustomDialogOpen] = useState(false);
     const [dialogData, setDialogData] = useState<any>(null);
-    const joinUrl = appointment?.join_url;
+    const joinUrl = appointment?.video_consultation?.join_url;
     const showCallNow = appointment.call_now === true;
     const router = useRouter();
 

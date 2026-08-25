@@ -17,6 +17,7 @@ import {
 import { useConclusionByAppointmentId } from "@/queries/useConclusionByAppointmentId";
 import { usePrescriptionByAppointmentId } from "@/queries/usePrescriptionByAppointmentId";
 import { useDeletePrescriptionItem } from "@/queries/useDeletePrescriptionItem";
+import { useDeleteConclusionFile } from "@/queries/useDeleteConclusionFile";
 import { getStatusColor } from "@/src/utils/getStatusColor";
 import {
   AlertCircle,
@@ -27,6 +28,8 @@ import {
   Clock,
   Download,
   ExternalLink,
+  Eye,
+  FileImage,
   FileText,
   Mic,
   Trash2,
@@ -37,14 +40,21 @@ import { useCallback, useState } from "react";
 // TypeScript interfaces
 interface Medicine {
   prescription_id: string;
+  medicine_id?: string;
   name: string;
   type: string;
   status: string;
   dosage: string;
+  strength?: string;
+  frequency?: string;
   frequencylabel: string;
   times: string;
   meal: string;
   date: string;
+  application_area?: string;
+  start_date?: string;
+  end_date?: string;
+  follow_up_note?: string;
   instructions?: string[];
   notes?: string;
   use_type?: string;
@@ -88,8 +98,45 @@ type DictationAssistantConfig = {
 type ConclusionReportFile = {
   id: string;
   name: string;
-  url: string;
-  type: string;
+  url?: string;
+  file_url?: string;
+  type?: string;
+};
+
+const getFileUrl = (fileOrUrl: ConclusionReportFile | string | undefined | null): string => {
+  if (!fileOrUrl) return "#";
+  const rawUrl = typeof fileOrUrl === "string" ? fileOrUrl : (fileOrUrl.file_url || fileOrUrl.url || "");
+  if (!rawUrl) return "#";
+  if (
+    rawUrl.startsWith("http://") ||
+    rawUrl.startsWith("https://") ||
+    rawUrl.startsWith("blob:") ||
+    rawUrl.startsWith("data:")
+  ) {
+    return rawUrl;
+  }
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const rootDomain = apiBase
+    .replace(/\/api\/v2\/?$/, "")
+    .replace(/\/api\/?$/, "");
+  const baseUrl = rootDomain || "https://telehealthwebapplive.cmcludhiana.in";
+
+  const cleanPath = rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+  return `${baseUrl}${cleanPath}`;
+};
+
+const isImageFile = (filenameOrUrl: string | undefined | null): boolean => {
+  if (!filenameOrUrl) return false;
+  const clean = filenameOrUrl.split("?")[0].toLowerCase();
+  return (
+    clean.endsWith(".jpg") ||
+    clean.endsWith(".jpeg") ||
+    clean.endsWith(".png") ||
+    clean.endsWith(".gif") ||
+    clean.endsWith(".webp") ||
+    clean.endsWith(".svg") ||
+    clean.endsWith(".bmp")
+  );
 };
 
 // Accordion Item Component
@@ -327,6 +374,7 @@ export default function PrescriptionTab({
   appointmentId: string;
 }) {
   const deleteMutation = useDeletePrescriptionItem(appointmentId);
+  const deleteConclusionFileMutation = useDeleteConclusionFile(appointmentId);
 
   const { data, isLoading, error } =
     usePrescriptionByAppointmentId(appointmentId);
@@ -336,6 +384,8 @@ export default function PrescriptionTab({
   const [dialogTab, setDialogTab] = useState<"findings" | "medicines" | "reports">("findings");
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Medicine | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<ConclusionReportFile | null>(null);
+  const [previewFile, setPreviewFile] = useState<ConclusionReportFile | null>(null);
 
   if (isLoading) {
     return (
@@ -412,7 +462,7 @@ export default function PrescriptionTab({
             }}
             className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm"
           >
-            Add Prescription
+            Add Notes & Prescription
           </Button>
         </div>
         <Card>
@@ -468,7 +518,7 @@ export default function PrescriptionTab({
           }}
           className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm"
         >
-          Add Prescription
+          Add Notes & Prescription
         </Button>
       </div>
 
@@ -560,19 +610,55 @@ export default function PrescriptionTab({
                   <div className="space-y-2">
                     <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider block">Doctor Reference Files</span>
                     {conclusionFiles.length > 0 ? (
-                      <div className="space-y-1.5">
-                        {conclusionFiles.map((file, idx) => (
-                          <a
-                            key={file.id || idx}
-                            href={file.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-between p-2.5 bg-background hover:bg-indigo-50/30 border border-muted rounded-xl transition-all text-xs text-indigo-700 font-semibold group"
-                          >
-                            <span className="truncate flex-1 pr-2">{file.name || `Reference Document #${idx + 1}`}</span>
-                            <ExternalLink className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100" />
-                          </a>
-                        ))}
+                      <div className="space-y-2">
+                        {conclusionFiles.map((file, idx) => {
+                          const fullUrl = getFileUrl(file);
+                          const isImg = isImageFile(file.file_url || file.url || file.name);
+
+                          return (
+                            <div
+                              key={file.id || idx}
+                              className="flex items-center justify-between p-2.5 bg-background hover:bg-indigo-50/40 border border-muted rounded-xl transition-all text-xs text-indigo-950 font-semibold shadow-xs gap-2"
+                            >
+                              <a
+                                href={fullUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 flex-1 min-w-0 text-left hover:underline focus:outline-none"
+                              >
+                                {isImg ? (
+                                  <FileImage className="h-4 w-4 text-indigo-600 shrink-0" />
+                                ) : (
+                                  <FileText className="h-4 w-4 text-slate-500 shrink-0" />
+                                )}
+                                <span className="truncate">{file.name || `Reference Document #${idx + 1}`}</span>
+                              </a>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                <a
+                                  href={fullUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 text-indigo-700 hover:text-indigo-900 transition-colors bg-indigo-50 hover:bg-indigo-100 rounded-lg"
+                                  title="Open in new tab"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                                  title="Delete report"
+                                  onClick={() => setFileToDelete(file)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-xs italic text-muted-foreground bg-background/50 p-3 rounded-xl border border-dashed text-center">No reference files uploaded by doctor</p>
@@ -816,7 +902,7 @@ export default function PrescriptionTab({
             Uploaded by Doctor
           </p>
           <div className="space-y-2">
-            {fileUrl.map((url: string, index: number) => (
+            {fileUrl.map((url: string | undefined, index: number) => (
               <a
                 key={index}
                 href={url}
@@ -893,10 +979,10 @@ export default function PrescriptionTab({
                 onClick={async () => {
                   try {
                     const remainingMedicines = medicines.filter(
-                      (m) => m.prescription_id !== deleteTarget.prescription_id
+                      (m: Medicine) => m.prescription_id !== deleteTarget.prescription_id
                     );
 
-                    const medicinesPayload = remainingMedicines.map((med) => {
+                    const medicinesPayload = remainingMedicines.map((med: Medicine) => {
                       const timings: string[] = [];
                       const timesStr = String(med.times || "").toLowerCase();
                       if (timesStr.includes("morning")) timings.push("morning");
@@ -954,6 +1040,103 @@ export default function PrescriptionTab({
                 }}
               >
                 {deleteMutation.isPending ? "Removing..." : "Remove"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* File Preview Dialog */}
+      {previewFile && (
+        <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
+          <DialogContent className="max-w-3xl w-[95vw] p-4 sm:p-6 rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-base sm:text-lg font-bold flex items-center justify-between gap-2 pr-6">
+                <span className="truncate">{previewFile.name || "Medical Report Preview"}</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                View uploaded document or image
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mt-2 flex flex-col items-center justify-center bg-slate-950/5 rounded-xl border p-2 sm:p-4 max-h-[70vh] overflow-auto">
+              {isImageFile(previewFile.url || previewFile.name) ? (
+                <img
+                  src={getFileUrl(previewFile.url)}
+                  alt={previewFile.name || "Report Image"}
+                  className="max-h-[65vh] w-auto max-w-full object-contain rounded-lg shadow-sm"
+                />
+              ) : (
+                <iframe
+                  src={getFileUrl(previewFile.url)}
+                  title={previewFile.name || "Document Preview"}
+                  className="w-full h-[60vh] border-0 rounded-lg"
+                />
+              )}
+            </div>
+
+            <DialogFooter className="flex flex-row items-center justify-between gap-2 pt-3 border-t mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPreviewFile(null)}
+              >
+                Close
+              </Button>
+
+              <a
+                href={getFileUrl(previewFile.url)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Open Full File
+              </a>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Report Confirmation Dialog */}
+      {fileToDelete && (
+        <Dialog open={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>
+          <DialogContent className="max-w-md w-[95vw] p-4 sm:p-6 rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-base sm:text-lg font-bold text-destructive flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                Delete Medical Report
+              </DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-2">
+                Are you sure you want to delete <span className="font-semibold text-foreground">&quot;{fileToDelete.name || "this file"}&quot;</span>? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter className="flex flex-row items-center justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={deleteConclusionFileMutation.isPending}
+                onClick={() => setFileToDelete(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={deleteConclusionFileMutation.isPending}
+                onClick={async () => {
+                  if (!fileToDelete) return;
+                  try {
+                    await deleteConclusionFileMutation.mutateAsync(fileToDelete.id);
+                    setFileToDelete(null);
+                  } catch (err: any) {
+                    console.error("Delete report file error:", err);
+                    alert(err?.response?.data?.message || err?.message || "Failed to delete file");
+                  }
+                }}
+              >
+                {deleteConclusionFileMutation.isPending ? "Deleting..." : "Delete Report"}
               </Button>
             </DialogFooter>
           </DialogContent>

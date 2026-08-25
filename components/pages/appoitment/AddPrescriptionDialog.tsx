@@ -120,6 +120,7 @@ declare global {
 interface AddPrescriptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  appointmentId?: string;
   initialTab?: "findings" | "medicines" | "reports";
   assistantConfig?: {
     enabled?: boolean;
@@ -231,6 +232,7 @@ const guidedVoiceSteps = [
 export default function AddPrescriptionDialog({
   open,
   onOpenChange,
+  appointmentId: propAppointmentId,
   initialTab,
   assistantConfig,
   initialMedicines = [],
@@ -241,7 +243,7 @@ export default function AddPrescriptionDialog({
 }: AddPrescriptionDialogProps) {
   const { token } = useAuth();
   const params = useParams();
-  const appointmentId = params?.id as string;
+  const appointmentId = propAppointmentId || (params?.id as string);
 
   const { data: profileResponse } = useDoctorProfile();
   const doctorVoiceLocale = profileResponse?.data?.voice_settings?.speech_locale;
@@ -306,7 +308,9 @@ export default function AddPrescriptionDialog({
       return {
         medicine_id: item.medicine_id || "",
         name: item.medicine_name,
+        medicine_name: item.medicine_name,
         type: item.medicine_type || "Tablet",
+        medication_type: item.medicine_type || "Tablet",
         dosage: item.dosage || "",
         frequency: item.frequency || "OD",
         frequencylabel: item.frequency || "Once a day",
@@ -321,7 +325,7 @@ export default function AddPrescriptionDialog({
         timing_afternoon: item.frequency_times?.includes("14:00") || item.frequency_times?.some(t => t.toLowerCase().includes("afternoon")) || false,
         timing_evening: item.frequency_times?.includes("18:00") || item.frequency_times?.some(t => t.toLowerCase().includes("evening")) || false,
         timing_night: item.frequency_times?.includes("21:00") || item.frequency_times?.some(t => t.toLowerCase().includes("night")) || false,
-      };
+      } as AddedMedicine;
     });
 
     setAddedMedicines(newMeds);

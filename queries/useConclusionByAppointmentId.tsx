@@ -8,8 +8,9 @@ interface ConclusionData {
   conclusion_report_files?: Array<{
     id: string;
     name: string;
-    url: string;
-    type: string;
+    url?: string;
+    file_url?: string;
+    type?: string;
   }>;
 }
 

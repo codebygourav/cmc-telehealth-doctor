@@ -54,3 +54,20 @@ export const submitConclusion = async ({
 
   return data;
 };
+
+export const deleteConclusionFile = async (fileId: string, appointmentId?: string) => {
+  if (!appointmentId) {
+    throw new Error("appointmentId is required to delete conclusion files");
+  }
+
+  const { data } = await api.delete(
+    `/appointments/doctor-instructions/${appointmentId}/files`,
+    {
+      data: {
+        file_ids: [fileId],
+      },
+    }
+  );
+
+  return data;
+};

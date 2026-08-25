@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, Stethoscope, X, Calendar, Clock, BookOpen, AlertCircle } from "lucide-react";
+import { Search, Stethoscope, X, Calendar, Clock, BookOpen, AlertCircle, Loader2 } from "lucide-react";
 import type { MedicineItem, MedicineSource, MedicineStatus, PrescriptionForm } from "./prescription-dialog-types";
 
 type TimingFieldName = "timing_morning" | "timing_afternoon" | "timing_evening" | "timing_night";

@@ -18,6 +18,10 @@ export const useSubmitConclusion = () => {
       });
 
       queryClient.invalidateQueries({
+        queryKey: ["conclusion", variables.appointmentId],
+      });
+
+      queryClient.invalidateQueries({
         queryKey: ["appointment", variables.appointmentId],
       });
     },
