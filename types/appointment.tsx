@@ -35,6 +35,20 @@ export interface Appointment {
   patient: Patient;
 }
 
+export interface PaginationInfo {
+  total: number;
+  per_page: number;
+  current_page: number;
+  last_page: number;
+}
+
 export interface AppointmentListResponse {
+  success?: boolean;
+  message?: string;
+  pagination?: PaginationInfo;
+  filter?: string;
+  path?: string;
+  timestamp?: string;
   data: Appointment[];
 }
+

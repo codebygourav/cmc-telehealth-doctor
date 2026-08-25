@@ -3,6 +3,7 @@
 import AppointmentCard from "@/components/pages/appoitment/AppointmentCard";
 import AppointmentFilters from "@/components/pages/appoitment/AppointmentFilters";
 import CustomTabs, { TabItem } from "@/components/custom/CustomTabs";
+import PaginationControls from "@/components/pagination/PaginationControls";
 import { useMyAppointments } from "@/queries/useAppointments";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -17,6 +18,7 @@ const AppointmentsContent = () => {
             ? tabParam
             : "today";
     const [activeTab, setActiveTab] = useState(defaultTab);
+    const [currentPage, setCurrentPage] = useState(1);
     const [isMounted, setIsMounted] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedFilter, setSelectedFilter] = useState("all");
@@ -26,8 +28,26 @@ const AppointmentsContent = () => {
         setIsMounted(true);
     }, []);
 
-    const { data, isLoading, error } = useMyAppointments(activeTab);
+    const { data, isLoading, error } = useMyAppointments(activeTab, currentPage);
     const appointments = Array.isArray(data?.data) ? data.data : [];
+    const pagination = data?.pagination;
+
+    // Reset pagination to page 1 when query filters or search query change
+    const handleSearchQueryChange = (query: string) => {
+        setSearchQuery(query);
+        setCurrentPage(1);
+    };
+
+    const handleSelectedFilterChange = (filter: string) => {
+        setSelectedFilter(filter);
+        setCurrentPage(1);
+    };
+
+    const handleSelectedTypeChange = (type: string) => {
+        setSelectedType(type);
+        setCurrentPage(1);
+    };
+
     // ✅ Unique status list
     const statusOptions = [
         { value: "all", label: "All Status" },
@@ -44,38 +64,14 @@ const AppointmentsContent = () => {
     useEffect(() => {
         if (tabParam && ["today", "upcoming", "past", "all"].includes(tabParam)) {
             setActiveTab(tabParam);
-
+            setCurrentPage(1);
         }
     }, [tabParam]);
 
     const handleTabChange = (value: string) => {
         setActiveTab(value);
+        setCurrentPage(1);
     };
-
-    // ✅ Split Data based on current date
-    const today = appointments.filter((apt: any) => {
-        const aptDate = new Date(apt.appointment_date);
-        const todayDate = new Date();
-        return (
-            aptDate.getDate() === todayDate.getDate() &&
-            aptDate.getMonth() === todayDate.getMonth() &&
-            aptDate.getFullYear() === todayDate.getFullYear()
-        );
-    });
-
-    const upcoming = appointments.filter((apt: any) => {
-        const aptDate = new Date(apt.appointment_date);
-        const todayDate = new Date();
-        todayDate.setHours(0, 0, 0, 0);
-        return aptDate > todayDate;
-    });
-
-    const past = appointments.filter((apt: any) => {
-        const aptDate = new Date(apt.appointment_date);
-        const todayDate = new Date();
-        todayDate.setHours(0, 0, 0, 0);
-        return aptDate < todayDate;
-    });
 
     // ✅ Filters
     const applyFilters = (list: any[]) => {
@@ -94,9 +90,11 @@ const AppointmentsContent = () => {
         });
     };
 
-    // ✅ Render Cards
-    const renderCards = (list: any[]) => {
-        if (!list.length) {
+    const filteredAppointments = applyFilters(appointments);
+
+    // ✅ Render Cards & Pagination
+    const renderCardsWithPagination = () => {
+        if (!filteredAppointments.length) {
             return (
                 <div className="text-center py-12">
                     <p className="text-muted-foreground">No appointments found</p>
@@ -105,14 +103,26 @@ const AppointmentsContent = () => {
         }
 
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-5">
-                {list.map((apt: any, index: number) => (
-                    <AppointmentCard
-                        key={apt.appointment_id || index}
-                        appointment={apt}
-                        variant={activeTab as "today" | "upcoming" | "past" | "all"}
+            <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-5">
+                    {filteredAppointments.map((apt: any, index: number) => (
+                        <AppointmentCard
+                            key={apt.appointment_id || index}
+                            appointment={apt}
+                            variant={activeTab as "today" | "upcoming" | "past" | "all"}
+                        />
+                    ))}
+                </div>
+
+                {pagination && (
+                    <PaginationControls
+                        currentPage={pagination.current_page || currentPage}
+                        totalPages={pagination.last_page || 1}
+                        totalItems={pagination.total || filteredAppointments.length}
+                        itemsPerPage={pagination.per_page || 10}
+                        onPageChange={(page) => setCurrentPage(page)}
                     />
-                ))}
+                )}
             </div>
         );
     };
@@ -122,22 +132,22 @@ const AppointmentsContent = () => {
         {
             key: "all",
             label: "All",
-            content: renderCards(applyFilters(appointments)),
+            content: activeTab === "all" ? renderCardsWithPagination() : null,
         },
         {
             key: "today",
             label: "Today",
-            content: renderCards(applyFilters(today)),
+            content: activeTab === "today" ? renderCardsWithPagination() : null,
         },
         {
             key: "upcoming",
             label: "Upcoming",
-            content: renderCards(applyFilters(upcoming)),
+            content: activeTab === "upcoming" ? renderCardsWithPagination() : null,
         },
         {
             key: "past",
             label: "Past",
-            content: renderCards(applyFilters(past)),
+            content: activeTab === "past" ? renderCardsWithPagination() : null,
         },
     ];
 
@@ -168,9 +178,9 @@ const AppointmentsContent = () => {
                 searchQuery={searchQuery}
                 selectedFilter={selectedFilter}
                 selectedType={selectedType}
-                setSearchQuery={setSearchQuery}
-                setSelectedFilter={setSelectedFilter}
-                setSelectedType={setSelectedType}
+                setSearchQuery={handleSearchQueryChange}
+                setSelectedFilter={handleSelectedFilterChange}
+                setSelectedType={handleSelectedTypeChange}
                 statusOptions={statusOptions}
             />
 

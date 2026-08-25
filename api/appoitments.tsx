@@ -2,9 +2,12 @@ import api from "@/lib/axios";
 import { AppointmentListResponse } from "@/types/appointment";
 
 
-export const fetchMyAppointments = async (filter: string = "today"): Promise<AppointmentListResponse> => {
+export const fetchMyAppointments = async (
+    filter: string = "today",
+    page: number = 1
+): Promise<AppointmentListResponse> => {
     const { data } = await api.get("/appointments/my", {
-        params: { filter },
+        params: { filter, page },
     });
     return data;
 };
