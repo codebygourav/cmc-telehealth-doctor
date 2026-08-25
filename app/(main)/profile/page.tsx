@@ -14,7 +14,7 @@ import VoiceSettingsSection from "@/components/pages/profile/voiceSettingsSectio
 import { Button } from "@/components/ui";
 import HeroSection from "@/components/ui/hero-section";
 import { useAuth } from "@/context/userContext";
-import { cn } from "@/lib/utils";
+import { cn, stripHtml } from "@/lib/utils";
 import { useDoctorHome } from "@/queries/useHome";
 import { useDoctorProfile } from "@/queries/useProfile";
 import { Award, BrainCircuit, FileBadge, GraduationCap, Link, MapPinPen, Trophy, User, UserStar, Volume2 } from "lucide-react";
@@ -101,7 +101,7 @@ const ProfilePage = () => {
                 first_name: personalInfo.first_name ?? "",
                 last_name: personalInfo.last_name ?? "",
                 email: personalInfo.email ?? "",
-                bio: personalInfo.bio ?? "",
+                bio: stripHtml(personalInfo.bio),
                 phone: user?.phone ?? "",
                 medical_license: personalInfo.medical_license ?? "",
             });
@@ -218,7 +218,7 @@ const ProfilePage = () => {
             first_name: personalInfo?.first_name ?? "",
             last_name: personalInfo?.last_name ?? "",
             email: personalInfo?.email ?? "",
-            bio: personalInfo?.bio ?? "",
+            bio: stripHtml(personalInfo?.bio),
             phone: user?.phone ?? "",
             medical_license: personalInfo?.medical_license ?? "",
         });

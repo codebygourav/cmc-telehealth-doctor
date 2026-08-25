@@ -31,13 +31,19 @@ const filterAppointmentsByDate = (
 
 const MySchedulesPage = () => {
 
-    const { data, isLoading, error } = useMyAppointments("all");
-    const { data: scheduleData, isLoading: scheduleLoading, error: scheduleError } = useMySchedules();
-
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
     const [selectedSlot, setSelectedSlot] = useState<OPDSlot | undefined>(undefined);
     const router = useRouter();
+
+    const { data, isLoading, error } = useMyAppointments("all");
+
+    const scheduleParams = useMemo(() => ({
+        month: currentDate.getMonth() + 1,
+        year: currentDate.getFullYear(),
+    }), [currentDate]);
+
+    const { data: scheduleData, isLoading: scheduleLoading, error: scheduleError } = useMySchedules(scheduleParams);
 
     const filteredAppointments = useMemo(() => {
         const dateFiltered = filterAppointmentsByDate(
@@ -81,16 +87,87 @@ const MySchedulesPage = () => {
 
     const getOPDSlotsForDate = (date: Date | undefined): OPDSlot[] => {
         if (!date) return [];
-        const day = date.getDate();
-        const month = date.getMonth();
-        const year = date.getFullYear();
+        const formattedDate = date.toLocaleDateString("en-CA");
+        const days = scheduleData?.data?.days || [];
 
-        const scheduleDay = scheduleData?.data?.days?.find((s: ScheduleDay) => {
-            const sDate = new Date(s.date);
-            return sDate.getDate() === day && sDate.getMonth() === month && sDate.getFullYear() === year;
+        // 1. Try exact date match
+        const exactDay = days.find((s: ScheduleDay) => {
+            if (!s.date) return false;
+            return s.date === formattedDate || s.date.startsWith(formattedDate) || s.date.split("T")[0] === formattedDate;
         });
 
-        return scheduleDay?.slots || [];
+        if (exactDay && exactDay.slots && exactDay.slots.length > 0) {
+            return exactDay.slots;
+        }
+
+        // 2. Fallback: match by day of week if schedule template or current month data exists
+        const dayOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const dayOfWeekShorts = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const dayIndex = date.getDay();
+        const targetDayName = dayOfWeekNames[dayIndex];
+        const targetDayShort = dayOfWeekShorts[dayIndex];
+
+        const matchingDay = days.find((s: ScheduleDay) => {
+            if (s.day_name && s.day_name.toLowerCase() === targetDayName.toLowerCase()) return true;
+            if (s.day_short && s.day_short.toLowerCase() === targetDayShort.toLowerCase()) return true;
+            if (s.date) {
+                const parsed = new Date(s.date);
+                if (!isNaN(parsed.getTime())) {
+                    return parsed.getDay() === dayIndex;
+                }
+            }
+            return false;
+        });
+
+        const dateAppointments = filterAppointmentsByDate(data?.data || [], date);
+
+        if (matchingDay && matchingDay.slots && matchingDay.slots.length > 0) {
+            return matchingDay.slots.map((slot: OPDSlot) => {
+                const slotStart = slot.start_time;
+                const slotTimeRange = slot.time_range;
+                const apptsForSlot = dateAppointments.filter((appt: any) => {
+                    const apptTime = appt.appointment_time;
+                    if (apptTime && slotStart && apptTime === slotStart) return true;
+                    const apptFormatted = appt.appointment_time_formatted;
+                    if (apptFormatted && slotTimeRange && (slotTimeRange.includes(apptFormatted) || slotTimeRange.startsWith(apptFormatted.replace(/^0/, '')))) {
+                        return true;
+                    }
+                    return false;
+                });
+
+                return {
+                    ...slot,
+                    date: formattedDate,
+                    booked_count: Math.max(slot.booked_count || 0, apptsForSlot.length),
+                    appointments: apptsForSlot.length > 0 ? apptsForSlot : (slot.appointments || []),
+                };
+            });
+        }
+
+        // 3. Fallback: if date has appointments, synthesize slots from appointments
+        if (dateAppointments.length > 0) {
+            return dateAppointments.map((appt: any, idx: number) => {
+                const timeStr = appt.appointment_time_formatted || appt.appointment_time || "Scheduled Time";
+                return {
+                    id: appt.appointment_id || `synth-${idx}`,
+                    startTime: appt.appointment_time || "09:00:00",
+                    date: formattedDate,
+                    day_name: targetDayName,
+                    start_time: appt.appointment_time || "09:00:00",
+                    end_time: appt.appointment_time || "10:00:00",
+                    time_range: timeStr,
+                    consultation_type: appt.consultation_type === "video" ? "video" : "in-person",
+                    consultation_type_label: appt.consultation_type_label || (appt.consultation_type === "video" ? "Video Consultation" : "In-Person Consultation"),
+                    capacity: 10,
+                    slot_capacity: 10,
+                    booked_count: 1,
+                    available_slots: 9,
+                    appointments: [appt],
+                };
+            });
+        }
+
+        return [];
     };
 
     const onSlotClick = (slot: OPDSlot) => {
@@ -103,7 +180,13 @@ const MySchedulesPage = () => {
     };
 
     const onDateClick = (date: Date | undefined) => {
+        if (!date) return;
         setSelectedDate(date);
+
+        if (date.getMonth() !== currentDate.getMonth() || date.getFullYear() !== currentDate.getFullYear()) {
+            setCurrentDate(new Date(date.getFullYear(), date.getMonth(), 1));
+        }
+
         const slots = getOPDSlotsForDate(date);
         setSelectedSlot(slots.length > 0 ? slots[0] : undefined);
     };
@@ -112,14 +195,15 @@ const MySchedulesPage = () => {
     useEffect(() => {
         if (selectedDate && scheduleData?.data) {
             const slots = getOPDSlotsForDate(selectedDate);
-            if (slots.length > 0 && !selectedSlot) {
-                setSelectedSlot(slots[0]);
-            }
+            setSelectedSlot(slots.length > 0 ? slots[0] : undefined);
         }
-    }, [selectedDate, scheduleData, selectedSlot]);
+    }, [selectedDate, scheduleData]);
 
     const onMonthChange = (month: Date) => {
         setCurrentDate(month);
+        const newSelectedDate = new Date(month.getFullYear(), month.getMonth(), 1);
+        setSelectedDate(newSelectedDate);
+        setSelectedSlot(undefined);
     };
 
     const getOPDCount = (date: Date) => {
@@ -128,13 +212,11 @@ const MySchedulesPage = () => {
     };
 
     const hasAppointments = (date: Date) => {
-        const day = date.getDate();
-        const month = date.getMonth();
-        const year = date.getFullYear();
-        return data?.data?.some((appt: Appointment) => {
-            const apptDate = new Date(appt.appointment_date);
-            return apptDate.getDate() === day && apptDate.getMonth() === month && apptDate.getFullYear() === year;
-        }) || false;
+        if (!date || !data?.data) return false;
+        const formattedDate = date.toLocaleDateString("en-CA");
+        return data.data.some((appt: Appointment) => {
+            return appt.appointment_date === formattedDate || appt.appointment_date?.startsWith(formattedDate);
+        });
     };
 
     const isToday = (date: Date) => {
@@ -178,7 +260,7 @@ const MySchedulesPage = () => {
                                         const count = getOPDCount(date);
                                         const isSelected = selectedDate?.toDateString() === date.toDateString();
                                         const isTodayDate = isToday(date);
-                                        const hasAppt = hasAppointments(date);
+                                        const hasAppt = count > 0 || hasAppointments(date);
                                         return (
                                             <button
                                                 {...props}
@@ -272,29 +354,54 @@ const MySchedulesPage = () => {
                                 <CardContent className="pt-4 flex-1 overflow-y-auto max-h-[500px]">
                                     <div className="space-y-3">
                                         {filteredAppointments.length ? (
-                                            filteredAppointments.map((appointment) => (
-                                                <BookAppointments
-                                                    key={appointment.appointment_id}
-                                                    type="patient"
-                                                    title={
-                                                        appointment.patient_name ||
-                                                        "Unknown Patient"
-                                                    }
-                                                    avatar={appointment.patient_avatar || ""}
-                                                    time={(appointment as any).start_time + " - " + (appointment as any).end_time}
-                                                    appointmentType={
-                                                        (appointment as any).consultation_type === "video"
-                                                            ? "Video"
-                                                            : "In-Person"
-                                                    }
-                                                    status={((appointment as any).status_label || (appointment as any).status) as any}
-                                                    onClick={() => {
-                                                        if (appointment.appointment_id) {
-                                                            router.push(`/appointments/${appointment.appointment_id}`);
-                                                        }
-                                                    }}
-                                                />
-                                            ))
+                                            filteredAppointments.map((appointment: any, idx: number) => {
+                                                const patientName =
+                                                    appointment.patient?.name ||
+                                                    appointment.patient_name ||
+                                                    appointment.name ||
+                                                    "Unknown Patient";
+
+                                                const patientAvatar =
+                                                    appointment.patient?.avatar ||
+                                                    appointment.patient_avatar ||
+                                                    appointment.avatar ||
+                                                    "";
+
+                                                const appointmentTime =
+                                                    appointment.appointment_time_formatted ||
+                                                    (appointment.start_time && appointment.end_time
+                                                        ? `${appointment.start_time} - ${appointment.end_time}`
+                                                        : appointment.appointment_time || appointment.appointmentTime || "");
+
+                                                const consultationType =
+                                                    appointment.consultation_type === "video" || appointment.type === "Telehealth"
+                                                        ? "Video"
+                                                        : "In-Person";
+
+                                                const statusLabel =
+                                                    appointment.status_label ||
+                                                    appointment.status ||
+                                                    "Confirmed";
+
+                                                const apptId = appointment.appointment_id || appointment.id;
+
+                                                return (
+                                                    <BookAppointments
+                                                        key={apptId || idx}
+                                                        type="patient"
+                                                        title={patientName}
+                                                        avatar={patientAvatar}
+                                                        time={appointmentTime}
+                                                        appointmentType={consultationType}
+                                                        status={statusLabel as any}
+                                                        onClick={() => {
+                                                            if (apptId) {
+                                                                router.push(`/appointments/${apptId}`);
+                                                            }
+                                                        }}
+                                                    />
+                                                );
+                                            })
                                         ) : (
                                             <div className="text-center py-10 border rounded-lg border-dashed text-muted-foreground">
                                                 <p className="text-sm">

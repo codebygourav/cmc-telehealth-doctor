@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import InfoField from "./infoField";
+import { stripHtml } from "@/lib/utils";
 
 interface DepartmentItem {
     department_id: string;
@@ -150,7 +151,7 @@ export default function PersonalInfoSection({
 
                         <div>
                             <p className="text-sm text-muted-foreground mb-1">Bio</p>
-                            <p className="text-sm">{profileData?.bio || "-"}</p>
+                            <p className="text-sm whitespace-pre-line">{stripHtml(profileData?.bio) || "-"}</p>
                         </div>
 
                         {!!profileData?.doctor_departments?.length && (

@@ -44,9 +44,6 @@ export default function StatsCard({
             <div className="text-[#1F1E1E] font-semibold text-lg mt-4">
                 {value}
             </div>
-            <div className="text-[#4D4D4D] text-sm">
-                Next dose in 2 hours
-            </div>
             <div className="mt-5">
 
                 {/* progress bar */}
