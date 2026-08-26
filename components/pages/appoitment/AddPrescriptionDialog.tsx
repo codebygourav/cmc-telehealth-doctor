@@ -1027,6 +1027,9 @@ export default function AddPrescriptionDialog({
     const cleanedFindings = sanitizeClinicalText(findingsText);
     const cleanedRecommendedTests = sanitizeClinicalText(recommendedTests);
     const cleanedGeneralNotes = sanitizeClinicalText(generalNotes);
+    const cleanedDiagnosis = sanitizeClinicalText(diagnosis);
+    const cleanedOrderInvestigation = sanitizeClinicalText(orderInvestigation);
+    const cleanedNotes = sanitizeClinicalText(notes);
 
     if (addedMedicines.length === 0 && !hasFindings) {
       alert("Please add diagnosis, notes, order investigation, diagnostics, or at least one medicine to submit.");
@@ -1042,9 +1045,18 @@ export default function AddPrescriptionDialog({
 
     try {
       if (hasFindings) {
-        let combinedInstructions = cleanedFindings;
+        const instructionParts: string[] = [];
+        if (cleanedFindings) instructionParts.push(cleanedFindings);
+        if (cleanedDiagnosis) instructionParts.push(`Diagnosis: ${cleanedDiagnosis}`);
+        if (cleanedOrderInvestigation) instructionParts.push(`Order Investigation: ${cleanedOrderInvestigation}`);
+        if (cleanedNotes) instructionParts.push(cleanedNotes);
+        if (cleanedGeneralNotes && !instructionParts.includes(cleanedGeneralNotes)) {
+          instructionParts.push(cleanedGeneralNotes);
+        }
+
+        let combinedInstructions = instructionParts.join("\n\n");
         if (includeReports && cleanedRecommendedTests) {
-          combinedInstructions += `\n\nRecommended Tests:\n${cleanedRecommendedTests}`;
+          combinedInstructions += (combinedInstructions ? "\n\n" : "") + `Recommended Tests:\n${cleanedRecommendedTests}`;
         }
 
         await submitConclusionMutation.mutateAsync({

@@ -32,6 +32,7 @@ import {
   FileImage,
   FileText,
   Mic,
+  Stethoscope,
   Trash2,
   Pencil,
 } from "lucide-react";
@@ -409,11 +410,40 @@ export default function PrescriptionTab({
   const medicines = data?.data?.medicines || [];
   const draftHistory = (data?.data?.draft_history ?? []) as DraftHistoryItem[];
   const pdfUrl = data?.data?.pdf_url;
-  const instructionsByDoctor = data?.data?.instructions_by_doctor;
+  const instructionsByDoctorRaw =
+    data?.data?.instructions_by_doctor ||
+    conclusionData?.data?.instructions_by_doctor;
+  const notesContent =
+    data?.data?.notes ||
+    data?.data?.follow_up_note ||
+    (conclusionData?.data as any)?.notes ||
+    (conclusionData?.data as any)?.follow_up_note;
+
+  const instructionsByDoctor =
+    instructionsByDoctorRaw && instructionsByDoctorRaw !== "Consultation conclusion submitted."
+      ? instructionsByDoctorRaw
+      : notesContent || instructionsByDoctorRaw;
+
+  const diagnosis =
+    data?.data?.diagnosis ||
+    (conclusionData?.data as any)?.diagnosis ||
+    (instructionsByDoctor?.includes("Diagnosis:")
+      ? instructionsByDoctor.split("Diagnosis:")[1]?.split("\n\n")[0]?.trim()
+      : undefined);
+
+  const orderInvestigation =
+    data?.data?.order_investigation ||
+    data?.data?.order_investigations ||
+    (conclusionData?.data as any)?.order_investigation ||
+    (conclusionData?.data as any)?.order_investigations ||
+    (instructionsByDoctor?.includes("Order Investigation:")
+      ? instructionsByDoctor.split("Order Investigation:")[1]?.split("\n\n")[0]?.trim()
+      : undefined);
+
   const instructionsParts = instructionsByDoctor ? instructionsByDoctor.split("Recommended Tests:") : [];
   const initialFindings = instructionsParts[0] ? instructionsParts[0].replace("Clinical Findings:", "").trim() : "";
   const initialRecommendedTests = instructionsParts[1] ? instructionsParts[1].trim() : "";
-  const nextVisitDate = data?.data?.next_visit_date;
+  const nextVisitDate = data?.data?.next_visit_date || conclusionData?.data?.next_visit_date;
   const dictationAssistant = (data?.data?.dictation_assistant ??
     null) as DictationAssistantConfig | null;
   const doctorAddedCount = medicines.filter(
@@ -434,11 +464,13 @@ export default function PrescriptionTab({
 
   // Check if both prescription and conclusion are empty
   const hasPrescriptionData =
-    medicines.length > 0 || instructionsByDoctor || nextVisitDate || pdfUrl;
+    medicines.length > 0 || instructionsByDoctor || diagnosis || orderInvestigation || nextVisitDate || pdfUrl;
   const hasConclusionData =
     conclusionType.length > 0 ||
     fileUrl.length > 0 ||
     instructionsByDoctor ||
+    diagnosis ||
+    orderInvestigation ||
     nextVisitDate;
 
   if (!hasPrescriptionData && !hasConclusionData) {
@@ -844,8 +876,8 @@ export default function PrescriptionTab({
         </Card>
       )}
 
-      {/* Doctor Instructions & Next Visit Card */}
-      {(instructionsByDoctor || nextVisitDate) && (
+      {/* Doctor Instructions, Diagnosis, Order/Investigation & Next Visit Card */}
+      {(instructionsByDoctor || diagnosis || orderInvestigation || nextVisitDate) && (
         <Card className="overflow-hidden p-0">
           <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 border-b">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
@@ -854,7 +886,42 @@ export default function PrescriptionTab({
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="p-0">
+          <CardContent className="p-0 space-y-2 p-2 sm:p-3">
+            {/* Diagnosis */}
+            {diagnosis && (
+              <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-indigo-100 shrink-0">
+                  <Stethoscope className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wide">
+                    Diagnosis
+                  </p>
+                  <p className="text-[11px] sm:text-sm mt-1 leading-relaxed wrap-break-word font-semibold text-foreground">
+                    {diagnosis}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Order / Investigation */}
+            {orderInvestigation && (
+              <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-amber-100 shrink-0">
+                  <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wide">
+                    Order / Investigation
+                  </p>
+                  <p className="text-[11px] sm:text-sm mt-1 leading-relaxed wrap-break-word font-semibold text-foreground whitespace-pre-line">
+                    {orderInvestigation}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Instructions by Doctor */}
             {instructionsByDoctor && (
               <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
                 <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 shrink-0">
@@ -864,13 +931,38 @@ export default function PrescriptionTab({
                   <p className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wide">
                     Instructions by Doctor
                   </p>
-                  <p className="text-[11px] sm:text-sm mt-1 leading-relaxed wrap-break-word">
-                    {instructionsByDoctor}
-                  </p>
+                  {(() => {
+                    const lines =
+                      typeof instructionsByDoctor === "string"
+                        ? instructionsByDoctor
+                            .split(/\r?\n/)
+                            .map((l) => l.trim())
+                            .filter(Boolean)
+                        : [];
+
+                    if (lines.length > 1) {
+                      return (
+                        <ul className="list-disc list-inside space-y-1.5 mt-1.5 text-[11px] sm:text-sm leading-relaxed wrap-break-word text-foreground">
+                          {lines.map((line, idx) => (
+                            <li key={idx} className="pl-1">
+                              {line}
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    }
+
+                    return (
+                      <p className="text-[11px] sm:text-sm mt-1 leading-relaxed wrap-break-word whitespace-pre-line text-foreground">
+                        {instructionsByDoctor}
+                      </p>
+                    );
+                  })()}
                 </div>
               </div>
             )}
 
+            {/* Next Visit Date */}
             {nextVisitDate && (
               <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
                 <div className="p-1.5 sm:p-2 rounded-lg bg-green-100 shrink-0">

@@ -84,10 +84,37 @@ export default function OverviewTab({ appointment }: { appointment: any }) {
               <div className="space-y-3 sm:space-y-4">
                 {/* Main Complaint */}
                 <div className="flex gap-2 sm:gap-3">
-                  <div className="flex-1">
-                    <p className="text-sm sm:text-base font-medium mt-1 text-foreground">
-                      {patient?.problem || patient?.chief_complaint}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    {(() => {
+                      const problemText = patient?.problem || patient?.chief_complaint;
+                      if (!problemText) return null;
+
+                      const lines =
+                        typeof problemText === "string"
+                          ? problemText
+                              .split(/\r?\n/)
+                              .map((l: string) => l.trim())
+                              .filter(Boolean)
+                          : [];
+
+                      if (lines.length > 1) {
+                        return (
+                          <ul className="list-disc list-inside space-y-1.5 mt-1 text-xs sm:text-sm font-medium leading-relaxed wrap-break-word text-foreground">
+                            {lines.map((line: string, idx: number) => (
+                              <li key={idx} className="pl-1">
+                                {line}
+                              </li>
+                            ))}
+                          </ul>
+                        );
+                      }
+
+                      return (
+                        <p className="text-xs sm:text-sm font-medium mt-1 leading-relaxed wrap-break-word whitespace-pre-line text-foreground">
+                          {problemText}
+                        </p>
+                      );
+                    })()}
                   </div>
                 </div>
 
