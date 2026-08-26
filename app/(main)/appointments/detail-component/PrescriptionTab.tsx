@@ -1,8 +1,6 @@
 "use client";
 
-import AddConclusionDialog from "@/components/pages/appoitment/AddConclusionDialog";
 import AddPrescriptionDialog from "@/components/pages/appoitment/AddPrescriptionDialog";
-import AssignMedicineTemplateDialog from "@/components/pages/appoitment/AssignMedicineTemplateDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -381,9 +379,7 @@ export default function PrescriptionTab({
     usePrescriptionByAppointmentId(appointmentId);
   const { data: conclusionData } = useConclusionByAppointmentId(appointmentId);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isConclusionDialogOpen, setIsConclusionDialogOpen] = useState(false);
   const [dialogTab, setDialogTab] = useState<"findings" | "medicines" | "reports">("findings");
-  const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Medicine | null>(null);
   const [fileToDelete, setFileToDelete] = useState<ConclusionReportFile | null>(null);
   const [previewFile, setPreviewFile] = useState<ConclusionReportFile | null>(null);
@@ -479,15 +475,6 @@ export default function PrescriptionTab({
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 mt-4 mb-4 w-full">
           <Button
             type="button"
-            variant="outline"
-            onClick={() => setIsTemplateDialogOpen(true)}
-            className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm"
-          >
-            <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
-            Use Template
-          </Button>
-          <Button
-            type="button"
             onClick={() => {
               setDialogTab("medicines");
               setIsAddDialogOpen(true);
@@ -521,11 +508,6 @@ export default function PrescriptionTab({
           initialRecommendedTests={initialRecommendedTests}
           initialGeneralNotes={data?.data?.follow_up_note}
         />
-        <AssignMedicineTemplateDialog
-          appointmentId={appointmentId}
-          open={isTemplateDialogOpen}
-          onOpenChange={setIsTemplateDialogOpen}
-        />
       </>
     );
   }
@@ -533,15 +515,6 @@ export default function PrescriptionTab({
   return (
     <div className="space-y-4 sm:space-y-5 md:space-y-6">
       <div className="flex flex-wrap items-center justify-end gap-2 w-full">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setIsTemplateDialogOpen(true)}
-          className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm"
-        >
-          <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
-          Use Template
-        </Button>
         <Button
           type="button"
           onClick={() => {
@@ -586,16 +559,6 @@ export default function PrescriptionTab({
                 </div>
               </div>
             </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsConclusionDialogOpen(true)}
-              className="text-xs text-blue-600 border-blue-200 hover:bg-blue-50/50 rounded-xl flex items-center gap-1.5 shadow-sm"
-            >
-              <FileText className="h-3.5 w-3.5" />
-              Add / Edit Diagnostics
-            </Button>
           </div>
 
           <div className="space-y-2 sm:space-y-3">
@@ -1025,18 +988,6 @@ export default function PrescriptionTab({
         initialNextVisitDate={nextVisitDate}
         initialRecommendedTests={initialRecommendedTests}
         initialGeneralNotes={data?.data?.follow_up_note}
-      />
-
-      <AddConclusionDialog
-        appointmentId={appointmentId}
-        open={isConclusionDialogOpen}
-        onOpenChange={setIsConclusionDialogOpen}
-      />
-
-      <AssignMedicineTemplateDialog
-        appointmentId={appointmentId}
-        open={isTemplateDialogOpen}
-        onOpenChange={setIsTemplateDialogOpen}
       />
 
       {deleteTarget && (
