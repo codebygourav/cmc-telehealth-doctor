@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,9 +26,18 @@ interface PrescriptionListPanelProps {
     generalNotes: string;
     onGeneralNotesChange: (value: string) => void;
 
+    // Additional fields: Order Investigation, Diagnosis, Notes
+    orderInvestigation?: string;
+    onOrderInvestigationChange?: (value: string) => void;
+    diagnosis?: string;
+    onDiagnosisChange?: (value: string) => void;
+    notes?: string;
+    onNotesChange?: (value: string) => void;
+
     // Added findings & reports props
     findingsText?: string;
     nextVisitDate?: string;
+    onNextVisitDateChange?: (value: string) => void;
     includeReports?: boolean;
     recommendedTests?: string;
     reportFiles?: File[];
@@ -48,8 +58,15 @@ export default function PrescriptionListPanel({
     mobileTab,
     generalNotes,
     onGeneralNotesChange,
+    orderInvestigation = "",
+    onOrderInvestigationChange,
+    diagnosis = "",
+    onDiagnosisChange,
+    notes = "",
+    onNotesChange,
     findingsText = "",
     nextVisitDate = "",
+    onNextVisitDateChange,
     includeReports = false,
     recommendedTests = "",
     reportFiles = [],
@@ -261,48 +278,52 @@ export default function PrescriptionListPanel({
             )}
 
             <div className="pt-4 border-t border-slate-200 space-y-4 bg-transparent">
+                {/* Order Investigation Field */}
                 <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <Label className="text-xs font-semibold">Doctor Notes / Patient Instructions</Label>
-                        <button
-                            type="button"
-                            onClick={toggleListeningNotes}
-                            className={`p-1.5 rounded-full border transition-all ${isListeningNotes
-                                ? "bg-red-500 text-white border-red-500 animate-pulse shadow-sm"
-                                : "bg-blue-50 hover:bg-blue-100/80 text-blue-600 border-blue-200 shadow-sm"
-                                }`}
-                            title="Dictate general notes"
-                        >
-                            <Mic className="h-3.5 w-3.5" />
-                        </button>
-                    </div>
+                    <Label className="text-xs font-semibold">Order Investigation</Label>
                     <Textarea
-                        rows={3}
-                        value={generalNotes}
-                        onChange={(e) => onGeneralNotesChange(e.target.value)}
-                        placeholder="Write or dictate general notes, diagnosis, or patient instructions here. This will be printed on the prescription PDF."
+                        rows={2}
+                        value={orderInvestigation}
+                        onChange={(e) => onOrderInvestigationChange?.(e.target.value)}
+                        placeholder="Write or edit order investigations..."
                         className="text-xs rounded-2xl resize-none bg-white border-slate-200"
                     />
-                    {instructionSuggestions.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                            {instructionSuggestions.map((item) => (
-                                <button
-                                    key={item}
-                                    type="button"
-                                    onClick={() => {
-                                        const existing = generalNotes.trim();
-                                        const next = existing
-                                            ? `${existing}${existing.endsWith(".") ? "" : "."} ${item}`
-                                            : item;
-                                        onGeneralNotesChange(next.trim());
-                                    }}
-                                    className="text-[10px] px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
-                                >
-                                    {item}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                </div>
+
+                {/* Diagnosis Field */}
+                <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <Label className="text-xs font-semibold">Diagnosis</Label>
+                    <Textarea
+                        rows={2}
+                        value={diagnosis}
+                        onChange={(e) => onDiagnosisChange?.(e.target.value)}
+                        placeholder="Write or edit diagnosis..."
+                        className="text-xs rounded-2xl resize-none bg-white border-slate-200"
+                    />
+                </div>
+
+                {/* Notes Field */}
+                <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <Label className="text-xs font-semibold">Notes</Label>
+                    <Textarea
+                        rows={2}
+                        value={notes}
+                        onChange={(e) => onNotesChange?.(e.target.value)}
+                        placeholder="Write or edit notes / patient instructions..."
+                        className="text-xs rounded-2xl resize-none bg-white border-slate-200"
+                    />
+                </div>
+
+                {/* Next Follow-up Date Field */}
+                <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <Label className="text-xs font-semibold">Next Follow-up Date</Label>
+                    <Input
+                        type="date"
+                        min={new Date().toISOString().split("T")[0]}
+                        value={nextVisitDate}
+                        onChange={(e) => onNextVisitDateChange?.(e.target.value)}
+                        className="h-9 text-xs rounded-2xl border-slate-200 bg-white"
+                    />
                 </div>
 
                 <div className="space-y-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">

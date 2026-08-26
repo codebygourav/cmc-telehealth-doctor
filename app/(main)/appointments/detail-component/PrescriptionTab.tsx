@@ -1023,11 +1023,9 @@ export default function PrescriptionTab({
                         timings,
                         meal: med.meal || "after_meal",
                         application_area: med.application_area || "",
-                        remarks: med.notes || "",
                         start_date: ensureValidDate(med.start_date) || fallbackStartDate,
                         end_date: ensureValidDate(med.end_date) || null,
                         instructions: med.instructions?.join(", ") || "",
-                        follow_up_note: med.follow_up_note || "",
                       };
                     });
 

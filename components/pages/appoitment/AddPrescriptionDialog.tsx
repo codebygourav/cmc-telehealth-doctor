@@ -489,6 +489,9 @@ export default function AddPrescriptionDialog({
 
   const [mobileTab, setMobileTab] = useState<"form" | "list">("form");
   const [generalNotes, setGeneralNotes] = useState("");
+  const [orderInvestigation, setOrderInvestigation] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
+  const [notes, setNotes] = useState("");
   const [toastMessage, setToastMessage] = useState<{
     text: string;
     type: "success" | "error";
@@ -575,6 +578,9 @@ export default function AddPrescriptionDialog({
       setNextVisitDate("");
       setRecommendedTests("");
       setGeneralNotes("");
+      setOrderInvestigation("");
+      setDiagnosis("");
+      setNotes("");
       setIncludeReports(false);
       setAddedMedicines([]);
       return;
@@ -1011,13 +1017,19 @@ export default function AddPrescriptionDialog({
   const [submittingUnified, setSubmittingUnified] = useState(false);
 
   const handleFinalSubmit = async () => {
-    const hasFindings = findingsText.trim() || nextVisitDate || (includeReports && (recommendedTests.trim() || reportFiles.length > 0));
+    const hasFindings =
+      findingsText.trim() ||
+      orderInvestigation.trim() ||
+      diagnosis.trim() ||
+      notes.trim() ||
+      nextVisitDate ||
+      (includeReports && (recommendedTests.trim() || reportFiles.length > 0));
     const cleanedFindings = sanitizeClinicalText(findingsText);
     const cleanedRecommendedTests = sanitizeClinicalText(recommendedTests);
     const cleanedGeneralNotes = sanitizeClinicalText(generalNotes);
 
     if (addedMedicines.length === 0 && !hasFindings) {
-      alert("Please add clinical findings, diagnostics or at least one medicine to submit.");
+      alert("Please add diagnosis, notes, order investigation, diagnostics, or at least one medicine to submit.");
       return;
     }
 
@@ -1063,22 +1075,22 @@ export default function AddPrescriptionDialog({
             timings,
             meal: med.meal,
             application_area: med.application_area || "",
-            remarks: med.remarks || "",
             start_date: med.start_date || getTodayDate(),
             end_date: med.end_date || null,
             instructions: med.instructions || "",
-            follow_up_note: med.follow_up_note || "",
           };
         });
 
         const payload = {
           draft_id: draftId,
           stamp_preference: stampPref,
+          order_investigation: orderInvestigation.trim(),
+          diagnosis: diagnosis.trim(),
+          notes: notes.trim(),
           follow_up_note: [
             cleanedFindings ? `Clinical Findings:\n${cleanedFindings}` : "",
             cleanedRecommendedTests ? `Recommended Tests / Diagnostics:\n${cleanedRecommendedTests}` : "",
             cleanedGeneralNotes,
-            ...addedMedicines.map((med) => sanitizeClinicalText(med.follow_up_note || "")),
           ].filter(Boolean).join("\n\n"),
           medicines: medicinesPayload,
         };
@@ -1662,67 +1674,6 @@ export default function AddPrescriptionDialog({
 
                       {activeTab === "prescribe" && (
                         <div className="space-y-5 animate-in fade-in duration-200">
-                          {/* Step 1: Clinical Findings & Notes */}
-                          <div className="space-y-3 pb-5 border-b border-slate-200">
-                            <div>
-                              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-sky-700">Clinical Findings & Notes</h3>
-                              <p className="text-[11px] text-slate-500">Document symptoms, diagnosis, and observations. This section appears on the prescription PDF.</p>
-                            </div>
-
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between">
-                                <label className="text-xs font-semibold text-muted-foreground">Clinical Findings / Diagnosis</label>
-                                <button
-                                  type="button"
-                                  onClick={toggleListeningFindings}
-                                  className={`p-1.5 rounded-full border transition-all ${isListeningFindings
-                                    ? "bg-red-500 text-white border-red-500 animate-pulse shadow-sm"
-                                    : "bg-blue-50 hover:bg-blue-100/80 text-blue-600 border-blue-200 shadow-sm"
-                                    }`}
-                                  title="Dictate findings"
-                                >
-                                  <Mic className="h-4 w-4" />
-                                </button>
-                              </div>
-                              <Textarea
-                                value={findingsText}
-                                onChange={(e) => setFindingsText(e.target.value)}
-                                placeholder="Enter or dictate patient findings, symptoms, diagnosis, and notes..."
-                                rows={3}
-                                className="resize-none text-sm rounded-2xl border border-slate-200 bg-white shadow-inner"
-                              />
-                              {aiCommonDiagnoses.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 pt-1">
-                                  {aiCommonDiagnoses.map((item) => (
-                                    <button
-                                      key={item}
-                                      type="button"
-                                      onClick={() => {
-                                        const existing = findingsText.trim();
-                                        const next = existing
-                                          ? `${existing}${existing.endsWith("\n") ? "" : "\n"}${item}`
-                                          : item;
-                                        setFindingsText(next);
-                                      }}
-                                      className="text-[10px] px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
-                                    >
-                                      {item}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-semibold text-slate-600">Next Follow-up Date</label>
-                              <Input
-                                type="date"
-                                value={nextVisitDate}
-                                onChange={(e) => setNextVisitDate(e.target.value)}
-                                className="text-sm rounded-2xl border border-slate-200 bg-white"
-                              />
-                            </div>
-                          </div>
 
                           <div className="pt-2">
                             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Prescribe Medicines</h3>
@@ -2286,8 +2237,15 @@ export default function AddPrescriptionDialog({
                       mobileTab={mobileTab}
                       generalNotes={generalNotes}
                       onGeneralNotesChange={setGeneralNotes}
+                      orderInvestigation={orderInvestigation}
+                      onOrderInvestigationChange={setOrderInvestigation}
+                      diagnosis={diagnosis}
+                      onDiagnosisChange={setDiagnosis}
+                      notes={notes}
+                      onNotesChange={setNotes}
                       findingsText={findingsText}
                       nextVisitDate={nextVisitDate}
+                      onNextVisitDateChange={setNextVisitDate}
                       includeReports={includeReports}
                       recommendedTests={recommendedTests}
                       reportFiles={reportFiles}

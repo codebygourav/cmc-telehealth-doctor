@@ -105,7 +105,7 @@ export default function PrescriptionMedicineForm({
     applicationAreaOptions,
     durationOptions,
     fieldRules,
-    visibleFields = ["medicine_name", "medication_type", "strength", "dosage", "frequency", "meal", "application_area", "remarks", "follow_up_note", "timing", "duration"],
+    visibleFields = ["medicine_name", "medication_type", "strength", "dosage", "frequency", "meal", "application_area", "timing", "duration"],
     mode = "full",
     onSelectMedicine,
     onUseCustomMedicine,
@@ -446,22 +446,6 @@ export default function PrescriptionMedicineForm({
                         </Label>
                         <Textarea rows={2} value={instructions || ""} onChange={(event) => onInstructionsChange(event.target.value)} placeholder="e.g. Take after food with warm water" className="text-xs resize-none rounded-2xl border-slate-200 bg-white" />
                     </div>
-
-                    {/* Remarks (Conditional) */}
-                    {shouldShowField("remarks") && (
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold text-slate-700">Additional Remarks</Label>
-                            <Textarea rows={2} value={remarks || ""} onChange={(event) => onRemarksChange(event.target.value)} placeholder="Any extra medicine-specific remarks" className="text-xs resize-none rounded-2xl border-slate-200 bg-white" />
-                        </div>
-                    )}
-
-                    {/* Medicine specific Follow-up Note (Conditional) */}
-                    {shouldShowField("follow_up_note") && (
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold text-slate-700">Patient Follow-up Note for PDF</Label>
-                            <Textarea rows={2} value={followUpNote || ""} onChange={(event) => onFollowUpNoteChange(event.target.value)} placeholder="e.g. Review after 3 days if fever persists" className="text-xs resize-none rounded-2xl border-slate-200 bg-white" />
-                        </div>
-                    )}
                 </div>
             )}
 
