@@ -5,6 +5,8 @@ export interface NotificationItem {
   desc: string;
   created_at: string;
   is_read: boolean;
+  appointment_id?: string | null;
+  join_url?: string | null;
 }
 
 export interface NotificationsResponse {

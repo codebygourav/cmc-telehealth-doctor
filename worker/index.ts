@@ -1,11 +1,4 @@
-self.addEventListener("install", (event) => {
-    self.skipWaiting();
-});
-
-self.addEventListener("activate", (event) => {
-    event.waitUntil(self.clients.claim());
-});
-
+// @ts-nocheck
 self.addEventListener("push", (event) => {
     if (!event.data) return;
 

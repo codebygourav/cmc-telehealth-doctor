@@ -1,5 +1,6 @@
 "use client";
 
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,9 +56,16 @@ const EmptyState = ({
 );
 
 export default function NotificationsPage() {
-
     const { data, isLoading, isError, error, refetch } = useNotifications();
     const readNotificationMutation = useReadNotification();
+    const {
+        permission,
+        subscription,
+        loading: pushLoading,
+        subscribeToPush,
+        unsubscribeFromPush,
+        isSupported,
+    } = usePushNotifications();
     const [readingId, setReadingId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("all");
     const notifications = data?.data ?? [];
@@ -268,7 +276,41 @@ export default function NotificationsPage() {
                 description="Real-time updates on your clinical activity."
             />
 
-            <div className="container-max-width w-full mx-auto">
+            <div className="container-max-width w-full mx-auto space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl gap-4 shadow-sm">
+                    <div className="space-y-0.5">
+                        <h4 className="text-sm font-bold text-slate-900">Desktop & Mobile Push Alerts</h4>
+                        <p className="text-xs text-slate-500">
+                            {permission === "denied"
+                                ? "Push notifications are blocked in your browser settings."
+                                : subscription
+                                ? "You are currently subscribed to instant web push notifications."
+                                : "Enable push notifications to get instant alerts on appointments and updates."}
+                        </p>
+                    </div>
+                    <Button
+                        variant={subscription ? "outline" : "default"}
+                        size="sm"
+                        className="rounded-xl px-4 text-xs font-semibold shrink-0"
+                        disabled={!isSupported || pushLoading || permission === "denied"}
+                        onClick={async () => {
+                            if (subscription) {
+                                await unsubscribeFromPush();
+                            } else {
+                                await subscribeToPush();
+                            }
+                        }}
+                    >
+                        {pushLoading
+                            ? "Processing..."
+                            : permission === "denied"
+                            ? "Notifications Blocked"
+                            : subscription
+                            ? "Disable Push Alerts"
+                            : "Enable Push Alerts"}
+                    </Button>
+                </div>
+
                 <CustomTabs
                     tabs={tabs}
                     activeTab={activeTab}

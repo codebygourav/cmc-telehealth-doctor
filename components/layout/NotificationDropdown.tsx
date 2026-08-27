@@ -24,11 +24,24 @@ import {
   FileText,
   Loader2,
   Settings,
+  Video,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+
+import { showNativeNotification, usePushNotifications } from "@/hooks/usePushNotifications";
 
 export function NotificationDropdown() {
+  const {
+    permission,
+    subscription,
+    loading: pushLoading,
+    subscribeToPush,
+    unsubscribeFromPush,
+    isSupported,
+  } = usePushNotifications();
+
   const [open, setOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -42,11 +55,93 @@ export function NotificationDropdown() {
     }
   };
 
-  const { data: unreadCount = 0 } = useUnreadCount();
+  const { data: unreadCountApi = 0 } = useUnreadCount();
   const { data: notificationsData, isLoading: isLoadingNotifications } =
-    useNotifications({ enabled: hasOpened });
+    useNotifications({ enabled: true });
   const markAsReadMutation = useReadNotification();
   const notifications = notificationsData?.data ?? [];
+
+  const unreadCount = Math.max(
+    unreadCountApi,
+    notificationsData?.unread_count ?? 0,
+    notificationsData?.meta?.total_unread ?? 0,
+    notifications.filter((n) => !n.is_read).length
+  );
+
+  useEffect(() => {
+    if (!notifications || notifications.length === 0) return;
+
+    let storedNotifiedIds: string[] = [];
+    try {
+      const stored = localStorage.getItem("telehealth_notified_push_ids");
+      if (stored) {
+        storedNotifiedIds = JSON.parse(stored);
+      }
+    } catch {
+      storedNotifiedIds = [];
+    }
+
+    const updatedNotifiedSet = new Set(storedNotifiedIds);
+    let newNotificationsFound = false;
+
+    notifications.forEach((item) => {
+      if (!item.is_read && !updatedNotifiedSet.has(item.id)) {
+        updatedNotifiedSet.add(item.id);
+        newNotificationsFound = true;
+
+        showNativeNotification(item.title || "New Notification", {
+          body: item.desc || "",
+          tag: item.id,
+          requireInteraction: true,
+          data: {
+            url: "/notifications",
+            join_url: item.join_url,
+            appointment_id: item.appointment_id,
+            title: item.title,
+          },
+          ...(item.title === "Appointment Reminder" && item.join_url
+            ? {
+                actions: [
+                  {
+                    action: "join_call",
+                    title: "Join Call",
+                  },
+                ],
+              }
+            : {}),
+        });
+
+        toast.info(item.title || "New Notification", {
+          description: item.desc || "",
+          duration: 5000,
+          ...(item.title === "Appointment Reminder" && item.join_url
+            ? {
+                action: {
+                  label: "Join Call",
+                  onClick: () => {
+                    window.open(
+                      `/start-consultation?room_url=${encodeURIComponent(item.join_url || "")}&appointment_id=${item.appointment_id || ""}`,
+                      "_blank"
+                    );
+                  },
+                },
+              }
+            : {}),
+        });
+      }
+    });
+
+    if (newNotificationsFound) {
+      try {
+        localStorage.setItem(
+          "telehealth_notified_push_ids",
+          JSON.stringify(Array.from(updatedNotifiedSet))
+        );
+      } catch {
+        // ignore
+      }
+    }
+  }, [notifications]);
 
   const toggleExpand = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -138,6 +233,43 @@ export function NotificationDropdown() {
             )}
           </div>
 
+          {/* WebPush Subscription Toggle Banner */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-border/40 gap-2">
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-slate-800">Browser Push Alerts</span>
+              <span className="text-[10px] text-slate-500">
+                {permission === "denied"
+                  ? "Notifications blocked in browser"
+                  : subscription
+                    ? "Push notifications enabled"
+                    : "Enable push notifications"}
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant={subscription ? "outline" : "default"}
+              className="h-7 text-xs px-3 rounded-md font-medium"
+              disabled={!isSupported || pushLoading || permission === "denied"}
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (subscription) {
+                  await unsubscribeFromPush();
+                } else {
+                  await subscribeToPush();
+                }
+              }}
+            >
+              {pushLoading
+                ? "..."
+                : permission === "denied"
+                  ? "Blocked"
+                  : subscription
+                    ? "Disable"
+                    : "Enable"}
+            </Button>
+          </div>
+
           {/* Items Section */}
           <ScrollArea className="flex-1 overflow-y-auto min-h-0 bg-accent/[0.02]">
             <div className="px-1 py-1">
@@ -205,13 +337,32 @@ export function NotificationDropdown() {
                               {notification.desc}
                             </p>
 
-                            <div className="flex items-center justify-between pt-1 border-t border-border/40">
-                              <span className={cn(
-                                "text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm bg-muted/40",
-                                getNotificationTypeColor(notification.group)
-                              )}>
-                                {notification.group}
-                              </span>
+                            <div className="flex items-center justify-between pt-1 border-t border-border/40 gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className={cn(
+                                  "text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-sm bg-muted/40",
+                                  getNotificationTypeColor(notification.group)
+                                )}>
+                                  {notification.group}
+                                </span>
+                                {notification.title === "Appointment Reminder" && notification.join_url && (
+                                  <Button
+                                    size="sm"
+                                    className="h-6 px-2 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-all active:scale-95"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      window.open(
+                                        `/start-consultation?room_url=${encodeURIComponent(notification.join_url || "")}&appointment_id=${notification.appointment_id || ""}`,
+                                        "_blank"
+                                      );
+                                    }}
+                                  >
+                                    <Video className="h-3 w-3 mr-1" />
+                                    Join Call
+                                  </Button>
+                                )}
+                              </div>
 
                               {!notification.is_read && (
                                 <Button

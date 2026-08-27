@@ -15,10 +15,12 @@ export function useNotifications({ enabled = true }: UseNotificationsOptions = {
     queryKey: [NotificationQueryKeys.NOTIFICATIONS],
     queryFn: getNotifications,
     enabled,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchInterval: 10 * 1000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
 
@@ -27,12 +29,12 @@ export function useUnreadCount({ enabled = true }: UseNotificationsOptions = {})
     queryKey: [NotificationQueryKeys.UNREAD_COUNT],
     queryFn: getUnreadCount,
     enabled,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchInterval: 10 * 1000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
 

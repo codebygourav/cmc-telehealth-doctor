@@ -50,11 +50,11 @@ export const getUnreadCount = async (): Promise<number> => {
 };
 
 export const storePushSubscription = async (subscription: any) => {
-  const { data } = await notificationsApi.post("/notifications/push-subscription", subscription);
+  const { data } = await notificationsApi.post("/webpush/subscribe", subscription);
   return data;
 };
 
 export const deletePushSubscription = async (endpoint: string) => {
-  const { data } = await notificationsApi.post("/notifications/push-subscription/delete", { endpoint });
+  const { data } = await notificationsApi.post("/webpush/unsubscribe", { endpoint });
   return data;
 };

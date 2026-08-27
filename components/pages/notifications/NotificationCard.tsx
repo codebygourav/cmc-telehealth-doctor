@@ -16,6 +16,7 @@ import {
     Pill,
     Shield,
     CreditCard,
+    Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationItem } from "@/types/notification";
@@ -154,7 +155,20 @@ export function NotificationCard({
                         </div>
 
                         {/* Button - Right */}
-                        <div className="shrink-0 pt-0.5">
+                        <div className="shrink-0 pt-0.5 flex items-center gap-2">
+                            {notification.title === "Appointment Reminder" && notification.join_url && (
+                                <Button
+                                    size="sm"
+                                    className="h-8 sm:h-9 text-xs sm:text-sm px-2.5 sm:px-3 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(`/start-consultation?room_url=${encodeURIComponent(notification.join_url || "")}&appointment_id=${notification.appointment_id || ""}`, "_blank");
+                                    }}
+                                >
+                                    <Video className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                    Join Call
+                                </Button>
+                            )}
                             {!notification.is_read && (
                                 <Button
                                     size="sm"
@@ -176,7 +190,20 @@ export function NotificationCard({
                     </div>
 
                     {/* Mobile Button - Below Content */}
-                    <div className="sm:hidden">
+                    <div className="sm:hidden flex flex-col gap-2">
+                        {notification.title === "Appointment Reminder" && notification.join_url && (
+                            <Button
+                                size="sm"
+                                className="w-full mt-2 h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(`/start-consultation?room_url=${encodeURIComponent(notification.join_url || "")}&appointment_id=${notification.appointment_id || ""}`, "_blank");
+                                }}
+                            >
+                                <Video className="mr-1.5 h-3.5 w-3.5" />
+                                Join Call
+                            </Button>
+                        )}
                         {!notification.is_read && (
                             <Button
                                 size="sm"
