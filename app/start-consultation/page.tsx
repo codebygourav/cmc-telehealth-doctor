@@ -6,6 +6,8 @@ import { Pill, FileUser, Loader2 } from "lucide-react";
 import AddPrescriptionDialog from "@/components/pages/appoitment/AddPrescriptionDialog";
 import { usePrescriptionByAppointmentId } from "@/queries/usePrescriptionByAppointmentId";
 
+import { cleanAndDeduplicateText, parseClinicalInstructions } from "@/src/utils/cleanClinicalText";
+
 const ConsultationContent = () => {
 
     const searchParams = useSearchParams();
@@ -20,10 +22,17 @@ const ConsultationContent = () => {
     const { data: prescriptionData } = usePrescriptionByAppointmentId(appointmentId || "");
 
     const medicines = prescriptionData?.data?.medicines || [];
-    const instructionsByDoctor = prescriptionData?.data?.instructions_by_doctor;
-    const instructionsParts = instructionsByDoctor ? instructionsByDoctor.split("Recommended Tests:") : [];
-    const initialFindings = instructionsParts[0] ? instructionsParts[0].replace("Clinical Findings:", "").trim() : "";
-    const initialRecommendedTests = instructionsParts[1] ? instructionsParts[1].trim() : "";
+    const rawInstructions = prescriptionData?.data?.instructions_by_doctor;
+    const parsedClinical = parseClinicalInstructions(rawInstructions);
+    const instructionsByDoctor = parsedClinical.instructionsByDoctor;
+    const diagnosis = prescriptionData?.data?.diagnosis || parsedClinical.diagnosis;
+    const orderInvestigation = prescriptionData?.data?.order_investigation || parsedClinical.orderInvestigation;
+    const notes = prescriptionData?.data?.notes || parsedClinical.notes;
+
+    const instructionsParts = rawInstructions ? rawInstructions.split("Recommended Tests:") : [];
+    const rawFindings = instructionsParts[0] ? instructionsParts[0].replace("Clinical Findings:", "").trim() : "";
+    const initialFindings = cleanAndDeduplicateText(rawFindings);
+    const initialRecommendedTests = instructionsParts[1] ? cleanAndDeduplicateText(instructionsParts[1]) : "";
     const nextVisitDate = prescriptionData?.data?.next_visit_date;
     const dictationAssistant = prescriptionData?.data?.dictation_assistant ?? null;
 
@@ -105,6 +114,10 @@ const ConsultationContent = () => {
                     initialNextVisitDate={nextVisitDate}
                     initialRecommendedTests={initialRecommendedTests}
                     initialGeneralNotes={prescriptionData?.data?.follow_up_note}
+                    initialDiagnosis={diagnosis}
+                    initialOrderInvestigation={orderInvestigation}
+                    initialNotes={notes}
+                    initialInstructionsByDoctor={instructionsByDoctor}
                 />
             )}
         </div>

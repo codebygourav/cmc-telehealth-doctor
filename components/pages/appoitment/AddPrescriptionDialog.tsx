@@ -28,6 +28,7 @@ import { useSubmitConclusion } from "@/mutations/useSubmitConclusion";
 import { useMedicines } from "@/queries/useMedicines";
 import { useDoctorProfile } from "@/queries/useProfile";
 import { useMedicineTemplates } from "@/queries/useMedicineTemplates";
+import { cleanAndDeduplicateText, escapeRegExp } from "@/src/utils/cleanClinicalText";
 
 import PrescriptionEntryModeSelector from "./PrescriptionEntryModeSelector";
 import PrescriptionListPanel from "./PrescriptionListPanel";
@@ -137,6 +138,10 @@ interface AddPrescriptionDialogProps {
   initialNextVisitDate?: string;
   initialRecommendedTests?: string;
   initialGeneralNotes?: string;
+  initialDiagnosis?: string;
+  initialOrderInvestigation?: string;
+  initialNotes?: string;
+  initialInstructionsByDoctor?: string;
 }
 
 type AssistantConfig = NonNullable<
@@ -240,6 +245,10 @@ export default function AddPrescriptionDialog({
   initialNextVisitDate = "",
   initialRecommendedTests = "",
   initialGeneralNotes = "",
+  initialDiagnosis = "",
+  initialOrderInvestigation = "",
+  initialNotes = "",
+  initialInstructionsByDoctor = "",
 }: AddPrescriptionDialogProps) {
   const { token } = useAuth();
   const params = useParams();
@@ -492,6 +501,7 @@ export default function AddPrescriptionDialog({
   const [orderInvestigation, setOrderInvestigation] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [notes, setNotes] = useState("");
+  const [instructionsByDoctor, setInstructionsByDoctor] = useState("");
   const [toastMessage, setToastMessage] = useState<{
     text: string;
     type: "success" | "error";
@@ -571,18 +581,66 @@ export default function AddPrescriptionDialog({
     };
   }, []);
 
+  const mapInitialMedicinesToAdded = (rawMeds: any[]): AddedMedicine[] => {
+    if (!rawMeds || !Array.isArray(rawMeds)) return [];
+    return rawMeds.map((med) => {
+      const timesStr = String(med.times || "").toLowerCase();
+      const instructionsStr = Array.isArray(med.instructions)
+        ? med.instructions.join(", ")
+        : med.instructions || "";
+
+      const mapFreq = (lbl?: string): string => {
+        const norm = String(lbl || "").toLowerCase().trim();
+        if (norm.includes("once") || norm === "od") return "OD";
+        if (norm.includes("twice") || norm === "bd") return "BD";
+        if (norm.includes("three") || norm === "tds") return "TDS";
+        if (norm.includes("sos")) return "SOS";
+        return med.frequency || "OD";
+      };
+
+      let startDateVal = med.start_date || null;
+      let endDateVal = med.end_date || null;
+      if (med.date && typeof med.date === "string" && med.date.includes(" - ")) {
+        const parts = med.date.split(" - ");
+        if (!startDateVal && parts[0] && parts[0].trim()) startDateVal = parts[0].trim();
+        if (!endDateVal && parts[1] && parts[1].trim()) endDateVal = parts[1].trim();
+      }
+
+      return {
+        medicine_id: med.medicine_id || med.prescription_id || null,
+        medicine_name: med.name || med.medicine_name || "",
+        medication_type: med.type || med.medication_type || "tablet",
+        strength: med.strength || "",
+        dosage: med.dosage || "",
+        frequency: med.frequency || mapFreq(med.frequencylabel),
+        timing_morning: timesStr.includes("morning"),
+        timing_afternoon: timesStr.includes("afternoon"),
+        timing_evening: timesStr.includes("evening"),
+        timing_night: timesStr.includes("night"),
+        meal: med.meal || "after_meal",
+        application_area: med.application_area || "",
+        remarks: med.notes || med.remarks || "",
+        instructions: instructionsStr,
+        follow_up_note: med.follow_up_note || "",
+        start_date: startDateVal,
+        end_date: endDateVal,
+      };
+    });
+  };
+
   useEffect(() => {
     if (open) {
       setActiveTab(initialTab === "reports" ? "reports" : "prescribe");
-      setFindingsText("");
-      setNextVisitDate("");
-      setRecommendedTests("");
-      setGeneralNotes("");
-      setOrderInvestigation("");
-      setDiagnosis("");
-      setNotes("");
-      setIncludeReports(false);
-      setAddedMedicines([]);
+      setFindingsText(initialFindings || "");
+      setNextVisitDate(initialNextVisitDate || "");
+      setRecommendedTests(initialRecommendedTests || "");
+      setGeneralNotes(initialGeneralNotes || "");
+      setDiagnosis(initialDiagnosis || "");
+      setOrderInvestigation(initialOrderInvestigation || "");
+      setNotes(initialNotes || "");
+      setInstructionsByDoctor(initialInstructionsByDoctor || "");
+      setIncludeReports(Boolean(initialRecommendedTests));
+      setAddedMedicines(mapInitialMedicinesToAdded(initialMedicines));
       return;
     }
 
@@ -619,6 +677,7 @@ export default function AddPrescriptionDialog({
     setMobileTab("form");
     setToastMessage(null);
     setGeneralNotes("");
+    setInstructionsByDoctor("");
 
     // Reset findings & diagnostics states
     setFindingsText("");
@@ -631,7 +690,22 @@ export default function AddPrescriptionDialog({
     setIsListeningTests(false);
     (window as any)._findingsRec?.abort();
     (window as any)._testsRec?.abort();
-  }, [open, dictationEnabled, assistantConfig?.speech_locale, reset, initialTab]);
+  }, [
+    open,
+    dictationEnabled,
+    assistantConfig?.speech_locale,
+    reset,
+    initialTab,
+    initialFindings,
+    initialNextVisitDate,
+    initialRecommendedTests,
+    initialGeneralNotes,
+    initialDiagnosis,
+    initialOrderInvestigation,
+    initialNotes,
+    initialInstructionsByDoctor,
+    initialMedicines,
+  ]);
 
   useEffect(() => {
     if (!dictationEnabled && entryMode === "voice") {
@@ -1022,14 +1096,16 @@ export default function AddPrescriptionDialog({
       orderInvestigation.trim() ||
       diagnosis.trim() ||
       notes.trim() ||
+      instructionsByDoctor.trim() ||
       nextVisitDate ||
       (includeReports && (recommendedTests.trim() || reportFiles.length > 0));
-    const cleanedFindings = sanitizeClinicalText(findingsText);
+    const cleanedFindings = cleanAndDeduplicateText(findingsText);
     const cleanedRecommendedTests = sanitizeClinicalText(recommendedTests);
     const cleanedGeneralNotes = sanitizeClinicalText(generalNotes);
     const cleanedDiagnosis = sanitizeClinicalText(diagnosis);
     const cleanedOrderInvestigation = sanitizeClinicalText(orderInvestigation);
     const cleanedNotes = sanitizeClinicalText(notes);
+    const cleanedInstructionsByDoctor = sanitizeClinicalText(instructionsByDoctor);
 
     if (addedMedicines.length === 0 && !hasFindings) {
       alert("Please add diagnosis, notes, order investigation, diagnostics, or at least one medicine to submit.");
@@ -1045,23 +1121,9 @@ export default function AddPrescriptionDialog({
 
     try {
       if (hasFindings) {
-        const instructionParts: string[] = [];
-        if (cleanedFindings) instructionParts.push(cleanedFindings);
-        if (cleanedDiagnosis) instructionParts.push(`Diagnosis: ${cleanedDiagnosis}`);
-        if (cleanedOrderInvestigation) instructionParts.push(`Order Investigation: ${cleanedOrderInvestigation}`);
-        if (cleanedNotes) instructionParts.push(cleanedNotes);
-        if (cleanedGeneralNotes && !instructionParts.includes(cleanedGeneralNotes)) {
-          instructionParts.push(cleanedGeneralNotes);
-        }
-
-        let combinedInstructions = instructionParts.join("\n\n");
-        if (includeReports && cleanedRecommendedTests) {
-          combinedInstructions += (combinedInstructions ? "\n\n" : "") + `Recommended Tests:\n${cleanedRecommendedTests}`;
-        }
-
         await submitConclusionMutation.mutateAsync({
           appointmentId,
-          instructions_by_doctor: combinedInstructions || "Consultation conclusion submitted.",
+          instructions_by_doctor: cleanedInstructionsByDoctor || "Consultation conclusion submitted.",
           next_visit_date: nextVisitDate || getTodayDate(),
           type: includeReports ? reportType : undefined,
           files: includeReports ? reportFiles : [],
@@ -1099,11 +1161,7 @@ export default function AddPrescriptionDialog({
           order_investigation: orderInvestigation.trim(),
           diagnosis: diagnosis.trim(),
           notes: notes.trim(),
-          follow_up_note: [
-            cleanedFindings ? `Clinical Findings:\n${cleanedFindings}` : "",
-            cleanedRecommendedTests ? `Recommended Tests / Diagnostics:\n${cleanedRecommendedTests}` : "",
-            cleanedGeneralNotes,
-          ].filter(Boolean).join("\n\n"),
+          instructions_by_doctor: instructionsByDoctor.trim(),
           medicines: medicinesPayload,
         };
 
@@ -2255,6 +2313,8 @@ export default function AddPrescriptionDialog({
                       onDiagnosisChange={setDiagnosis}
                       notes={notes}
                       onNotesChange={setNotes}
+                      instructionsByDoctor={instructionsByDoctor}
+                      onInstructionsByDoctorChange={setInstructionsByDoctor}
                       findingsText={findingsText}
                       nextVisitDate={nextVisitDate}
                       onNextVisitDateChange={setNextVisitDate}

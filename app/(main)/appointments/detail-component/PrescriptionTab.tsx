@@ -17,6 +17,7 @@ import { usePrescriptionByAppointmentId } from "@/queries/usePrescriptionByAppoi
 import { useDeletePrescriptionItem } from "@/queries/useDeletePrescriptionItem";
 import { useDeleteConclusionFile } from "@/queries/useDeleteConclusionFile";
 import { getStatusColor } from "@/src/utils/getStatusColor";
+import { cleanAndDeduplicateText, parseClinicalInstructions } from "@/src/utils/cleanClinicalText";
 import {
   AlertCircle,
   Calendar,
@@ -242,11 +243,23 @@ const MedicineAccordionItem = ({
             </div>
 
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl shrink-0"
+                title="Edit medicine"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(medicine);
+                }}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl shrink-0"
+                title="Delete medicine"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(medicine);
@@ -408,37 +421,36 @@ export default function PrescriptionTab({
   const pdfUrl = data?.data?.pdf_url;
   const instructionsByDoctorRaw =
     data?.data?.instructions_by_doctor ||
-    conclusionData?.data?.instructions_by_doctor;
-  const notesContent =
-    data?.data?.notes ||
-    data?.data?.follow_up_note ||
-    (conclusionData?.data as any)?.notes ||
-    (conclusionData?.data as any)?.follow_up_note;
+    conclusionData?.data?.instructions_by_doctor || "";
 
-  const instructionsByDoctor =
-    instructionsByDoctorRaw && instructionsByDoctorRaw !== "Consultation conclusion submitted."
-      ? instructionsByDoctorRaw
-      : notesContent || instructionsByDoctorRaw;
+  const parsedClinical = parseClinicalInstructions(instructionsByDoctorRaw);
+
+  const notes =
+    data?.data?.notes ||
+    (conclusionData?.data as any)?.notes ||
+    parsedClinical.notes ||
+    undefined;
 
   const diagnosis =
     data?.data?.diagnosis ||
     (conclusionData?.data as any)?.diagnosis ||
-    (instructionsByDoctor?.includes("Diagnosis:")
-      ? instructionsByDoctor.split("Diagnosis:")[1]?.split("\n\n")[0]?.trim()
-      : undefined);
+    parsedClinical.diagnosis ||
+    undefined;
 
   const orderInvestigation =
     data?.data?.order_investigation ||
     data?.data?.order_investigations ||
     (conclusionData?.data as any)?.order_investigation ||
     (conclusionData?.data as any)?.order_investigations ||
-    (instructionsByDoctor?.includes("Order Investigation:")
-      ? instructionsByDoctor.split("Order Investigation:")[1]?.split("\n\n")[0]?.trim()
-      : undefined);
+    parsedClinical.orderInvestigation ||
+    undefined;
+
+  const instructionsByDoctor = parsedClinical.instructionsByDoctor || undefined;
 
   const instructionsParts = instructionsByDoctor ? instructionsByDoctor.split("Recommended Tests:") : [];
-  const initialFindings = instructionsParts[0] ? instructionsParts[0].replace("Clinical Findings:", "").trim() : "";
-  const initialRecommendedTests = instructionsParts[1] ? instructionsParts[1].trim() : "";
+  const rawFindings = instructionsParts[0] ? instructionsParts[0].replace("Clinical Findings:", "").trim() : "";
+  const initialFindings = cleanAndDeduplicateText(rawFindings);
+  const initialRecommendedTests = instructionsParts[1] ? cleanAndDeduplicateText(instructionsParts[1]) : "";
   const nextVisitDate = data?.data?.next_visit_date || conclusionData?.data?.next_visit_date;
   const dictationAssistant = (data?.data?.dictation_assistant ??
     null) as DictationAssistantConfig | null;
@@ -460,13 +472,14 @@ export default function PrescriptionTab({
 
   // Check if both prescription and conclusion are empty
   const hasPrescriptionData =
-    medicines.length > 0 || instructionsByDoctor || diagnosis || orderInvestigation || nextVisitDate || pdfUrl;
+    medicines.length > 0 || instructionsByDoctor || diagnosis || orderInvestigation || notes || nextVisitDate || pdfUrl;
   const hasConclusionData =
     conclusionType.length > 0 ||
     fileUrl.length > 0 ||
     instructionsByDoctor ||
     diagnosis ||
     orderInvestigation ||
+    notes ||
     nextVisitDate;
 
   if (!hasPrescriptionData && !hasConclusionData) {
@@ -507,6 +520,10 @@ export default function PrescriptionTab({
           initialNextVisitDate={nextVisitDate}
           initialRecommendedTests={initialRecommendedTests}
           initialGeneralNotes={data?.data?.follow_up_note}
+          initialDiagnosis={diagnosis}
+          initialOrderInvestigation={orderInvestigation}
+          initialNotes={notes}
+          initialInstructionsByDoctor={instructionsByDoctor}
         />
       </>
     );
@@ -521,9 +538,10 @@ export default function PrescriptionTab({
             setDialogTab("medicines");
             setIsAddDialogOpen(true);
           }}
-          className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm"
+          className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm flex items-center gap-1.5"
         >
-          Add Notes & Prescription
+          <Pencil className="h-3.5 w-3.5" />
+          Edit Notes & Prescription
         </Button>
       </div>
 
@@ -559,6 +577,18 @@ export default function PrescriptionTab({
                 </div>
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs flex items-center gap-1 shrink-0"
+              onClick={() => {
+                setDialogTab("medicines");
+                setIsAddDialogOpen(true);
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit Medicines
+            </Button>
           </div>
 
           <div className="space-y-2 sm:space-y-3">
@@ -839,14 +869,26 @@ export default function PrescriptionTab({
         </Card>
       )}
 
-      {/* Doctor Instructions, Diagnosis, Order/Investigation & Next Visit Card */}
-      {(instructionsByDoctor || diagnosis || orderInvestigation || nextVisitDate) && (
+      {/* Doctor Instructions, Diagnosis, Order/Investigation, Notes & Next Visit Card */}
+      {(instructionsByDoctor || diagnosis || orderInvestigation || notes || nextVisitDate) && (
         <Card className="overflow-hidden p-0">
-          <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 border-b">
+          <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 border-b flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               {/* Doctor's Advice */}
               Conclusion
             </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs flex items-center gap-1 shrink-0"
+              onClick={() => {
+                setDialogTab("findings");
+                setIsAddDialogOpen(true);
+              }}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit Conclusion
+            </Button>
           </CardHeader>
 
           <CardContent className="p-0 space-y-2 p-2 sm:p-3">
@@ -884,6 +926,23 @@ export default function PrescriptionTab({
               </div>
             )}
 
+            {/* Notes */}
+            {notes && (
+              <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-blue-100 shrink-0">
+                  <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wide">
+                    Notes
+                  </p>
+                  <p className="text-[11px] sm:text-sm mt-1 leading-relaxed wrap-break-word font-semibold text-foreground whitespace-pre-line">
+                    {notes}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Instructions by Doctor */}
             {instructionsByDoctor && (
               <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
@@ -895,13 +954,11 @@ export default function PrescriptionTab({
                     Instructions by Doctor
                   </p>
                   {(() => {
-                    const lines =
-                      typeof instructionsByDoctor === "string"
-                        ? instructionsByDoctor
-                            .split(/\r?\n/)
-                            .map((l) => l.trim())
-                            .filter(Boolean)
-                        : [];
+                    const cleaned = cleanAndDeduplicateText(instructionsByDoctor);
+                    const lines = cleaned
+                      .split(/\r?\n/)
+                      .map((l) => l.trim())
+                      .filter(Boolean);
 
                     if (lines.length > 1) {
                       return (
@@ -917,7 +974,7 @@ export default function PrescriptionTab({
 
                     return (
                       <p className="text-[11px] sm:text-sm mt-1 leading-relaxed wrap-break-word whitespace-pre-line text-foreground">
-                        {instructionsByDoctor}
+                        {cleaned || instructionsByDoctor}
                       </p>
                     );
                   })()}
@@ -988,6 +1045,10 @@ export default function PrescriptionTab({
         initialNextVisitDate={nextVisitDate}
         initialRecommendedTests={initialRecommendedTests}
         initialGeneralNotes={data?.data?.follow_up_note}
+        initialDiagnosis={diagnosis}
+        initialOrderInvestigation={orderInvestigation}
+        initialNotes={notes}
+        initialInstructionsByDoctor={instructionsByDoctor}
       />
 
       {deleteTarget && (

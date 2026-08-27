@@ -26,13 +26,15 @@ interface PrescriptionListPanelProps {
     generalNotes: string;
     onGeneralNotesChange: (value: string) => void;
 
-    // Additional fields: Order Investigation, Diagnosis, Notes
+    // Additional fields: Order Investigation, Diagnosis, Notes, Instructions by Doctor
     orderInvestigation?: string;
     onOrderInvestigationChange?: (value: string) => void;
     diagnosis?: string;
     onDiagnosisChange?: (value: string) => void;
     notes?: string;
     onNotesChange?: (value: string) => void;
+    instructionsByDoctor?: string;
+    onInstructionsByDoctorChange?: (value: string) => void;
 
     // Added findings & reports props
     findingsText?: string;
@@ -64,6 +66,8 @@ export default function PrescriptionListPanel({
     onDiagnosisChange,
     notes = "",
     onNotesChange,
+    instructionsByDoctor = "",
+    onInstructionsByDoctorChange,
     findingsText = "",
     nextVisitDate = "",
     onNextVisitDateChange,
@@ -310,6 +314,18 @@ export default function PrescriptionListPanel({
                         value={notes}
                         onChange={(e) => onNotesChange?.(e.target.value)}
                         placeholder="Write or edit notes / patient instructions..."
+                        className="text-xs rounded-2xl resize-none bg-white border-slate-200"
+                    />
+                </div>
+
+                {/* Instructions by Doctor Field */}
+                <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <Label className="text-xs font-semibold">Instructions by Doctor</Label>
+                    <Textarea
+                        rows={2}
+                        value={instructionsByDoctor}
+                        onChange={(e) => onInstructionsByDoctorChange?.(e.target.value)}
+                        placeholder="Write or edit instructions by doctor..."
                         className="text-xs rounded-2xl resize-none bg-white border-slate-200"
                     />
                 </div>
