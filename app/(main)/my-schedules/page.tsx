@@ -265,8 +265,8 @@ const MySchedulesPage = () => {
                                             <button
                                                 {...props}
                                                 className={`
-                                                    relative flex items-center justify-center
-                                                    aspect-square w-full
+                                                    relative flex flex-col items-center justify-center
+                                                    aspect-square w-full p-1 gap-0.5
                                                     text-sm font-normal rounded-md transition-all duration-200
                                                     h-auto mx-auto z-10
                                                     ${isSelected
@@ -287,17 +287,15 @@ const MySchedulesPage = () => {
                                                     }
                                                 `}
                                             >
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <span>{date.getDate()}</span>
+                                                <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full">
+                                                    <span className="text-xs sm:text-sm font-medium leading-none">{date.getDate()}</span>
                                                     {count > 0 && (
-                                                        <span className="absolute md:bottom-1 -bottom-1 left-1/2 transform -translate-x-1/2">
-                                                            <Badge
-                                                                variant="outline"
-                                                                className={`h-4 md:px-1 px-0.5 md:text-[8px] text-[7px] bg-primary/10 ${isSelected ? 'text-white' : ''}`}
-                                                            >
-                                                                {count} {count === 1 ? 'OPD' : "OPD's"}
-                                                            </Badge>
-                                                        </span>
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={`h-3.5 md:px-1 px-0.5 text-[8px] font-normal leading-none bg-primary/10 border-primary/20 shrink-0 ${isSelected ? 'text-white border-white/30' : ''}`}
+                                                        >
+                                                            {count} {count === 1 ? 'OPD' : "OPD's"}
+                                                        </Badge>
                                                     )}
                                                     {isTodayDate && (
                                                         <span className={`absolute md:top-1.5 top-1 md:right-1.5 right-1 h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-primary'}`} />
