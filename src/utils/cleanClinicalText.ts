@@ -60,6 +60,34 @@ export function sanitizeClinicalText(text?: string | null): string {
   return cleaned.replace(/\\n/g, "\n").trim();
 }
 
+export function formatClinicalValue(val: any): string {
+  if (!val) return "";
+  if (Array.isArray(val)) {
+    return val.map((v) => String(v).trim()).filter(Boolean).join("\n");
+  }
+  if (typeof val === "string") {
+    let trimmed = val.trim();
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((v) => String(v).trim()).filter(Boolean).join("\n");
+        }
+      } catch {
+        // Continue
+      }
+    }
+    if (
+      (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+      (trimmed.startsWith("'") && trimmed.endsWith("'"))
+    ) {
+      trimmed = trimmed.slice(1, -1).trim();
+    }
+    return trimmed;
+  }
+  return String(val);
+}
+
 export function parseClinicalInstructions(rawText?: string | null): {
   diagnosis: string;
   orderInvestigation: string;

@@ -1,6 +1,7 @@
 "use client";
 
 import AddPrescriptionDialog from "@/components/pages/appoitment/AddPrescriptionDialog";
+import PatientMedicalRecordTab from "@/components/pages/appoitment/PatientMedicalRecordTab";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -391,6 +392,7 @@ export default function PrescriptionTab({
   const { data, isLoading, error } =
     usePrescriptionByAppointmentId(appointmentId);
   const { data: conclusionData } = useConclusionByAppointmentId(appointmentId);
+  const [subTab, setSubTab] = useState<"prescription" | "medical_record">("prescription");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [dialogTab, setDialogTab] = useState<"findings" | "medicines" | "reports">("findings");
   const [deleteTarget, setDeleteTarget] = useState<Medicine | null>(null);
@@ -427,6 +429,7 @@ export default function PrescriptionTab({
 
   const notes =
     data?.data?.notes ||
+    data?.data?.clinical_notes ||
     (conclusionData?.data as any)?.notes ||
     parsedClinical.notes ||
     undefined;
@@ -467,15 +470,26 @@ export default function PrescriptionTab({
   // Conclusion data
   const conclusionFiles = (conclusionData?.data?.conclusion_report_files ??
     []) as ConclusionReportFile[];
-  const conclusionType = conclusionFiles.map((file) => file.type);
-  const fileUrl = conclusionFiles.map((file) => file.url);
+
+  // Filter out files uploaded from patient medical record tab
+  const doctorReferenceFiles = conclusionFiles.filter((file) => {
+    const typeLower = (file.type || "").toLowerCase();
+    const nameLower = (file.name || "").toLowerCase();
+    const isPatientMedicalRecord =
+      typeLower === "patient_medical_record" ||
+      typeLower === "patient-medical-record" ||
+      typeLower.includes("patient_medical_record") ||
+      typeLower.includes("patient-medical-record") ||
+      nameLower.includes("patient_medical_record") ||
+      nameLower.includes("patient-medical-record");
+    return !isPatientMedicalRecord;
+  });
 
   // Check if both prescription and conclusion are empty
   const hasPrescriptionData =
     medicines.length > 0 || instructionsByDoctor || diagnosis || orderInvestigation || notes || nextVisitDate || pdfUrl;
   const hasConclusionData =
-    conclusionType.length > 0 ||
-    fileUrl.length > 0 ||
+    doctorReferenceFiles.length > 0 ||
     instructionsByDoctor ||
     diagnosis ||
     orderInvestigation ||
@@ -510,6 +524,7 @@ export default function PrescriptionTab({
             </div>
           </CardContent>
         </Card>
+        <PatientMedicalRecordTab appointmentId={appointmentId} />
         <AddPrescriptionDialog
           open={isAddDialogOpen}
           onOpenChange={setIsAddDialogOpen}
@@ -544,6 +559,8 @@ export default function PrescriptionTab({
           Edit Notes & Prescription
         </Button>
       </div>
+
+      <PatientMedicalRecordTab appointmentId={appointmentId} />
 
       {/* Medicines List - Accordion */}
       {medicines.length > 0 && (
@@ -607,7 +624,7 @@ export default function PrescriptionTab({
           </div>
 
           {/* Recommended Diagnostics / Tests */}
-          {((instructionsByDoctor && instructionsByDoctor.includes("Recommended Tests:")) || conclusionFiles.length > 0) && (
+          {((instructionsByDoctor && instructionsByDoctor.includes("Recommended Tests:")) || doctorReferenceFiles.length > 0) && (
             <Card className="overflow-hidden border border-indigo-100 hover:shadow-md transition-all duration-300 rounded-2xl bg-linear-to-br from-indigo-50/10 to-indigo-50/30 mt-4">
               <CardHeader className="p-4 sm:p-5 border-b border-indigo-100/50 bg-indigo-50/20">
                 <div className="flex items-center justify-between">
@@ -634,9 +651,9 @@ export default function PrescriptionTab({
                   {/* Doctor Uploads */}
                   <div className="space-y-2">
                     <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider block">Doctor Reference Files</span>
-                    {conclusionFiles.length > 0 ? (
+                    {doctorReferenceFiles.length > 0 ? (
                       <div className="space-y-2">
-                        {conclusionFiles.map((file, idx) => {
+                        {doctorReferenceFiles.map((file, idx) => {
                           const fullUrl = getFileUrl(file);
                           const isImg = isImageFile(file.file_url || file.url || file.name);
 
@@ -693,7 +710,7 @@ export default function PrescriptionTab({
                   {/* Patient Upload Status */}
                   <div className="space-y-2">
                     <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider block">Patient Report Upload</span>
-                    {conclusionFiles.some(f => f.type === "patient-uploaded" || f.name?.toLowerCase().includes("patient")) ? (
+                    {doctorReferenceFiles.some(f => f.type === "patient-uploaded" || f.name?.toLowerCase().includes("patient")) ? (
                       <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl flex items-center gap-2">
                         <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-xs text-emerald-800 font-bold">Patient uploaded report files successfully</span>
@@ -1008,29 +1025,34 @@ export default function PrescriptionTab({
       )}
 
       {/* File URLs - Only show for type "other" */}
-      {conclusionType.includes("other") && fileUrl.length > 0 && (
+      {doctorReferenceFiles.some((f) => f.type === "other") && (
         <div className="mt-3 sm:mt-4 p-4 border rounded-lg">
           <p className="text-base font-medium tracking-wide mb-1 sm:mb-2">
             Uploaded by Doctor
           </p>
           <div className="space-y-2">
-            {fileUrl.map((url: string | undefined, index: number) => (
-              <a
-                key={index}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-2 bg-white rounded border hover:bg-blue-50 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800 truncate flex-1">
-                    File {index + 1}
-                  </span>
-                </div>
-                <ExternalLink className="h-4 w-4 text-blue-600 shrink-0" />
-              </a>
-            ))}
+            {doctorReferenceFiles
+              .filter((f) => f.type === "other")
+              .map((file, index: number) => {
+                const url = getFileUrl(file);
+                return (
+                  <a
+                    key={file.id || index}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-2 bg-white rounded border hover:bg-blue-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800 truncate flex-1">
+                        {file.name || `File ${index + 1}`}
+                      </span>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-blue-600 shrink-0" />
+                  </a>
+                );
+              })}
           </div>
         </div>
       )}

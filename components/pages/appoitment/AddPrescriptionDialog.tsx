@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Undo2, X, ClipboardList, Stethoscope, FileText, Mic } from "lucide-react";
+import { Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -28,7 +28,13 @@ import { useSubmitConclusion } from "@/mutations/useSubmitConclusion";
 import { useMedicines } from "@/queries/useMedicines";
 import { useDoctorProfile } from "@/queries/useProfile";
 import { useMedicineTemplates } from "@/queries/useMedicineTemplates";
-import { cleanAndDeduplicateText, escapeRegExp } from "@/src/utils/cleanClinicalText";
+import {
+  usePatientMedicalRecord,
+  useSavePatientMedicalRecord,
+  useDeletePatientMedicalRecordFiles,
+} from "@/queries/usePatientMedicalRecord";
+import { PatientMedicalRecordFile } from "@/api/patient-medical-record";
+import { cleanAndDeduplicateText, escapeRegExp, formatClinicalValue } from "@/src/utils/cleanClinicalText";
 
 import PrescriptionEntryModeSelector from "./PrescriptionEntryModeSelector";
 import PrescriptionListPanel from "./PrescriptionListPanel";
@@ -122,7 +128,7 @@ interface AddPrescriptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   appointmentId?: string;
-  initialTab?: "findings" | "medicines" | "reports";
+  initialTab?: "findings" | "medicines" | "reports" | "medical_record" | "prescribe";
   assistantConfig?: {
     enabled?: boolean;
     input_mode?: string;
@@ -234,6 +240,42 @@ const guidedVoiceSteps = [
   },
 ];
 
+const getFileUrl = (file: PatientMedicalRecordFile | string): string => {
+  if (!file) return "#";
+  const rawUrl = typeof file === "string" ? file : file.file_url || file.url || "";
+  if (!rawUrl) return "#";
+  if (
+    rawUrl.startsWith("http://") ||
+    rawUrl.startsWith("https://") ||
+    rawUrl.startsWith("blob:") ||
+    rawUrl.startsWith("data:")
+  ) {
+    return rawUrl;
+  }
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const rootDomain = apiBase
+    .replace(/\/api\/v2\/?$/, "")
+    .replace(/\/api\/?$/, "");
+  const baseUrl = rootDomain || "https://telehealthwebapplive.cmcludhiana.in";
+
+  const cleanPath = rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+  return `${baseUrl}${cleanPath}`;
+};
+
+const isImageFile = (filenameOrUrl: string | undefined | null): boolean => {
+  if (!filenameOrUrl) return false;
+  const clean = filenameOrUrl.split("?")[0].toLowerCase();
+  return (
+    clean.endsWith(".jpg") ||
+    clean.endsWith(".jpeg") ||
+    clean.endsWith(".png") ||
+    clean.endsWith(".gif") ||
+    clean.endsWith(".webp") ||
+    clean.endsWith(".svg") ||
+    clean.endsWith(".bmp")
+  );
+};
+
 export default function AddPrescriptionDialog({
   open,
   onOpenChange,
@@ -340,9 +382,71 @@ export default function AddPrescriptionDialog({
     setAddedMedicines(newMeds);
   };
 
-  const [activeTab, setActiveTab] = useState<"prescribe" | "reports">(
-    initialTab === "reports" ? "reports" : "prescribe"
+  const [activeTab, setActiveTab] = useState<"prescribe" | "reports" | "medical_record">(
+    initialTab === "reports"
+      ? "reports"
+      : initialTab === "medical_record"
+      ? "medical_record"
+      : "prescribe"
   );
+
+  // Patient Medical Record States
+  const { data: medicalRecordResponse } = usePatientMedicalRecord(appointmentId || "");
+  const saveMedicalRecordMutation = useSavePatientMedicalRecord();
+  const deleteMedicalRecordFilesMutation = useDeletePatientMedicalRecordFiles();
+
+  const [medicalRecordForm, setMedicalRecordForm] = useState({
+    chief_complaint: "",
+    history_of_present_illness: "",
+    present_medical_history: "",
+    family_history: "",
+    personal_history: "",
+    examination: "",
+    final_diagnosis: "",
+    investigation: "",
+    treatment: "",
+    notes: "",
+  });
+  const [medicalRecordFiles, setMedicalRecordFiles] = useState<File[]>([]);
+  const [existingMedicalRecordFiles, setExistingMedicalRecordFiles] = useState<PatientMedicalRecordFile[]>([]);
+
+  useEffect(() => {
+    if (medicalRecordResponse?.data) {
+      const rec = medicalRecordResponse.data;
+      const rawClinicalNotes =
+        rec.notes !== undefined && rec.notes !== null
+          ? rec.notes
+          : rec.clinical_notes;
+
+      setMedicalRecordForm({
+        chief_complaint: formatClinicalValue(rec.chief_complaint),
+        history_of_present_illness: formatClinicalValue(rec.history_of_present_illness),
+        present_medical_history: formatClinicalValue(rec.present_medical_history),
+        family_history: formatClinicalValue(rec.family_history),
+        personal_history: formatClinicalValue(rec.personal_history),
+        examination: formatClinicalValue(rec.examination),
+        final_diagnosis: formatClinicalValue(rec.final_diagnosis),
+        investigation: formatClinicalValue(rec.investigation),
+        treatment: formatClinicalValue(rec.treatment),
+        notes: formatClinicalValue(rawClinicalNotes),
+      });
+      const files = rec.attached_docs || rec.files || rec.medical_record_files || rec.attached_files || [];
+      setExistingMedicalRecordFiles(files);
+    }
+  }, [medicalRecordResponse]);
+
+  const handleDeleteExistingMedicalFile = async (fileId: string) => {
+    if (!appointmentId || !fileId) return;
+    try {
+      await deleteMedicalRecordFilesMutation.mutateAsync({
+        appointmentId,
+        fileIds: [fileId],
+      });
+      setExistingMedicalRecordFiles((prev) => prev.filter((f) => f.id !== fileId));
+    } catch (err) {
+      console.error("Failed to delete medical record file:", err);
+    }
+  };
 
   // Findings States
   const [findingsText, setFindingsText] = useState("");
@@ -1091,6 +1195,19 @@ export default function AddPrescriptionDialog({
   const [submittingUnified, setSubmittingUnified] = useState(false);
 
   const handleFinalSubmit = async () => {
+    const hasMedicalRecordData =
+      Boolean(medicalRecordForm.chief_complaint.trim()) ||
+      Boolean(medicalRecordForm.history_of_present_illness.trim()) ||
+      Boolean(medicalRecordForm.present_medical_history.trim()) ||
+      Boolean(medicalRecordForm.family_history.trim()) ||
+      Boolean(medicalRecordForm.personal_history.trim()) ||
+      Boolean(medicalRecordForm.examination.trim()) ||
+      Boolean(medicalRecordForm.final_diagnosis.trim()) ||
+      Boolean(medicalRecordForm.investigation.trim()) ||
+      Boolean(medicalRecordForm.treatment.trim()) ||
+      Boolean(medicalRecordForm.notes.trim()) ||
+      medicalRecordFiles.length > 0;
+
     const hasFindings =
       findingsText.trim() ||
       orderInvestigation.trim() ||
@@ -1107,8 +1224,8 @@ export default function AddPrescriptionDialog({
     const cleanedNotes = sanitizeClinicalText(notes);
     const cleanedInstructionsByDoctor = sanitizeClinicalText(instructionsByDoctor);
 
-    if (addedMedicines.length === 0 && !hasFindings) {
-      alert("Please add diagnosis, notes, order investigation, diagnostics, or at least one medicine to submit.");
+    if (addedMedicines.length === 0 && !hasFindings && !hasMedicalRecordData) {
+      alert("Please add medical record details, diagnosis, notes, order investigation, diagnostics, or at least one medicine to submit.");
       return;
     }
 
@@ -1120,6 +1237,18 @@ export default function AddPrescriptionDialog({
     setSubmittingUnified(true);
 
     try {
+      if (hasMedicalRecordData && appointmentId) {
+        await saveMedicalRecordMutation.mutateAsync({
+          appointmentId,
+          ...medicalRecordForm,
+          notes: medicalRecordForm.notes,
+          clinical_notes: medicalRecordForm.notes,
+          files: medicalRecordFiles,
+          attached_docs: medicalRecordFiles,
+          type: "patient_medical_record",
+        });
+      }
+
       if (hasFindings) {
         await submitConclusionMutation.mutateAsync({
           appointmentId,
@@ -1718,6 +1847,17 @@ export default function AddPrescriptionDialog({
                       <div className="flex mb-5 gap-2 fEnable Desktop Pushlex-wrap rounded-lg border border-slate-100 bg-slate-50 p-1.5 shadow-sm justify-center">
                         <button
                           type="button"
+                          onClick={() => setActiveTab("medical_record")}
+                          className={`flex items-center gap-2 px-2 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${activeTab === "medical_record"
+                            ? "bg-muted text-black shadow-sm ring-1 ring-slate-200"
+                            : "text-slate-500 hover:bg-white/70"
+                            }`}
+                        >
+                          <ClipboardList className="h-4 w-4" />
+                          Patient Medical Record
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => setActiveTab("prescribe")}
                           className={`flex items-center gap-2 px-2 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${activeTab === "prescribe"
                             ? "bg-muted text-black shadow-sm ring-1 ring-slate-200"
@@ -2279,6 +2419,222 @@ export default function AddPrescriptionDialog({
                               </div>
                             </div>
                           )}
+                        </div>
+                      )}
+
+                      {activeTab === "medical_record" && (
+                        <div className="space-y-5 animate-in fade-in duration-200">
+                          <div className="p-3.5 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                            <h4 className="text-sm font-bold text-slate-900">Patient Medical Record</h4>
+                            <p className="text-xs text-slate-500">Record clinical details, medical history, diagnosis, and reports. All data will be saved when you click &quot;Save &amp; Submit&quot;.</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">Chief Complaint</label>
+                              <Textarea
+                                placeholder="Primary reason for visit..."
+                                rows={2}
+                                value={medicalRecordForm.chief_complaint}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, chief_complaint: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">History of Present Illness</label>
+                              <Textarea
+                                placeholder="Detailed timeline and symptoms..."
+                                rows={2}
+                                value={medicalRecordForm.history_of_present_illness}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, history_of_present_illness: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">Present Medical History</label>
+                              <Textarea
+                                placeholder="Existing conditions or active treatments..."
+                                rows={2}
+                                value={medicalRecordForm.present_medical_history}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, present_medical_history: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">Family History</label>
+                              <Textarea
+                                placeholder="Hereditary diseases / family history..."
+                                rows={2}
+                                value={medicalRecordForm.family_history}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, family_history: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">Personal History</label>
+                              <Textarea
+                                placeholder="Lifestyle, habits, allergies..."
+                                rows={2}
+                                value={medicalRecordForm.personal_history}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, personal_history: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">Examination</label>
+                              <Textarea
+                                placeholder="Vitals & clinical inspection findings..."
+                                rows={2}
+                                value={medicalRecordForm.examination}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, examination: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">Final Diagnosis</label>
+                              <Textarea
+                                placeholder="Conclusive medical diagnosis..."
+                                rows={2}
+                                value={medicalRecordForm.final_diagnosis}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, final_diagnosis: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">Investigation</label>
+                              <Textarea
+                                placeholder="Ordered tests (lab, radiology)..."
+                                rows={2}
+                                value={medicalRecordForm.investigation}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, investigation: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">Treatment</label>
+                              <Textarea
+                                placeholder="Prescribed medications & care plan..."
+                                rows={2}
+                                value={medicalRecordForm.treatment}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, treatment: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">Clinical Notes</label>
+                              <Textarea
+                                placeholder="Additional clinical notes..."
+                                rows={2}
+                                value={medicalRecordForm.notes}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, notes: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Media Upload Section */}
+                          <div className="space-y-3 pt-3 border-t">
+                            <label className="text-xs font-bold text-slate-800 block">
+                              Attached Media & Reports (PDF, PNG, JPG, JPEG, WEBP)
+                            </label>
+
+                            {/* Previously Uploaded Files */}
+                            {existingMedicalRecordFiles.length > 0 && (
+                              <div className="space-y-1.5">
+                                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                                  Previously Uploaded Files ({existingMedicalRecordFiles.length})
+                                </span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {existingMedicalRecordFiles.map((file, idx) => {
+                                    const fullUrl = getFileUrl(file);
+                                    const isImg = isImageFile(file.file_url || file.url || file.name || file.file_name);
+                                    const fileName = file.name || file.file_name || `Attachment #${idx + 1}`;
+                                    return (
+                                      <div
+                                        key={file.id || idx}
+                                        className="flex items-center justify-between p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs gap-2"
+                                      >
+                                        <a
+                                          href={fullUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-1.5 flex-1 min-w-0 font-medium text-slate-700 hover:text-primary hover:underline truncate"
+                                        >
+                                          {isImg ? (
+                                            <FileImage className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+                                          ) : (
+                                            <FileText className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                                          )}
+                                          <span className="truncate">{fileName}</span>
+                                        </a>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          <a
+                                            href={fullUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-1 text-slate-400 hover:text-primary transition-colors"
+                                            title="Open file"
+                                          >
+                                            <ExternalLink className="h-3.5 w-3.5" />
+                                          </a>
+                                          {file.id && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleDeleteExistingMedicalFile(file.id)}
+                                              className="p-1 text-red-500 hover:text-red-700 transition-colors"
+                                              title="Delete file"
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {medicalRecordFiles.length > 0 && (
+                              <div className="space-y-1.5">
+                                <span className="text-[10px] uppercase font-bold text-primary tracking-wider">
+                                  Selected Files to Upload ({medicalRecordFiles.length})
+                                </span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {medicalRecordFiles.map((file, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-2 bg-primary/5 border border-primary/20 rounded-xl text-xs">
+                                      <span className="truncate font-medium text-slate-700">{file.name}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => setMedicalRecordFiles((prev) => prev.filter((_, i) => i !== idx))}
+                                        className="text-red-500 hover:text-red-700 p-1"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="relative border-2 border-dashed border-slate-200 hover:border-primary/50 transition-colors rounded-xl p-3 text-center cursor-pointer bg-white">
+                              <input
+                                type="file"
+                                multiple
+                                accept=".pdf,.png,.jpg,.jpeg,.webp"
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files.length > 0) {
+                                    setMedicalRecordFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                                  }
+                                }}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              />
+                              <div className="flex flex-col items-center gap-1 pointer-events-none">
+                                <Upload className="h-5 w-5 text-slate-400" />
+                                <p className="text-xs font-semibold text-slate-600">Click or drag files here to attach</p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
