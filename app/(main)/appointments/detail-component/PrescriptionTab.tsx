@@ -140,6 +140,27 @@ const isImageFile = (filenameOrUrl: string | undefined | null): boolean => {
   );
 };
 
+const renderFormattedContent = (text: string | undefined | null) => {
+  if (!text || !text.trim()) return null;
+
+  const rawLines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (rawLines.length === 0) return null;
+
+  return (
+    <ol className="list-decimal list-inside space-y-1 text-xs text-foreground font-medium mt-1">
+      {rawLines.map((line, idx) => (
+        <li key={idx} className="leading-relaxed">
+          {line.replace(/^[\d+[\.\)]|\-\|\*]\s*/, "")}
+        </li>
+      ))}
+    </ol>
+  );
+};
+
 // Accordion Item Component
 const MedicineAccordionItem = ({
   medicine,
@@ -917,11 +938,9 @@ export default function PrescriptionTab({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wide">
-                    Diagnosis
+                    Final Diagnosis
                   </p>
-                  <p className="text-[11px] sm:text-sm mt-1 leading-relaxed wrap-break-word font-semibold text-foreground">
-                    {diagnosis}
-                  </p>
+                  {renderFormattedContent(diagnosis)}
                 </div>
               </div>
             )}

@@ -77,6 +77,28 @@ const isImageFile = (filenameOrUrl: string | undefined | null): boolean => {
     clean.endsWith(".bmp")
   );
 };
+const renderLiveListPreview = (value: string | undefined | null) => {
+  if (!value || !value.trim()) return null;
+  const lines = value
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return null;
+
+  return (
+    <div className="p-2.5 bg-muted/30 border rounded-xl text-xs space-y-1 mt-1.5 animate-in fade-in duration-150">
+      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+        Preview
+      </div>
+      <ol className="list-decimal list-inside space-y-1 font-semibold text-foreground">
+        {lines.map((line, idx) => (
+          <li key={idx}>{line.replace(/^[\d+[\.\)]|\-\|\*]\s*/, "")}</li>
+        ))}
+      </ol>
+    </div>
+  );
+};
 
 export default function PatientMedicalRecordDialog({
   open,
@@ -88,16 +110,16 @@ export default function PatientMedicalRecordDialog({
   const deleteFilesMutation = useDeletePatientMedicalRecordFiles();
 
   const [formData, setFormData] = useState({
+    final_diagnosis: "",
     chief_complaint: "",
     history_of_present_illness: "",
     present_medical_history: "",
     family_history: "",
     personal_history: "",
     examination: "",
-    final_diagnosis: "",
+    notes: "",
     investigation: "",
     treatment: "",
-    notes: "",
   });
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -111,16 +133,16 @@ export default function PatientMedicalRecordDialog({
   useEffect(() => {
     if (open) {
       setFormData({
+        final_diagnosis: initialData?.final_diagnosis || "",
         chief_complaint: initialData?.chief_complaint || "",
         history_of_present_illness: initialData?.history_of_present_illness || "",
         present_medical_history: initialData?.present_medical_history || "",
         family_history: initialData?.family_history || "",
         personal_history: initialData?.personal_history || "",
         examination: initialData?.examination || "",
-        final_diagnosis: initialData?.final_diagnosis || "",
+        notes: initialData?.notes || initialData?.clinical_notes || "",
         investigation: initialData?.investigation || "",
         treatment: initialData?.treatment || "",
-        notes: initialData?.notes || initialData?.clinical_notes || "",
       });
 
       const filesList =
@@ -218,11 +240,10 @@ export default function PatientMedicalRecordDialog({
 
         {toastMessage && (
           <div
-            className={`p-3 rounded-xl flex items-center gap-2 text-xs font-semibold ${
-              toastMessage.type === "success"
+            className={`p-3 rounded-xl flex items-center gap-2 text-xs font-semibold ${toastMessage.type === "success"
                 ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
                 : "bg-red-50 text-red-800 border border-red-200"
-            }`}
+              }`}
           >
             {toastMessage.type === "success" ? (
               <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
@@ -234,105 +255,25 @@ export default function PatientMedicalRecordDialog({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5 py-2">
+          {/* Top Card for Treatment */}
+          {Boolean(formData.treatment.trim()) && (
+            <div className="p-4 bg-muted/20 border border-muted rounded-2xl space-y-1.5 shadow-2xs animate-in fade-in duration-200">
+              <h4 className="text-sm font-bold text-foreground">Treatment</h4>
+              <ol className="list-decimal list-inside space-y-1 text-xs font-semibold text-foreground">
+                {formData.treatment
+                  .split(/\r?\n/)
+                  .map((line) => line.trim())
+                  .filter(Boolean)
+                  .map((line, idx) => (
+                    <li key={idx}>{line.replace(/^[\d+[\.\)]|\-\|\*]\s*/, "")}</li>
+                  ))}
+              </ol>
+            </div>
+          )}
+
           {/* Main Grid of Textarea Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Chief Complaint */}
-            <div className="space-y-1.5">
-              <Label htmlFor="chief_complaint" className="text-xs font-bold text-foreground">
-                Chief Complaint
-              </Label>
-              <Textarea
-                id="chief_complaint"
-                name="chief_complaint"
-                placeholder="Primary reason for visit..."
-                rows={3}
-                value={formData.chief_complaint}
-                onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
-              />
-            </div>
-
-            {/* History of Present Illness */}
-            <div className="space-y-1.5">
-              <Label htmlFor="history_of_present_illness" className="text-xs font-bold text-foreground">
-                History of Present Illness
-              </Label>
-              <Textarea
-                id="history_of_present_illness"
-                name="history_of_present_illness"
-                placeholder="Detailed timeline and symptoms..."
-                rows={3}
-                value={formData.history_of_present_illness}
-                onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
-              />
-            </div>
-
-            {/* Present Medical History */}
-            <div className="space-y-1.5">
-              <Label htmlFor="present_medical_history" className="text-xs font-bold text-foreground">
-                Present Medical History
-              </Label>
-              <Textarea
-                id="present_medical_history"
-                name="present_medical_history"
-                placeholder="Existing conditions or active treatments..."
-                rows={3}
-                value={formData.present_medical_history}
-                onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
-              />
-            </div>
-
-            {/* Family History */}
-            <div className="space-y-1.5">
-              <Label htmlFor="family_history" className="text-xs font-bold text-foreground">
-                Family History
-              </Label>
-              <Textarea
-                id="family_history"
-                name="family_history"
-                placeholder="Hereditary diseases / family history..."
-                rows={3}
-                value={formData.family_history}
-                onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
-              />
-            </div>
-
-            {/* Personal History */}
-            <div className="space-y-1.5">
-              <Label htmlFor="personal_history" className="text-xs font-bold text-foreground">
-                Personal History
-              </Label>
-              <Textarea
-                id="personal_history"
-                name="personal_history"
-                placeholder="Lifestyle, habits, allergies..."
-                rows={3}
-                value={formData.personal_history}
-                onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
-              />
-            </div>
-
-            {/* Examination */}
-            <div className="space-y-1.5">
-              <Label htmlFor="examination" className="text-xs font-bold text-foreground">
-                Examination
-              </Label>
-              <Textarea
-                id="examination"
-                name="examination"
-                placeholder="Vitals & clinical inspection findings..."
-                rows={3}
-                value={formData.examination}
-                onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
-              />
-            </div>
-
-            {/* Final Diagnosis */}
+            {/* 1. Final Diagnosis */}
             <div className="space-y-1.5">
               <Label htmlFor="final_diagnosis" className="text-xs font-bold text-foreground">
                 Final Diagnosis
@@ -348,7 +289,119 @@ export default function PatientMedicalRecordDialog({
               />
             </div>
 
-            {/* Investigation */}
+            {/* 2. Chief Complaint */}
+            <div className="space-y-1.5">
+              <Label htmlFor="chief_complaint" className="text-xs font-bold text-foreground">
+                Chief Complaint
+              </Label>
+              <Textarea
+                id="chief_complaint"
+                name="chief_complaint"
+                placeholder="Primary reason for visit..."
+                rows={3}
+                value={formData.chief_complaint}
+                onChange={handleInputChange}
+                className="text-xs rounded-xl resize-none focus:border-primary"
+              />
+            </div>
+
+            {/* 3. History of Present Illness */}
+            <div className="space-y-1.5">
+              <Label htmlFor="history_of_present_illness" className="text-xs font-bold text-foreground">
+                History of Present Illness
+              </Label>
+              <Textarea
+                id="history_of_present_illness"
+                name="history_of_present_illness"
+                placeholder="Detailed timeline and symptoms..."
+                rows={3}
+                value={formData.history_of_present_illness}
+                onChange={handleInputChange}
+                className="text-xs rounded-xl resize-none focus:border-primary"
+              />
+            </div>
+
+            {/* 4. Present Medical History */}
+            <div className="space-y-1.5">
+              <Label htmlFor="present_medical_history" className="text-xs font-bold text-foreground">
+                Present Medical History
+              </Label>
+              <Textarea
+                id="present_medical_history"
+                name="present_medical_history"
+                placeholder="Existing conditions or active treatments..."
+                rows={3}
+                value={formData.present_medical_history}
+                onChange={handleInputChange}
+                className="text-xs rounded-xl resize-none focus:border-primary"
+              />
+            </div>
+
+            {/* 5. Family History */}
+            <div className="space-y-1.5">
+              <Label htmlFor="family_history" className="text-xs font-bold text-foreground">
+                Family History
+              </Label>
+              <Textarea
+                id="family_history"
+                name="family_history"
+                placeholder="Hereditary diseases / family history..."
+                rows={3}
+                value={formData.family_history}
+                onChange={handleInputChange}
+                className="text-xs rounded-xl resize-none focus:border-primary"
+              />
+            </div>
+
+            {/* 6. Personal History */}
+            <div className="space-y-1.5">
+              <Label htmlFor="personal_history" className="text-xs font-bold text-foreground">
+                Personal History
+              </Label>
+              <Textarea
+                id="personal_history"
+                name="personal_history"
+                placeholder="Lifestyle, habits, allergies..."
+                rows={3}
+                value={formData.personal_history}
+                onChange={handleInputChange}
+                className="text-xs rounded-xl resize-none focus:border-primary"
+              />
+            </div>
+
+            {/* 7. Examination */}
+            <div className="space-y-1.5">
+              <Label htmlFor="examination" className="text-xs font-bold text-foreground">
+                Examination
+              </Label>
+              <Textarea
+                id="examination"
+                name="examination"
+                placeholder="Vitals & clinical inspection findings..."
+                rows={3}
+                value={formData.examination}
+                onChange={handleInputChange}
+                className="text-xs rounded-xl resize-none focus:border-primary"
+              />
+            </div>
+
+            {/* 8. Clinical Notes */}
+            <div className="space-y-1.5">
+              <Label htmlFor="notes" className="text-xs font-bold text-foreground">
+                Clinical Notes
+              </Label>
+              <Textarea
+                id="notes"
+                name="notes"
+                placeholder="Additional clinical notes..."
+                rows={3}
+                value={formData.notes}
+                onChange={handleInputChange}
+                className="text-xs rounded-xl resize-none focus:border-primary"
+              />
+            </div>
+
+            {/* 9. Investigation */}
             <div className="space-y-1.5">
               <Label htmlFor="investigation" className="text-xs font-bold text-foreground">
                 Investigation
@@ -364,7 +417,7 @@ export default function PatientMedicalRecordDialog({
               />
             </div>
 
-            {/* Treatment */}
+            {/* 10. Treatment */}
             <div className="space-y-1.5">
               <Label htmlFor="treatment" className="text-xs font-bold text-foreground">
                 Treatment
@@ -375,23 +428,6 @@ export default function PatientMedicalRecordDialog({
                 placeholder="Prescribed medications & care plan..."
                 rows={3}
                 value={formData.treatment}
-                onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
-              />
-            </div>
-
-            {/* Doctor Instructions */}
-            {/* Notes */}
-            <div className="space-y-1.5">
-              <Label htmlFor="notes" className="text-xs font-bold text-foreground">
-                Clinical Notes
-              </Label>
-              <Textarea
-                id="notes"
-                name="notes"
-                placeholder="Additional clinical notes..."
-                rows={3}
-                value={formData.notes}
                 onChange={handleInputChange}
                 className="text-xs rounded-xl resize-none focus:border-primary"
               />

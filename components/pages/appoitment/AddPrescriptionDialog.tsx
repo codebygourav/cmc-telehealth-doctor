@@ -386,8 +386,8 @@ export default function AddPrescriptionDialog({
     initialTab === "reports"
       ? "reports"
       : initialTab === "medical_record"
-      ? "medical_record"
-      : "prescribe"
+        ? "medical_record"
+        : "prescribe"
   );
 
   // Patient Medical Record States
@@ -396,16 +396,16 @@ export default function AddPrescriptionDialog({
   const deleteMedicalRecordFilesMutation = useDeletePatientMedicalRecordFiles();
 
   const [medicalRecordForm, setMedicalRecordForm] = useState({
+    final_diagnosis: "",
     chief_complaint: "",
     history_of_present_illness: "",
     present_medical_history: "",
     family_history: "",
     personal_history: "",
     examination: "",
-    final_diagnosis: "",
+    notes: "",
     investigation: "",
     treatment: "",
-    notes: "",
   });
   const [medicalRecordFiles, setMedicalRecordFiles] = useState<File[]>([]);
   const [existingMedicalRecordFiles, setExistingMedicalRecordFiles] = useState<PatientMedicalRecordFile[]>([]);
@@ -419,16 +419,16 @@ export default function AddPrescriptionDialog({
           : rec.clinical_notes;
 
       setMedicalRecordForm({
+        final_diagnosis: formatClinicalValue(rec.final_diagnosis),
         chief_complaint: formatClinicalValue(rec.chief_complaint),
         history_of_present_illness: formatClinicalValue(rec.history_of_present_illness),
         present_medical_history: formatClinicalValue(rec.present_medical_history),
         family_history: formatClinicalValue(rec.family_history),
         personal_history: formatClinicalValue(rec.personal_history),
         examination: formatClinicalValue(rec.examination),
-        final_diagnosis: formatClinicalValue(rec.final_diagnosis),
+        notes: formatClinicalValue(rawClinicalNotes),
         investigation: formatClinicalValue(rec.investigation),
         treatment: formatClinicalValue(rec.treatment),
-        notes: formatClinicalValue(rawClinicalNotes),
       });
       const files = rec.attached_docs || rec.files || rec.medical_record_files || rec.attached_files || [];
       setExistingMedicalRecordFiles(files);
@@ -1779,7 +1779,7 @@ export default function AddPrescriptionDialog({
                 <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
                   Build a new prescription
                 </DialogTitle>
-                
+
               </div>
 
               {entryMode !== null && dictationEnabled && (
@@ -2424,12 +2424,32 @@ export default function AddPrescriptionDialog({
 
                       {activeTab === "medical_record" && (
                         <div className="space-y-5 animate-in fade-in duration-200">
-                          <div className="p-3.5 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                            <h4 className="text-sm font-bold text-slate-900">Patient Medical Record</h4>
-                            <p className="text-xs text-slate-500">Record clinical details, medical history, diagnosis, and reports. All data will be saved when you click &quot;Save &amp; Submit&quot;.</p>
-                          </div>
+                          {Boolean(medicalRecordForm.treatment.trim()) && (
+                            <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-1.5 animate-in fade-in duration-200">
+                              <h4 className="text-sm font-bold text-slate-900">Treatment</h4>
+                              <ol className="list-decimal list-inside space-y-1 text-xs font-semibold text-slate-800">
+                                {medicalRecordForm.treatment
+                                  .split(/\r?\n/)
+                                  .map((line) => line.trim())
+                                  .filter(Boolean)
+                                  .map((line, idx) => (
+                                    <li key={idx}>{line.replace(/^[\d+[\.\)]|\-\|\*]\s*/, "")}</li>
+                                  ))}
+                              </ol>
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">Final Diagnosis</label>
+                              <Textarea
+                                placeholder="Conclusive medical diagnosis..."
+                                rows={2}
+                                value={medicalRecordForm.final_diagnosis}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, final_diagnosis: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
                             <div className="space-y-1.5">
                               <label className="text-xs font-semibold text-slate-700 block">Chief Complaint</label>
                               <Textarea
@@ -2491,12 +2511,12 @@ export default function AddPrescriptionDialog({
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-xs font-semibold text-slate-700 block">Final Diagnosis</label>
+                              <label className="text-xs font-semibold text-slate-700 block">Clinical Notes</label>
                               <Textarea
-                                placeholder="Conclusive medical diagnosis..."
+                                placeholder="Additional clinical notes..."
                                 rows={2}
-                                value={medicalRecordForm.final_diagnosis}
-                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, final_diagnosis: e.target.value }))}
+                                value={medicalRecordForm.notes}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, notes: e.target.value }))}
                                 className="text-xs rounded-xl border-slate-200"
                               />
                             </div>
@@ -2517,16 +2537,6 @@ export default function AddPrescriptionDialog({
                                 rows={2}
                                 value={medicalRecordForm.treatment}
                                 onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, treatment: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-semibold text-slate-700 block">Clinical Notes</label>
-                              <Textarea
-                                placeholder="Additional clinical notes..."
-                                rows={2}
-                                value={medicalRecordForm.notes}
-                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, notes: e.target.value }))}
                                 className="text-xs rounded-xl border-slate-200"
                               />
                             </div>
@@ -3423,6 +3433,29 @@ function extractFollowUpNote(text: string): string {
     return match[1].trim();
   }
   return "";
+}
+
+function renderLiveListPreview(value: string | undefined | null) {
+  if (!value || !value.trim()) return null;
+  const lines = value
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return null;
+
+  return (
+    <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1 mt-1.5 animate-in fade-in duration-150">
+      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+        Preview
+      </div>
+      <ol className="list-decimal list-inside space-y-1 font-semibold text-slate-800">
+        {lines.map((line, idx) => (
+          <li key={idx}>{line.replace(/^[\d+[\.\)]|\-\|\*]\s*/, "")}</li>
+        ))}
+      </ol>
+    </div>
+  );
 }
 
 
