@@ -21,11 +21,10 @@ const filterAppointmentsByDate = (
 ) => {
     if (!selectedDate) return [];
 
-    const formattedDate = selectedDate.toLocaleDateString("en-CA");
-    // ✅ gives YYYY-MM-DD in LOCAL timezone
+    const formattedDate = format(selectedDate, "yyyy-MM-dd");
 
     return appointments.filter(
-        (apt) => apt.appointment_date === formattedDate
+        (apt) => apt.appointment_date === formattedDate || apt.appointment_date?.startsWith(formattedDate)
     );
 };
 
@@ -38,12 +37,19 @@ const MySchedulesPage = () => {
 
     const { data, isLoading, error } = useMyAppointments("all");
 
-    const scheduleParams = useMemo(() => ({
+    const monthParams = useMemo(() => ({
         month: currentDate.getMonth() + 1,
         year: currentDate.getFullYear(),
     }), [currentDate]);
 
-    const { data: scheduleData, isLoading: scheduleLoading, error: scheduleError } = useMySchedules(scheduleParams);
+    const dayParams = useMemo(() => ({
+        month: currentDate.getMonth() + 1,
+        year: currentDate.getFullYear(),
+        date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : undefined,
+    }), [currentDate, selectedDate]);
+
+    const { data: monthScheduleData, isLoading: monthLoading, error: monthError } = useMySchedules(monthParams);
+    const { data: dayScheduleData, isLoading: dayLoading, error: dayError } = useMySchedules(dayParams);
 
     const filteredAppointments = useMemo(() => {
         const dateFiltered = filterAppointmentsByDate(
@@ -87,8 +93,12 @@ const MySchedulesPage = () => {
 
     const getOPDSlotsForDate = (date: Date | undefined): OPDSlot[] => {
         if (!date) return [];
-        const formattedDate = date.toLocaleDateString("en-CA");
-        const days = scheduleData?.data?.days || [];
+        const formattedDate = format(date, "yyyy-MM-dd");
+        const monthDays = monthScheduleData?.data?.days || [];
+        const dayDays = dayScheduleData?.data?.days || [];
+
+        // Prioritize dayDays if matching exact date, otherwise fallback to monthDays
+        const days = [...dayDays, ...monthDays];
 
         // 1. Try exact date match
         const exactDay = days.find((s: ScheduleDay) => {
@@ -109,6 +119,8 @@ const MySchedulesPage = () => {
                     if (apptFormatted && slotTimeRange && (slotTimeRange.includes(apptFormatted) || slotTimeRange.startsWith(apptFormatted.replace(/^0/, '')))) {
                         return true;
                     }
+                    const apptStart = appt.start_time;
+                    if (apptStart && slotStart && (apptStart === slotStart || apptStart.startsWith(slotStart.slice(0, 5)))) return true;
                     return false;
                 });
 
@@ -215,11 +227,11 @@ const MySchedulesPage = () => {
 
     // Auto-select first slot when schedule data is loaded or date changes
     useEffect(() => {
-        if (selectedDate && scheduleData?.data) {
+        if (selectedDate && (monthScheduleData?.data || dayScheduleData?.data)) {
             const slots = getOPDSlotsForDate(selectedDate);
             setSelectedSlot(slots.length > 0 ? slots[0] : undefined);
         }
-    }, [selectedDate, scheduleData]);
+    }, [selectedDate, monthScheduleData, dayScheduleData]);
 
     const onMonthChange = (month: Date) => {
         setCurrentDate(month);
