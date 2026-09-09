@@ -10,6 +10,7 @@ import {
     CheckCheck,
     Loader2,
     Star,
+    X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import CustomTabs, { TabItem } from "@/components/custom/CustomTabs";
@@ -68,6 +69,7 @@ export default function NotificationsPage() {
     } = usePushNotifications();
     const [readingId, setReadingId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("all");
+    const [showPushBanner, setShowPushBanner] = useState(true);
     const notifications = data?.data ?? [];
     const unreadCount = data?.meta?.total_unread ?? 0;
 
@@ -277,39 +279,54 @@ export default function NotificationsPage() {
             />
 
             <div className="container-max-width w-full mx-auto space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl gap-4 shadow-sm">
-                    <div className="space-y-0.5">
-                        <h4 className="text-sm font-bold text-slate-900">Desktop & Mobile Push Alerts</h4>
-                        <p className="text-xs text-slate-500">
-                            {permission === "denied"
-                                ? "Push notifications are blocked in your browser settings."
-                                : subscription
-                                ? "You are currently subscribed to instant web push notifications."
-                                : "Enable push notifications to get instant alerts on appointments and updates."}
-                        </p>
+                {showPushBanner && (
+                    <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-slate-100/90 border border-slate-200 rounded-2xl gap-4 shadow-sm pr-12">
+                        <div className="space-y-1">
+                            <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                                <Bell className="h-4 w-4 text-primary" />
+                                Desktop & Mobile Push Alerts
+                            </h4>
+                            <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                                {permission === "denied"
+                                    ? "Push notifications are blocked in your browser settings."
+                                    : subscription
+                                    ? "You are currently subscribed to instant web push notifications."
+                                    : "Enable push notifications to get instant alerts on appointments and updates."}
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Button
+                                variant={subscription ? "outline" : "default"}
+                                size="sm"
+                                className="rounded-xl px-5 h-10 text-xs font-bold shrink-0 shadow-xs"
+                                disabled={!isSupported || pushLoading || permission === "denied"}
+                                onClick={async () => {
+                                    if (subscription) {
+                                        await unsubscribeFromPush();
+                                    } else {
+                                        await subscribeToPush();
+                                    }
+                                }}
+                            >
+                                {pushLoading
+                                    ? "Processing..."
+                                    : permission === "denied"
+                                    ? "Notifications Blocked"
+                                    : subscription
+                                    ? "Disable Push Alerts"
+                                    : "Enable Push Alerts"}
+                            </Button>
+                        </div>
+                        <button
+                            type="button"
+                            title="Close banner"
+                            className="absolute right-3 top-3 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors focus:outline-none"
+                            onClick={() => setShowPushBanner(false)}
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
                     </div>
-                    <Button
-                        variant={subscription ? "outline" : "default"}
-                        size="sm"
-                        className="rounded-xl px-4 text-xs font-semibold shrink-0"
-                        disabled={!isSupported || pushLoading || permission === "denied"}
-                        onClick={async () => {
-                            if (subscription) {
-                                await unsubscribeFromPush();
-                            } else {
-                                await subscribeToPush();
-                            }
-                        }}
-                    >
-                        {pushLoading
-                            ? "Processing..."
-                            : permission === "denied"
-                            ? "Notifications Blocked"
-                            : subscription
-                            ? "Disable Push Alerts"
-                            : "Enable Push Alerts"}
-                    </Button>
-                </div>
+                )}
 
                 <CustomTabs
                     tabs={tabs}

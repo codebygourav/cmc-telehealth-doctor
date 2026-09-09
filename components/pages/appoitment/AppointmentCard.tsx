@@ -61,7 +61,7 @@ export default function AppointmentCard({
     const [openRescheduleDialog, setOpenRescheduleDialog] = useState(false);
     const [customDialogOpen, setCustomDialogOpen] = useState(false);
     const [dialogData, setDialogData] = useState<any>(null);
-    const joinUrl = appointment?.video_consultation?.join_url;
+    const joinUrl = appointment?.video_consultation?.join_url || appointment?.join_url;
     const showCallNow = appointment.call_now === true;
     const router = useRouter();
 
@@ -205,7 +205,11 @@ export default function AppointmentCard({
                                     className="flex-1 h-auto border-primary cursor-pointer text-xs sm:text-sm gap-1.5 flex items-center justify-center"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        window.open(`/start-consultation?room_url=${joinUrl}&appointment_id=${appointment.appointment_id || appointment.id}`, "_blank");
+                                        window.open(
+                                            `/start-consultation?room_url=${encodeURIComponent(joinUrl)}&appointment_id=${appointment.appointment_id || appointment.id}`,
+                                            "_blank"
+                                        );
+                                        // window.open(`/start-consultation?room_url=${joinUrl}&appointment_id=${appointment.appointment_id || appointment.id}`, "_blank");
                                     }}
                                 >
                                     <PhoneCallIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />

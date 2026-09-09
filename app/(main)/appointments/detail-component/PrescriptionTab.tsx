@@ -970,7 +970,7 @@ export default function PrescriptionTab({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wide">
-                    Notes
+                    Confidential Notes
                   </p>
                   <p className="text-[11px] sm:text-sm mt-1 leading-relaxed wrap-break-word font-semibold text-foreground whitespace-pre-line">
                     {notes}

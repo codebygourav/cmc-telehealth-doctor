@@ -308,7 +308,7 @@ export default function PrescriptionListPanel({
 
                 {/* Notes Field */}
                 <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <Label className="text-xs font-semibold">Notes</Label>
+                    <Label className="text-xs font-semibold">Confidential Notes</Label>
                     <Textarea
                         rows={2}
                         value={notes}
