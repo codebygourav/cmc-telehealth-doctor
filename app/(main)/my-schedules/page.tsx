@@ -96,33 +96,10 @@ const MySchedulesPage = () => {
             return s.date === formattedDate || s.date.startsWith(formattedDate) || s.date.split("T")[0] === formattedDate;
         });
 
-        if (exactDay && exactDay.slots && exactDay.slots.length > 0) {
-            return exactDay.slots;
-        }
-
-        // 2. Fallback: match by day of week if schedule template or current month data exists
-        const dayOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const dayOfWeekShorts = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const dayIndex = date.getDay();
-        const targetDayName = dayOfWeekNames[dayIndex];
-        const targetDayShort = dayOfWeekShorts[dayIndex];
-
-        const matchingDay = days.find((s: ScheduleDay) => {
-            if (s.day_name && s.day_name.toLowerCase() === targetDayName.toLowerCase()) return true;
-            if (s.day_short && s.day_short.toLowerCase() === targetDayShort.toLowerCase()) return true;
-            if (s.date) {
-                const parsed = new Date(s.date);
-                if (!isNaN(parsed.getTime())) {
-                    return parsed.getDay() === dayIndex;
-                }
-            }
-            return false;
-        });
-
         const dateAppointments = filterAppointmentsByDate(data?.data || [], date);
 
-        if (matchingDay && matchingDay.slots && matchingDay.slots.length > 0) {
-            return matchingDay.slots.map((slot: OPDSlot) => {
+        if (exactDay && exactDay.slots && exactDay.slots.length > 0) {
+            return exactDay.slots.map((slot: OPDSlot) => {
                 const slotStart = slot.start_time;
                 const slotTimeRange = slot.time_range;
                 const apptsForSlot = dateAppointments.filter((appt: any) => {
@@ -144,8 +121,53 @@ const MySchedulesPage = () => {
             });
         }
 
+        // Check if days array elements have date property
+        const hasDateSpecificData = days.some((s: ScheduleDay) => Boolean(s.date));
+
+        // 2. Fallback: match by day of week ONLY if API data is a generic weekly template (no date fields in days)
+        if (!hasDateSpecificData) {
+            const dayOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const dayOfWeekShorts = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            const dayIndex = date.getDay();
+            const targetDayName = dayOfWeekNames[dayIndex];
+            const targetDayShort = dayOfWeekShorts[dayIndex];
+
+            const matchingDay = days.find((s: ScheduleDay) => {
+                if (s.day_name && s.day_name.toLowerCase() === targetDayName.toLowerCase()) return true;
+                if (s.day_short && s.day_short.toLowerCase() === targetDayShort.toLowerCase()) return true;
+                return false;
+            });
+
+            if (matchingDay && matchingDay.slots && matchingDay.slots.length > 0) {
+                return matchingDay.slots.map((slot: OPDSlot) => {
+                    const slotStart = slot.start_time;
+                    const slotTimeRange = slot.time_range;
+                    const apptsForSlot = dateAppointments.filter((appt: any) => {
+                        const apptTime = appt.appointment_time;
+                        if (apptTime && slotStart && apptTime === slotStart) return true;
+                        const apptFormatted = appt.appointment_time_formatted;
+                        if (apptFormatted && slotTimeRange && (slotTimeRange.includes(apptFormatted) || slotTimeRange.startsWith(apptFormatted.replace(/^0/, '')))) {
+                            return true;
+                        }
+                        return false;
+                    });
+
+                    return {
+                        ...slot,
+                        date: formattedDate,
+                        booked_count: Math.max(slot.booked_count || 0, apptsForSlot.length),
+                        appointments: apptsForSlot.length > 0 ? apptsForSlot : (slot.appointments || []),
+                    };
+                });
+            }
+        }
+
         // 3. Fallback: if date has appointments, synthesize slots from appointments
         if (dateAppointments.length > 0) {
+            const dayOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const dayIndex = date.getDay();
+            const targetDayName = dayOfWeekNames[dayIndex];
+
             return dateAppointments.map((appt: any, idx: number) => {
                 const timeStr = appt.appointment_time_formatted || appt.appointment_time || "Scheduled Time";
                 return {
