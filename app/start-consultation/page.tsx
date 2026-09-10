@@ -75,30 +75,43 @@ const ConsultationContent = () => {
                 className="w-full h-full border-none"
             />
 
-            {/* Floating Action Button */}
+            {/* Floating Action Buttons placed right before Cam */}
             {joined && (
-                <div className={`fixed transition-all duration-300 z-50 flex gap-4 ${chatOpen ? "bottom-6 right-[340px]" : "bottom-6 right-6"}`}>
-                    <button className="flex flex-col items-center gap-1.5"
+                <div
+                    className={`fixed z-50 flex items-center gap-2 sm:gap-3 transition-all duration-300 ${chatOpen
+                        ? "bottom-1 right-[calc(50%+410px)] md:right-[calc(50%+405px)] max-[768px]:right-[calc(50%+325px)] max-[480px]:right-[calc(50%+260px)]"
+                        : "bottom-1 right-[calc(50%+250px)] md:right-[calc(50%+245px)] max-[768px]:right-[calc(50%+165px)] max-[480px]:right-[calc(50%+100px)]"
+                        }`}
+                >
+                    <button
+                        type="button"
                         onClick={() => {
-                            window.open(`/appointments/${appointmentId}`, '_blank')
+                            window.open(`/appointments/${appointmentId}`, '_blank');
                         }}
+                        className="flex flex-col items-center gap-1 group cursor-pointer"
+                        title="View Patient Details"
                     >
-                        <div className="w-12 h-12 bg-[#0000008f] rounded-xl flex items-center justify-center hover:bg-[#000000af] transition-colors">
-                            <FileUser color="#fff" />
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#0000008f] rounded-xl flex items-center justify-center hover:bg-[#000000af] transition-all shadow-md border border-white/10 group-hover:scale-105">
+                            <FileUser color="#fff" className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
-                        <span className="font-inter font-bold text-xs text-white">Patient</span>
+                        <span className="font-inter font-bold text-[10px] sm:text-xs text-white drop-shadow-md">
+                            Patient
+                        </span>
                     </button>
 
                     <button
+                        type="button"
                         onClick={() => setIsPrescribeDialogOpen(true)}
-                        className="flex flex-col gap-1.5 items-center justify-center cursor-pointer group"
+                        className="flex flex-col items-center gap-1 group cursor-pointer"
+                        title="Build Prescription"
                     >
-                        <div className="w-12 h-12 bg-[#0000008f] rounded-xl flex items-center justify-center hover:bg-[#000000af] transition-colors">
-                            <Pill color="#fff" />
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#0000008f] rounded-xl flex items-center justify-center hover:bg-[#000000af] transition-all shadow-md border border-white/10 group-hover:scale-105">
+                            <Pill color="#fff" className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
-                        <span className="font-inter font-bold text-xs text-white">Prescribe</span>
+                        <span className="font-inter font-bold text-[10px] sm:text-xs text-white drop-shadow-md">
+                            Prescribe
+                        </span>
                     </button>
-
                 </div>
             )}
 
