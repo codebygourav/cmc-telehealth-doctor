@@ -1,12 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink } from "lucide-react";
+import { Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { getMedicines } from "@/api/medicines";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ import PrescriptionListPanel from "./PrescriptionListPanel";
 import PrescriptionMedicineForm from "./PrescriptionMedicineForm";
 import PrescriptionSuccessDialog from "./PrescriptionSuccessDialog";
 import PrescriptionVoiceAssistantPanel from "./PrescriptionVoiceAssistantPanel";
+import PreviousPrescriptionsDialog from "./PreviousPrescriptionsDialog";
 import {
   PrescriptionSchema,
   type AddedMedicine,
@@ -391,6 +393,7 @@ export default function AddPrescriptionDialog({
   );
 
   // Patient Medical Record States
+  const [showPreviousPrescriptions, setShowPreviousPrescriptions] = useState(false);
   const { data: medicalRecordResponse } = usePatientMedicalRecord(appointmentId || "");
   const saveMedicalRecordMutation = useSavePatientMedicalRecord();
   const deleteMedicalRecordFilesMutation = useDeletePatientMedicalRecordFiles();
@@ -2439,6 +2442,29 @@ export default function AddPrescriptionDialog({
                             </div>
                           )}
 
+                          {/* Previous Prescribed Medicines Button */}
+                          <div className="flex flex-wrap items-center justify-between p-3.5 bg-gradient-to-r from-slate-50 to-indigo-50/60 border border-slate-200/80 rounded-2xl shadow-2xs gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="p-2 bg-primary/10 text-primary rounded-xl shrink-0">
+                                <Pill className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-slate-900">Patient Previous Prescriptions</p>
+                                <p className="text-[11px] text-slate-500 font-medium">View medication history grouped by appointment dates</p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowPreviousPrescriptions(true)}
+                              className="text-xs font-semibold border-slate-300 hover:bg-white hover:text-primary hover:border-primary/40 shadow-2xs rounded-xl flex items-center gap-1.5 bg-white transition-all"
+                            >
+                              <Pill className="h-3.5 w-3.5 text-primary" />
+                              See all previous medicines
+                            </Button>
+                          </div>
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                               <label className="text-xs font-semibold text-slate-700 block">Final Diagnosis</label>
@@ -2699,6 +2725,12 @@ export default function AddPrescriptionDialog({
       <PrescriptionSuccessDialog
         open={showSuccess}
         onClose={handleSuccessClose}
+      />
+
+      <PreviousPrescriptionsDialog
+        open={showPreviousPrescriptions}
+        onOpenChange={setShowPreviousPrescriptions}
+        appointmentId={appointmentId}
       />
     </>
   );
