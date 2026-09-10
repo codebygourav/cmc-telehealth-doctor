@@ -156,7 +156,7 @@ export function NotificationCard({
 
                         {/* Button - Right */}
                         <div className="shrink-0 pt-0.5 flex items-center gap-2">
-                            {notification.title === "Appointment Reminder" && notification.join_url && (
+                            {Boolean(notification.join_url) && (
                                 <Button
                                     size="sm"
                                     className="h-8 sm:h-9 text-xs sm:text-sm px-2.5 sm:px-3 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
@@ -191,7 +191,7 @@ export function NotificationCard({
 
                     {/* Mobile Button - Below Content */}
                     <div className="sm:hidden flex flex-col gap-2">
-                        {notification.title === "Appointment Reminder" && notification.join_url && (
+                        {Boolean(notification.join_url) && (
                             <Button
                                 size="sm"
                                 className="w-full mt-2 h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"

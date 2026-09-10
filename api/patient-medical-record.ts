@@ -26,6 +26,7 @@ export interface PatientMedicalRecordData {
   instructions_by_doctor?: string;
   notes?: string;
   clinical_notes?: string;
+  confidential_notes?: string;
   next_visit_date?: string;
   type?: string;
   attached_docs?: PatientMedicalRecordFile[];
@@ -54,6 +55,7 @@ export interface SavePatientMedicalRecordPayload {
   instructions_by_doctor?: string;
   notes?: string;
   clinical_notes?: string;
+  confidential_notes?: string;
   next_visit_date?: string;
   type?: string;
   files?: File[];

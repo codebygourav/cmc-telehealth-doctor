@@ -28,6 +28,7 @@ const ConsultationContent = () => {
     const diagnosis = prescriptionData?.data?.diagnosis || parsedClinical.diagnosis;
     const orderInvestigation = prescriptionData?.data?.order_investigation || parsedClinical.orderInvestigation;
     const notes = prescriptionData?.data?.notes || parsedClinical.notes;
+    const confidentialNotes = prescriptionData?.data?.confidential_notes;
 
     const instructionsParts = rawInstructions ? rawInstructions.split("Recommended Tests:") : [];
     const rawFindings = instructionsParts[0] ? instructionsParts[0].replace("Clinical Findings:", "").trim() : "";
@@ -74,10 +75,9 @@ const ConsultationContent = () => {
                 className="w-full h-full border-none"
             />
 
-            {/* Custom buttons — shown only after joining */}
+            {/* Floating Action Button */}
             {joined && (
-                <div className={`absolute bottom-1 left-1/2 flex gap-3 z-50 transition-all duration-300 ${chatOpen ? "-translate-x-[150%]" : "-translate-x-[315%]"}`}>
-
+                <div className={`fixed transition-all duration-300 z-50 flex gap-4 ${chatOpen ? "bottom-6 right-[340px]" : "bottom-6 right-6"}`}>
                     <button className="flex flex-col items-center gap-1.5"
                         onClick={() => {
                             window.open(`/appointments/${appointmentId}`, '_blank')
@@ -91,7 +91,7 @@ const ConsultationContent = () => {
 
                     <button
                         onClick={() => setIsPrescribeDialogOpen(true)}
-                        className="flex flex-col items-center gap-1.5"
+                        className="flex flex-col gap-1.5 items-center justify-center cursor-pointer group"
                     >
                         <div className="w-12 h-12 bg-[#0000008f] rounded-xl flex items-center justify-center hover:bg-[#000000af] transition-colors">
                             <Pill color="#fff" />
@@ -117,6 +117,7 @@ const ConsultationContent = () => {
                     initialDiagnosis={diagnosis}
                     initialOrderInvestigation={orderInvestigation}
                     initialNotes={notes}
+                    initialConfidentialNotes={confidentialNotes}
                     initialInstructionsByDoctor={instructionsByDoctor}
                 />
             )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill } from "lucide-react";
+import { Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill, Download } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -29,6 +29,7 @@ import { useSubmitConclusion } from "@/mutations/useSubmitConclusion";
 import { useMedicines } from "@/queries/useMedicines";
 import { useDoctorProfile } from "@/queries/useProfile";
 import { useMedicineTemplates } from "@/queries/useMedicineTemplates";
+import { usePrescriptionByAppointmentId } from "@/queries/usePrescriptionByAppointmentId";
 import {
   usePatientMedicalRecord,
   useSavePatientMedicalRecord,
@@ -149,6 +150,7 @@ interface AddPrescriptionDialogProps {
   initialDiagnosis?: string;
   initialOrderInvestigation?: string;
   initialNotes?: string;
+  initialConfidentialNotes?: string;
   initialInstructionsByDoctor?: string;
 }
 
@@ -195,7 +197,7 @@ const frequencyOptions = [
 
 const stampOptions = [
   {
-    label: "Global Stamp (Default Stamp with Signature)",
+    label: "Global Stamp (With Signature)",
     value: "only_global",
   },
   {
@@ -292,6 +294,7 @@ export default function AddPrescriptionDialog({
   initialDiagnosis = "",
   initialOrderInvestigation = "",
   initialNotes = "",
+  initialConfidentialNotes = "",
   initialInstructionsByDoctor = "",
 }: AddPrescriptionDialogProps) {
   const { token } = useAuth();
@@ -392,7 +395,11 @@ export default function AddPrescriptionDialog({
         : "prescribe"
   );
 
+  const { data: prescriptionData } = usePrescriptionByAppointmentId(appointmentId || "");
+  const pdfUrl = prescriptionData?.data?.pdf_url;
+
   // Patient Medical Record States
+
   const [showPreviousPrescriptions, setShowPreviousPrescriptions] = useState(false);
   const { data: medicalRecordResponse } = usePatientMedicalRecord(appointmentId || "");
   const saveMedicalRecordMutation = useSavePatientMedicalRecord();
@@ -407,6 +414,7 @@ export default function AddPrescriptionDialog({
     personal_history: "",
     examination: "",
     notes: "",
+    confidential_notes: "",
     investigation: "",
     treatment: "",
   });
@@ -430,6 +438,7 @@ export default function AddPrescriptionDialog({
         personal_history: formatClinicalValue(rec.personal_history),
         examination: formatClinicalValue(rec.examination),
         notes: formatClinicalValue(rawClinicalNotes),
+        confidential_notes: formatClinicalValue(rec.confidential_notes),
         investigation: formatClinicalValue(rec.investigation),
         treatment: formatClinicalValue(rec.treatment),
       });
@@ -608,6 +617,7 @@ export default function AddPrescriptionDialog({
   const [orderInvestigation, setOrderInvestigation] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [notes, setNotes] = useState("");
+  const [confidentialNotes, setConfidentialNotes] = useState("");
   const [instructionsByDoctor, setInstructionsByDoctor] = useState("");
   const [toastMessage, setToastMessage] = useState<{
     text: string;
@@ -719,11 +729,11 @@ export default function AddPrescriptionDialog({
         medication_type: med.type || med.medication_type || "tablet",
         strength: med.strength || "",
         dosage: med.dosage || "",
-        frequency: med.frequency || mapFreq(med.frequencylabel),
-        timing_morning: timesStr.includes("morning"),
-        timing_afternoon: timesStr.includes("afternoon"),
-        timing_evening: timesStr.includes("evening"),
-        timing_night: timesStr.includes("night"),
+        frequency: mapFreq(med.times || med.frequency),
+        timing_morning: med.timing_morning ?? timesStr.includes("morning"),
+        timing_afternoon: med.timing_afternoon ?? timesStr.includes("afternoon"),
+        timing_evening: med.timing_evening ?? timesStr.includes("evening"),
+        timing_night: med.timing_night ?? timesStr.includes("night"),
         meal: med.meal || "after_meal",
         application_area: med.application_area || "",
         remarks: med.notes || med.remarks || "",
@@ -744,7 +754,8 @@ export default function AddPrescriptionDialog({
       setGeneralNotes(initialGeneralNotes || "");
       setDiagnosis(initialDiagnosis || "");
       setOrderInvestigation(initialOrderInvestigation || "");
-      setNotes(initialNotes || "");
+      setNotes(initialNotes || prescriptionData?.data?.notes || "");
+      setConfidentialNotes(initialConfidentialNotes || prescriptionData?.data?.confidential_notes || "");
       setInstructionsByDoctor(initialInstructionsByDoctor || "");
       setIncludeReports(Boolean(initialRecommendedTests));
       setAddedMedicines(mapInitialMedicinesToAdded(initialMedicines));
@@ -810,8 +821,11 @@ export default function AddPrescriptionDialog({
     initialDiagnosis,
     initialOrderInvestigation,
     initialNotes,
+    initialConfidentialNotes,
     initialInstructionsByDoctor,
     initialMedicines,
+    prescriptionData?.data?.notes,
+    prescriptionData?.data?.confidential_notes,
   ]);
 
   useEffect(() => {
@@ -1209,6 +1223,7 @@ export default function AddPrescriptionDialog({
       Boolean(medicalRecordForm.investigation.trim()) ||
       Boolean(medicalRecordForm.treatment.trim()) ||
       Boolean(medicalRecordForm.notes.trim()) ||
+      Boolean(medicalRecordForm.confidential_notes.trim()) ||
       medicalRecordFiles.length > 0;
 
     const hasFindings =
@@ -1216,6 +1231,7 @@ export default function AddPrescriptionDialog({
       orderInvestigation.trim() ||
       diagnosis.trim() ||
       notes.trim() ||
+      confidentialNotes.trim() ||
       instructionsByDoctor.trim() ||
       nextVisitDate ||
       (includeReports && (recommendedTests.trim() || reportFiles.length > 0));
@@ -1225,6 +1241,7 @@ export default function AddPrescriptionDialog({
     const cleanedDiagnosis = sanitizeClinicalText(diagnosis);
     const cleanedOrderInvestigation = sanitizeClinicalText(orderInvestigation);
     const cleanedNotes = sanitizeClinicalText(notes);
+    const cleanedConfidentialNotes = sanitizeClinicalText(confidentialNotes);
     const cleanedInstructionsByDoctor = sanitizeClinicalText(instructionsByDoctor);
 
     if (addedMedicines.length === 0 && !hasFindings && !hasMedicalRecordData) {
@@ -1246,6 +1263,7 @@ export default function AddPrescriptionDialog({
           ...medicalRecordForm,
           notes: medicalRecordForm.notes,
           clinical_notes: medicalRecordForm.notes,
+          confidential_notes: medicalRecordForm.confidential_notes,
           files: medicalRecordFiles,
           attached_docs: medicalRecordFiles,
           type: "patient_medical_record",
@@ -1257,6 +1275,8 @@ export default function AddPrescriptionDialog({
           appointmentId,
           instructions_by_doctor: cleanedInstructionsByDoctor || "Consultation conclusion submitted.",
           next_visit_date: nextVisitDate || getTodayDate(),
+          notes: cleanedNotes || undefined,
+          confidential_notes: cleanedConfidentialNotes || undefined,
           type: includeReports ? reportType : undefined,
           files: includeReports ? reportFiles : [],
         });
@@ -1293,6 +1313,7 @@ export default function AddPrescriptionDialog({
           order_investigation: orderInvestigation.trim(),
           diagnosis: diagnosis.trim(),
           notes: notes.trim(),
+          confidential_notes: confidentialNotes.trim(),
           instructions_by_doctor: instructionsByDoctor.trim(),
           medicines: medicinesPayload,
         };
@@ -1756,6 +1777,27 @@ export default function AddPrescriptionDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-[95vw] max-h-[92vh] sm:max-w-6xl! rounded-[28px] p-0 overflow-hidden flex flex-col gap-0! fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-slate-200 bg-linear-to-br from-white via-slate-50 to-sky-50 shadow-[0_30px_90px_rgba(15,23,42,0.18)]">
+          <button
+            type="button"
+            disabled={!pdfUrl}
+            onClick={() => {
+              if (pdfUrl) {
+                window.open(pdfUrl, "_blank", "noopener,noreferrer");
+              } else {
+                setToastMessage({
+                  text: "No prescription PDF available yet for download",
+                  type: "error",
+                });
+              }
+            }}
+            className="absolute top-3 sm:top-3.5 right-12 sm:right-14 z-50 h-8 px-2.5 sm:px-3 rounded-full border border-sky-200 bg-sky-50/90 hover:bg-sky-100 text-sky-700 font-semibold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title={pdfUrl ? "Download Prescription PDF" : "Prescription PDF not available yet"}
+          >
+            <Download className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">Download Prescription</span>
+            <span className="inline sm:hidden">Download</span>
+          </button>
+
           {toastMessage && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-100 animate-in fade-in slide-in-from-top-4 duration-300">
               <div
@@ -1773,7 +1815,7 @@ export default function AddPrescriptionDialog({
             </div>
           )}
 
-          <DialogHeader className="border-b border-slate-200 px-5 py-4 sm:px-6 sm:py-5 pr-14 sm:pr-20 shrink-0 bg-white/70 backdrop-blur">
+          <DialogHeader className="border-b border-slate-200 px-5 py-4 sm:px-6 sm:py-5 pr-44 sm:pr-64 shrink-0 bg-white/70 backdrop-blur">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-700">
@@ -2547,6 +2589,16 @@ export default function AddPrescriptionDialog({
                               />
                             </div>
                             <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 block">Confidential Notes</label>
+                              <Textarea
+                                placeholder="Internal confidential notes..."
+                                rows={2}
+                                value={medicalRecordForm.confidential_notes}
+                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, confidential_notes: e.target.value }))}
+                                className="text-xs rounded-xl border-slate-200"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
                               <label className="text-xs font-semibold text-slate-700 block">Investigation</label>
                               <Textarea
                                 placeholder="Ordered tests (lab, radiology)..."
@@ -2705,6 +2757,8 @@ export default function AddPrescriptionDialog({
                       onDiagnosisChange={setDiagnosis}
                       notes={notes}
                       onNotesChange={setNotes}
+                      confidentialNotes={confidentialNotes}
+                      onConfidentialNotesChange={setConfidentialNotes}
                       instructionsByDoctor={instructionsByDoctor}
                       onInstructionsByDoctorChange={setInstructionsByDoctor}
                       findingsText={findingsText}

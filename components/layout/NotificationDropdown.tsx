@@ -101,7 +101,7 @@ export function NotificationDropdown() {
             appointment_id: item.appointment_id,
             title: item.title,
           },
-          ...(item.title === "Appointment Reminder" && item.join_url
+          ...(item.join_url
             ? {
                 actions: [
                   {
@@ -116,7 +116,7 @@ export function NotificationDropdown() {
         toast.info(item.title || "New Notification", {
           description: item.desc || "",
           duration: 5000,
-          ...(item.title === "Appointment Reminder" && item.join_url
+          ...(item.join_url
             ? {
                 action: {
                   label: "Join Call",
@@ -354,7 +354,7 @@ export function NotificationDropdown() {
                                 )}>
                                   {notification.group}
                                 </span>
-                                {notification.title === "Appointment Reminder" && notification.join_url && (
+                                {Boolean(notification.join_url) && (
                                   <Button
                                     size="sm"
                                     className="h-6 px-2 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-all active:scale-95"

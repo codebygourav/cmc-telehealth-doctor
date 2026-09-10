@@ -33,6 +33,8 @@ interface PrescriptionListPanelProps {
     onDiagnosisChange?: (value: string) => void;
     notes?: string;
     onNotesChange?: (value: string) => void;
+    confidentialNotes?: string;
+    onConfidentialNotesChange?: (value: string) => void;
     instructionsByDoctor?: string;
     onInstructionsByDoctorChange?: (value: string) => void;
 
@@ -66,6 +68,8 @@ export default function PrescriptionListPanel({
     onDiagnosisChange,
     notes = "",
     onNotesChange,
+    confidentialNotes = "",
+    onConfidentialNotesChange,
     instructionsByDoctor = "",
     onInstructionsByDoctorChange,
     findingsText = "",
@@ -314,6 +318,18 @@ export default function PrescriptionListPanel({
                         value={notes}
                         onChange={(e) => onNotesChange?.(e.target.value)}
                         placeholder="Write or edit notes / patient instructions..."
+                        className="text-xs rounded-2xl resize-none bg-white border-slate-200"
+                    />
+                </div>
+
+                {/* Confidential Notes Field */}
+                <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <Label className="text-xs font-semibold">Confidential Notes</Label>
+                    <Textarea
+                        rows={2}
+                        value={confidentialNotes}
+                        onChange={(e) => onConfidentialNotesChange?.(e.target.value)}
+                        placeholder="Write or edit confidential notes..."
                         className="text-xs rounded-2xl resize-none bg-white border-slate-200"
                     />
                 </div>

@@ -455,6 +455,11 @@ export default function PrescriptionTab({
     parsedClinical.notes ||
     undefined;
 
+  const confidentialNotes =
+    data?.data?.confidential_notes ||
+    (conclusionData?.data as any)?.confidential_notes ||
+    undefined;
+
   const diagnosis =
     data?.data?.diagnosis ||
     (conclusionData?.data as any)?.diagnosis ||
@@ -559,6 +564,7 @@ export default function PrescriptionTab({
           initialDiagnosis={diagnosis}
           initialOrderInvestigation={orderInvestigation}
           initialNotes={notes}
+          initialConfidentialNotes={confidentialNotes}
           initialInstructionsByDoctor={instructionsByDoctor}
         />
       </>
@@ -1089,6 +1095,7 @@ export default function PrescriptionTab({
         initialDiagnosis={diagnosis}
         initialOrderInvestigation={orderInvestigation}
         initialNotes={notes}
+        initialConfidentialNotes={confidentialNotes}
         initialInstructionsByDoctor={instructionsByDoctor}
       />
 

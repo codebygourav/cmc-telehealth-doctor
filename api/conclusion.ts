@@ -4,6 +4,8 @@ export interface SubmitConclusionPayload {
   appointmentId: string;
   instructions_by_doctor: string;
   next_visit_date: string;
+  notes?: string;
+  confidential_notes?: string;
   type?: string;
   files?: File[];
 }
@@ -24,6 +26,8 @@ export const submitConclusion = async ({
   appointmentId,
   instructions_by_doctor,
   next_visit_date,
+  notes,
+  confidential_notes,
   type,
   files,
 }: SubmitConclusionPayload): Promise<SubmitConclusionResponse> => {
@@ -31,6 +35,14 @@ export const submitConclusion = async ({
 
   formData.append("instructions_by_doctor", instructions_by_doctor);
   formData.append("next_visit_date", next_visit_date);
+
+  if (notes) {
+    formData.append("notes", notes);
+  }
+
+  if (confidential_notes) {
+    formData.append("confidential_notes", confidential_notes);
+  }
 
   if (type) {
     formData.append("type", type);

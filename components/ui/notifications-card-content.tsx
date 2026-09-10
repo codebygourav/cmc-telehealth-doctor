@@ -1,7 +1,7 @@
 "use client";
 
 import { CardContent } from "@/components/ui/card";
-import { Bell } from "lucide-react";
+import { Bell, Video } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "./button";
 
@@ -12,6 +12,8 @@ interface NotificationItem {
     created_at: string;
     is_read: boolean;
     group: string;
+    appointment_id?: string | null;
+    join_url?: string | null;
 }
 
 interface NotificationsCardContentProps {
@@ -89,9 +91,27 @@ export default function NotificationsCardContent({
                                         {notification.title}
                                     </p>
 
-                                    {!notification.is_read && (
-                                        <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-blue-500 shrink-0 mt-1" />
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        {notification.join_url && (
+                                            <Button
+                                                size="sm"
+                                                className="h-6 px-2 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-all"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(
+                                                        `/start-consultation?room_url=${encodeURIComponent(notification.join_url || "")}&appointment_id=${notification.appointment_id || ""}`,
+                                                        "_blank"
+                                                    );
+                                                }}
+                                            >
+                                                <Video className="h-3 w-3 mr-1" />
+                                                Join Call
+                                            </Button>
+                                        )}
+                                        {!notification.is_read && (
+                                            <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-blue-500 shrink-0 mt-1" />
+                                        )}
+                                    </div>
                                 </div>
 
                                 <p className="text-[#373737] text-xs line-clamp-2 mt-0.5">

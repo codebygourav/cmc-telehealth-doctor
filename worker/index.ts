@@ -35,12 +35,7 @@ self.addEventListener("push", (event) => {
             },
         };
 
-        const isAppointmentReminder =
-            title.toLowerCase().includes("appointment reminder") ||
-            group.toLowerCase() === "appointment" ||
-            (join_url && title.toLowerCase().includes("reminder"));
-
-        if (isAppointmentReminder && join_url) {
+        if (join_url) {
             options.actions = [
                 {
                     action: "join_call",
@@ -78,17 +73,10 @@ self.addEventListener("notificationclick", (event) => {
     const notifData = event.notification.data || {};
     const join_url = notifData.join_url;
     const appointment_id = notifData.appointment_id;
-    const title = notifData.title || event.notification.title || "";
-    const group = notifData.group || "";
 
     let targetUrl = notifData.url || "/notifications";
 
-    const isAppointmentReminder =
-        event.action === "join_call" ||
-        title.toLowerCase().includes("appointment reminder") ||
-        group.toLowerCase() === "appointment";
-
-    if (isAppointmentReminder && join_url) {
+    if (join_url) {
         targetUrl = `/start-consultation?room_url=${encodeURIComponent(join_url)}&appointment_id=${appointment_id || ""}`;
     }
 
