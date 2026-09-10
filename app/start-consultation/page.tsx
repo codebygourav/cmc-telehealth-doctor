@@ -77,12 +77,7 @@ const ConsultationContent = () => {
 
             {/* Floating Action Buttons placed right before Cam */}
             {joined && (
-                <div
-                    className={`fixed z-50 flex items-center gap-2 sm:gap-3 transition-all duration-300 ${chatOpen
-                        ? "bottom-1 right-[calc(50%+410px)] md:right-[calc(50%+405px)] max-[768px]:right-[calc(50%+325px)] max-[480px]:right-[calc(50%+260px)]"
-                        : "bottom-1 right-[calc(50%+250px)] md:right-[calc(50%+245px)] max-[768px]:right-[calc(50%+165px)] max-[480px]:right-[calc(50%+100px)]"
-                        }`}
-                >
+                <div className={`absolute bottom-1 left-5 flex items-center gap-2 z-50 sm:gap-3 transition-all duration-300`}>
                     <button
                         type="button"
                         onClick={() => {
