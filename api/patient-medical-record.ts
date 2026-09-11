@@ -159,3 +159,71 @@ export const deletePatientMedicalRecordFiles = async (
 
   return data;
 };
+
+export const downloadPatientMedicalRecord = async (appointmentId: string) => {
+  if (!appointmentId) {
+    throw new Error("appointmentId is required to download medical record");
+  }
+
+  const response = await api.get(
+    `/appointments/patient-medical-record/${appointmentId}/download`,
+    {
+      responseType: "blob",
+    }
+  );
+
+  return response;
+};
+
+export const handleDownloadPatientMedicalRecord = async (
+  appointmentId: string
+) => {
+  const response = await downloadPatientMedicalRecord(appointmentId);
+  const contentType = (response.headers?.["content-type"] as string) || "";
+
+  if (contentType.includes("application/json")) {
+    const text = await response.data.text();
+    const parsed = JSON.parse(text);
+    const downloadUrl =
+      parsed?.data?.download_url ||
+      parsed?.data?.url ||
+      parsed?.data?.pdf_url ||
+      parsed?.download_url ||
+      parsed?.url;
+
+    if (downloadUrl) {
+      window.open(downloadUrl, "_blank", "noopener,noreferrer");
+      return parsed;
+    }
+
+    if (parsed?.message && parsed?.success === false) {
+      throw new Error(parsed.message);
+    }
+  }
+
+  const blobData = response.data;
+  const blob = new Blob([blobData], {
+    type: contentType || "application/pdf",
+  });
+
+  let fileName = `patient-medical-record-${appointmentId}.pdf`;
+  const disposition = response.headers?.["content-disposition"] as string;
+  if (disposition && disposition.includes("filename=")) {
+    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+    if (matches != null && matches[1]) {
+      fileName = matches[1].replace(/['"]/g, "");
+    }
+  }
+
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", fileName);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+
+  return { success: true };
+};
+

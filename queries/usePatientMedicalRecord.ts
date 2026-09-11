@@ -3,6 +3,7 @@ import {
   getPatientMedicalRecord,
   savePatientMedicalRecord,
   deletePatientMedicalRecordFiles,
+  handleDownloadPatientMedicalRecord,
   SavePatientMedicalRecordPayload,
   GetPatientMedicalRecordResponse,
 } from "@/api/patient-medical-record";
@@ -15,7 +16,15 @@ export const usePatientMedicalRecord = (appointmentId: string) => {
   });
 };
 
+export const useDownloadPatientMedicalRecord = () => {
+  return useMutation({
+    mutationFn: (appointmentId: string) =>
+      handleDownloadPatientMedicalRecord(appointmentId),
+  });
+};
+
 export const useSavePatientMedicalRecord = () => {
+
   const queryClient = useQueryClient();
 
   return useMutation({

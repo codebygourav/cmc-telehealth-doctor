@@ -34,6 +34,7 @@ import {
   usePatientMedicalRecord,
   useSavePatientMedicalRecord,
   useDeletePatientMedicalRecordFiles,
+  useDownloadPatientMedicalRecord,
 } from "@/queries/usePatientMedicalRecord";
 import { PatientMedicalRecordFile } from "@/api/patient-medical-record";
 import { cleanAndDeduplicateText, escapeRegExp, formatClinicalValue } from "@/src/utils/cleanClinicalText";
@@ -404,6 +405,30 @@ export default function AddPrescriptionDialog({
   const { data: medicalRecordResponse } = usePatientMedicalRecord(appointmentId || "");
   const saveMedicalRecordMutation = useSavePatientMedicalRecord();
   const deleteMedicalRecordFilesMutation = useDeletePatientMedicalRecordFiles();
+  const downloadMedicalRecordMutation = useDownloadPatientMedicalRecord();
+
+  const handleMedicalRecordDownload = async () => {
+    if (!appointmentId) {
+      setToastMessage({
+        text: "Appointment ID is missing for downloading medical record",
+        type: "error",
+      });
+      return;
+    }
+    try {
+      await downloadMedicalRecordMutation.mutateAsync(appointmentId);
+      setToastMessage({
+        text: "Patient medical record downloaded successfully",
+        type: "success",
+      });
+    } catch (err: any) {
+      console.error("Failed to download patient medical record", err);
+      setToastMessage({
+        text: err?.message || "Failed to download patient medical record",
+        type: "error",
+      });
+    }
+  };
 
   const [medicalRecordForm, setMedicalRecordForm] = useState({
     final_diagnosis: "",
@@ -1777,26 +1802,44 @@ export default function AddPrescriptionDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-[95vw] max-h-[92vh] sm:max-w-6xl! rounded-[28px] p-0 overflow-hidden flex flex-col gap-0! fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-slate-200 bg-linear-to-br from-white via-slate-50 to-sky-50 shadow-[0_30px_90px_rgba(15,23,42,0.18)]">
-          <button
-            type="button"
-            disabled={!pdfUrl}
-            onClick={() => {
-              if (pdfUrl) {
-                window.open(pdfUrl, "_blank", "noopener,noreferrer");
-              } else {
-                setToastMessage({
-                  text: "No prescription PDF available yet for download",
-                  type: "error",
-                });
-              }
-            }}
-            className="absolute top-3 sm:top-3.5 right-12 sm:right-14 z-50 h-8 px-2.5 sm:px-3 rounded-full border border-sky-200 bg-sky-50/90 hover:bg-sky-100 text-sky-700 font-semibold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            title={pdfUrl ? "Download Prescription PDF" : "Prescription PDF not available yet"}
-          >
-            <Download className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden sm:inline">Download Prescription</span>
-            <span className="inline sm:hidden">Download</span>
-          </button>
+          <div className="absolute top-3 sm:top-3.5 right-12 sm:right-14 z-50 flex items-center gap-2 sm:gap-2.5">
+            <button
+              type="button"
+              disabled={downloadMedicalRecordMutation.isPending || !appointmentId}
+              onClick={handleMedicalRecordDownload}
+              className="h-8 px-2.5 sm:px-3 rounded-full border border-emerald-200 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Download Patient Medical Record PDF"
+            >
+              {downloadMedicalRecordMutation.isPending ? (
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-700 border-t-transparent shrink-0" />
+              ) : (
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <span className="hidden sm:inline">Download Patient Medical Record</span>
+              <span className="inline sm:hidden">Medical Record</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!pdfUrl}
+              onClick={() => {
+                if (pdfUrl) {
+                  window.open(pdfUrl, "_blank", "noopener,noreferrer");
+                } else {
+                  setToastMessage({
+                    text: "No prescription PDF available yet for download",
+                    type: "error",
+                  });
+                }
+              }}
+              className="h-8 px-2.5 sm:px-3 rounded-full border border-sky-200 bg-sky-50/90 hover:bg-sky-100 text-sky-700 font-semibold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title={pdfUrl ? "Download Prescription PDF" : "Prescription PDF not available yet"}
+            >
+              <Download className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline">Download Prescription</span>
+              <span className="inline sm:hidden">Download</span>
+            </button>
+          </div>
 
           {toastMessage && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-100 animate-in fade-in slide-in-from-top-4 duration-300">
@@ -1815,7 +1858,7 @@ export default function AddPrescriptionDialog({
             </div>
           )}
 
-          <DialogHeader className="border-b border-slate-200 px-5 py-4 sm:px-6 sm:py-5 pr-44 sm:pr-64 shrink-0 bg-white/70 backdrop-blur">
+          <DialogHeader className="border-b border-slate-200 px-5 py-4 sm:px-6 sm:py-5 pr-64 sm:pr-[440px] shrink-0 bg-white/70 backdrop-blur">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-700">

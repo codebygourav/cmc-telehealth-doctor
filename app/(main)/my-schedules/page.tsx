@@ -58,9 +58,20 @@ const MySchedulesPage = () => {
         );
 
         if (selectedSlot) {
-            // Priority 1: Use appointments inside the slot if available
-            if (selectedSlot.appointments && selectedSlot.appointments.length > 0) {
-                return selectedSlot.appointments;
+            // Priority 1: Use appointments inside the slot (both appointments and external_bookings)
+            const slotAppointments = [
+                ...(selectedSlot.appointments || []),
+                ...(selectedSlot.external_bookings || []),
+            ];
+
+            if (slotAppointments.length > 0) {
+                return slotAppointments.filter((item, index, self) =>
+                    index === self.findIndex((t) => {
+                        const tId = t.id || t.appointment_id;
+                        const itemId = item.id || item.appointment_id;
+                        return tId && itemId ? tId === itemId : false;
+                    })
+                );
             }
 
             // Priority 2: Filter the date-filtered appointments by matching time or slot link
@@ -70,7 +81,7 @@ const MySchedulesPage = () => {
                 const slotStart = selectedSlot.start_time; // format like "18:00:00"
 
                 // Try direct match first (often both are in HH:mm:ss format from API)
-                if (apptTime === slotStart) return true;
+                if (apptTime && slotStart && apptTime === slotStart) return true;
 
                 // Fallback: compare formatted times if they exist
                 const apptFormatted = appt.appointment_time_formatted; // e.g. "06:00 PM"
@@ -83,6 +94,9 @@ const MySchedulesPage = () => {
                 if (apptFormatted && slotTimeRange && slotTimeRange.includes(apptFormatted)) {
                     return true;
                 }
+
+                const apptStart = appt.start_time;
+                if (apptStart && slotStart && (apptStart === slotStart || apptStart.startsWith(slotStart.slice(0, 5)))) return true;
 
                 return false;
             });
@@ -124,11 +138,25 @@ const MySchedulesPage = () => {
                     return false;
                 });
 
+                const slotLevelAppts = [
+                    ...(slot.appointments || []),
+                    ...(slot.external_bookings || []),
+                ];
+
+                const combinedAppointments = [...slotLevelAppts, ...apptsForSlot];
+                const uniqueAppointments = combinedAppointments.filter((item, index, self) =>
+                    index === self.findIndex((t) => {
+                        const tId = t.id || t.appointment_id;
+                        const itemId = item.id || item.appointment_id;
+                        return tId && itemId ? tId === itemId : false;
+                    })
+                );
+
                 return {
                     ...slot,
                     date: formattedDate,
-                    booked_count: Math.max(slot.booked_count || 0, apptsForSlot.length),
-                    appointments: apptsForSlot.length > 0 ? apptsForSlot : (slot.appointments || []),
+                    booked_count: Math.max(slot.booked_count || 0, uniqueAppointments.length),
+                    appointments: uniqueAppointments,
                 };
             });
         }
@@ -164,11 +192,25 @@ const MySchedulesPage = () => {
                         return false;
                     });
 
+                    const slotLevelAppts = [
+                        ...(slot.appointments || []),
+                        ...(slot.external_bookings || []),
+                    ];
+
+                    const combinedAppointments = [...slotLevelAppts, ...apptsForSlot];
+                    const uniqueAppointments = combinedAppointments.filter((item, index, self) =>
+                        index === self.findIndex((t) => {
+                            const tId = t.id || t.appointment_id;
+                            const itemId = item.id || item.appointment_id;
+                            return tId && itemId ? tId === itemId : false;
+                        })
+                    );
+
                     return {
                         ...slot,
                         date: formattedDate,
-                        booked_count: Math.max(slot.booked_count || 0, apptsForSlot.length),
-                        appointments: apptsForSlot.length > 0 ? apptsForSlot : (slot.appointments || []),
+                        booked_count: Math.max(slot.booked_count || 0, uniqueAppointments.length),
+                        appointments: uniqueAppointments,
                     };
                 });
             }
@@ -246,7 +288,13 @@ const MySchedulesPage = () => {
     };
 
     const hasAppointments = (date: Date) => {
-        if (!date || !data?.data) return false;
+        if (!date) return false;
+        const slots = getOPDSlotsForDate(date);
+        const hasSlotBookings = slots.some(
+            (s) => (s.booked_count && s.booked_count > 0) || (s.appointments && s.appointments.length > 0) || (s.external_bookings && s.external_bookings.length > 0)
+        );
+        if (hasSlotBookings) return true;
+        if (!data?.data) return false;
         const formattedDate = date.toLocaleDateString("en-CA");
         return data.data.some((appt: Appointment) => {
             return appt.appointment_date === formattedDate || appt.appointment_date?.startsWith(formattedDate);
@@ -403,12 +451,12 @@ const MySchedulesPage = () => {
                                                     appointment.appointment_time_formatted ||
                                                     (appointment.start_time && appointment.end_time
                                                         ? `${appointment.start_time} - ${appointment.end_time}`
-                                                        : appointment.appointment_time || appointment.appointmentTime || "");
+                                                        : appointment.start_time || appointment.appointment_time || appointment.appointmentTime || selectedSlot?.time_range || "");
 
                                                 const consultationType =
                                                     appointment.consultation_type === "video" || appointment.type === "Telehealth"
                                                         ? "Video"
-                                                        : "In-Person";
+                                                        : (selectedSlot?.consultation_type === "video" ? "Video" : "In-Person");
 
                                                 const statusLabel =
                                                     appointment.status_label ||

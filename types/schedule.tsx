@@ -70,6 +70,17 @@ export interface PatientAppointment {
     };
 }
 
+export interface ExternalBooking {
+    id: string;
+    patient_name: string;
+    patient_unit_number?: string;
+    mobile?: string;
+    source?: string;
+    start_time?: string | null;
+    end_time?: string | null;
+    [key: string]: any;
+}
+
 export interface OPDSlot {
     id: string | null
     startTime: string
@@ -89,6 +100,7 @@ export interface OPDSlot {
     doctor_room?: string | null
     is_available?: boolean
     appointments: PatientAppointment[]
+    external_bookings?: ExternalBooking[]
     // For UI compatibility
     timeSlot?: string
     type?: "Telehealth" | "In-Person"
