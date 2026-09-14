@@ -31,7 +31,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { showNativeNotification, usePushNotifications } from "@/hooks/usePushNotifications";
+import { isNotificationOlderThanCurrent, showNativeNotification, usePushNotifications } from "@/hooks/usePushNotifications";
 
 export function NotificationDropdown() {
   const {
@@ -90,6 +90,10 @@ export function NotificationDropdown() {
       if (!item.is_read && !updatedNotifiedSet.has(item.id)) {
         updatedNotifiedSet.add(item.id);
         newNotificationsFound = true;
+
+        if (isNotificationOlderThanCurrent(item)) {
+          return;
+        }
 
         showNativeNotification(item.title || "New Notification", {
           body: item.desc || "",

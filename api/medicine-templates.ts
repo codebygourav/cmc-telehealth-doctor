@@ -7,17 +7,24 @@ import type {
 
 export const getMedicineTemplates =
   async (): Promise<GetMedicineTemplatesResponse> => {
-    const response = await axiosInstance.get<GetMedicineTemplatesResponse>(
-      "/doctor/medicine-templates",
-      {
-        params: {
-          active_only: true,
-          per_page: 100,
+    try {
+      const response = await axiosInstance.get<GetMedicineTemplatesResponse>(
+        "/doctor/medicine-templates",
+        {
+          params: {
+            active_only: true,
+            per_page: 100,
+          },
         },
-      },
-    );
+      );
 
-    return response.data;
+      return response.data;
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        return { success: true, data: [] } as GetMedicineTemplatesResponse;
+      }
+      throw error;
+    }
   };
 
 export const getMedicineTemplate = async (

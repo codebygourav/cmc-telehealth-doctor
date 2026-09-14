@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill, Download } from "lucide-react";
+import { Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill, Download, Loader2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -439,7 +439,6 @@ export default function AddPrescriptionDialog({
     personal_history: "",
     examination: "",
     notes: "",
-    confidential_notes: "",
     investigation: "",
     treatment: "",
   });
@@ -463,7 +462,6 @@ export default function AddPrescriptionDialog({
         personal_history: formatClinicalValue(rec.personal_history),
         examination: formatClinicalValue(rec.examination),
         notes: formatClinicalValue(rawClinicalNotes),
-        confidential_notes: formatClinicalValue(rec.confidential_notes),
         investigation: formatClinicalValue(rec.investigation),
         treatment: formatClinicalValue(rec.treatment),
       });
@@ -482,6 +480,39 @@ export default function AddPrescriptionDialog({
       setExistingMedicalRecordFiles((prev) => prev.filter((f) => f.id !== fileId));
     } catch (err) {
       console.error("Failed to delete medical record file:", err);
+    }
+  };
+
+  const handleSaveMedicalRecordOnly = async () => {
+    if (!appointmentId) {
+      setToastMessage({
+        text: "Appointment ID is missing.",
+        type: "error",
+      });
+      return;
+    }
+
+    try {
+      await saveMedicalRecordMutation.mutateAsync({
+        appointmentId,
+        ...medicalRecordForm,
+        notes: medicalRecordForm.notes,
+        clinical_notes: medicalRecordForm.notes,
+        files: medicalRecordFiles,
+        attached_docs: medicalRecordFiles,
+        type: "patient_medical_record",
+      });
+      setMedicalRecordFiles([]);
+      setToastMessage({
+        text: "Patient Medical Record saved successfully",
+        type: "success",
+      });
+    } catch (err: any) {
+      console.error("Failed to save patient medical record:", err);
+      setToastMessage({
+        text: err?.response?.data?.message || err?.message || "Failed to save patient medical record",
+        type: "error",
+      });
     }
   };
 
@@ -1248,7 +1279,6 @@ export default function AddPrescriptionDialog({
       Boolean(medicalRecordForm.investigation.trim()) ||
       Boolean(medicalRecordForm.treatment.trim()) ||
       Boolean(medicalRecordForm.notes.trim()) ||
-      Boolean(medicalRecordForm.confidential_notes.trim()) ||
       medicalRecordFiles.length > 0;
 
     const hasFindings =
@@ -1288,7 +1318,6 @@ export default function AddPrescriptionDialog({
           ...medicalRecordForm,
           notes: medicalRecordForm.notes,
           clinical_notes: medicalRecordForm.notes,
-          confidential_notes: medicalRecordForm.confidential_notes,
           files: medicalRecordFiles,
           attached_docs: medicalRecordFiles,
           type: "patient_medical_record",
@@ -2632,16 +2661,6 @@ export default function AddPrescriptionDialog({
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-xs font-semibold text-slate-700 block">Confidential Notes</label>
-                              <Textarea
-                                placeholder="Internal confidential notes..."
-                                rows={2}
-                                value={medicalRecordForm.confidential_notes}
-                                onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, confidential_notes: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
                               <label className="text-xs font-semibold text-slate-700 block">Investigation</label>
                               <Textarea
                                 placeholder="Ordered tests (lab, radiology)..."
@@ -2765,6 +2784,28 @@ export default function AddPrescriptionDialog({
                                 <p className="text-xs font-semibold text-slate-600">Click or drag files here to attach</p>
                               </div>
                             </div>
+                          </div>
+
+                          {/* Submit Patient Medical Record Button */}
+                          <div className="pt-3 flex justify-end border-t border-slate-100">
+                            <Button
+                              type="button"
+                              onClick={handleSaveMedicalRecordOnly}
+                              disabled={saveMedicalRecordMutation.isPending}
+                              className="w-full sm:w-auto px-6 h-11 text-xs sm:text-sm font-semibold rounded-2xl shadow-sm bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-2 transition-all"
+                            >
+                              {saveMedicalRecordMutation.isPending ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin text-white" />
+                                  Saving Patient Medical Record...
+                                </>
+                              ) : (
+                                <>
+                                  <FileText className="h-4 w-4 text-white" />
+                                  Save Patient Medical Record
+                                </>
+                              )}
+                            </Button>
                           </div>
                         </div>
                       )}
