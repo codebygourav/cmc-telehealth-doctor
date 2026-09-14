@@ -1,50 +1,4 @@
 // @ts-nocheck
-function isNotificationOlderThanCurrent(item) {
-    if (!item) return false;
-
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-
-    let dateStr =
-        item.date ||
-        item.appointment_date ||
-        item.created_at ||
-        item.datetime ||
-        item.scheduled_at ||
-        item.timestamp ||
-        item.time_stamp;
-
-    let timeStr = item.time || item.appointment_time;
-
-    if (!dateStr) return false;
-
-    let targetDate = null;
-
-    if (typeof dateStr === "number") {
-        targetDate = new Date(dateStr > 1e11 ? dateStr : dateStr * 1000);
-    } else if (typeof dateStr === "string") {
-        let rawStr = dateStr.trim();
-        if (timeStr && typeof timeStr === "string" && !rawStr.includes(":") && !rawStr.includes("T")) {
-            rawStr = `${rawStr} ${timeStr.trim()}`;
-        }
-        if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(rawStr)) {
-            rawStr = rawStr.replace(" ", "T");
-        }
-        targetDate = new Date(rawStr);
-    }
-
-    if (!targetDate || isNaN(targetDate.getTime())) {
-        return false;
-    }
-
-    const targetTime = targetDate.getTime();
-    const isOlderThanToday = targetTime < startOfToday;
-    const BUFFER_MS = 2 * 60 * 1000;
-    const isOlderThanCurrentTime = targetTime < (now.getTime() - BUFFER_MS);
-
-    return isOlderThanToday || isOlderThanCurrentTime;
-}
-
 self.addEventListener("push", (event) => {
     if (!event.data) return;
 
@@ -58,10 +12,6 @@ self.addEventListener("push", (event) => {
 
         const payloadData = rawData.data || rawData;
         const notificationData = rawData.notification || {};
-
-        if (isNotificationOlderThanCurrent(payloadData) || isNotificationOlderThanCurrent(rawData)) {
-            return;
-        }
 
         const title = rawData.title || notificationData.title || payloadData.title || "New Notification";
         const desc = rawData.desc || rawData.body || rawData.message || notificationData.body || payloadData.desc || payloadData.body || payloadData.message || "";
@@ -113,9 +63,6 @@ self.addEventListener("push", (event) => {
 self.addEventListener("message", (event) => {
     if (event.data && event.data.type === "SHOW_NOTIFICATION") {
         const { title, options } = event.data;
-        if (options && options.data && isNotificationOlderThanCurrent(options.data)) {
-            return;
-        }
         self.registration.showNotification(title || "New Notification", options);
     }
 });
@@ -136,7 +83,7 @@ self.addEventListener("notificationclick", (event) => {
     event.waitUntil(
         self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
             for (let i = 0; i < clientList.length; i++) {
-                let client = clientList[i];
+                const client = clientList[i];
                 if (client.url.includes(targetUrl) && "focus" in client) {
                     return client.focus();
                 }

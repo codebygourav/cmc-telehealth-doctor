@@ -30,8 +30,10 @@ notificationsApi.interceptors.response.use(
   },
 );
 
-export const getNotifications = async (): Promise<NotificationsResponse> => {
-  const response = await notificationsApi.get("/notifications");
+export const getNotifications = async (after?: string): Promise<NotificationsResponse> => {
+  const response = await notificationsApi.get("/notifications", {
+    params: after ? { after } : undefined,
+  });
   return response.data;
 };
 
@@ -42,8 +44,10 @@ export const getSingleNotification = async (notificationId: string) => {
   return response.data;
 };
 
-export const getUnreadCount = async (): Promise<number> => {
-  const response = await notificationsApi.get("/notifications/unread-count");
+export const getUnreadCount = async (after?: string): Promise<number> => {
+  const response = await notificationsApi.get("/notifications/unread-count", {
+    params: after ? { after } : undefined,
+  });
   return Number(
     response.data?.data?.unread_count ?? response.data?.unread_count ?? 0,
   );

@@ -16,59 +16,17 @@ function urlBase64ToUint8Array(base64String: string) {
     return outputArray;
 }
 
-export function isNotificationOlderThanCurrent(item: any): boolean {
-    if (!item) return false;
-
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-
-    let dateStr =
-        item.date ||
-        item.appointment_date ||
-        item.created_at ||
-        item.datetime ||
-        item.scheduled_at ||
-        item.timestamp ||
-        item.time_stamp;
-
-    let timeStr = item.time || item.appointment_time;
-
-    if (!dateStr) return false;
-
-    let targetDate: Date | null = null;
-
-    if (typeof dateStr === "number") {
-        targetDate = new Date(dateStr > 1e11 ? dateStr : dateStr * 1000);
-    } else if (typeof dateStr === "string") {
-        let rawStr = dateStr.trim();
-        if (timeStr && typeof timeStr === "string" && !rawStr.includes(":") && !rawStr.includes("T")) {
-            rawStr = `${rawStr} ${timeStr.trim()}`;
-        }
-        if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(rawStr)) {
-            rawStr = rawStr.replace(" ", "T");
-        }
-        targetDate = new Date(rawStr);
-    }
-
-    if (!targetDate || isNaN(targetDate.getTime())) {
-        return false;
-    }
-
-    const targetTime = targetDate.getTime();
-    const isOlderThanToday = targetTime < startOfToday;
-    const BUFFER_MS = 2 * 60 * 1000;
-    const isOlderThanCurrentTime = targetTime < (now.getTime() - BUFFER_MS);
-
-    return isOlderThanToday || isOlderThanCurrentTime;
+export function isNotificationAfterCutoff(createdAt?: string | null, loginTime?: string | null): boolean {
+    if (!loginTime || !createdAt) return true;
+    const itemTime = new Date(createdAt).getTime();
+    const cutoffTime = new Date(loginTime).getTime();
+    if (isNaN(itemTime) || isNaN(cutoffTime)) return true;
+    return itemTime >= cutoffTime;
 }
 
 export function showNativeNotification(title: string, options?: NotificationOptions) {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
-
-    if (options?.data && isNotificationOlderThanCurrent(options.data)) {
-        return;
-    }
 
     const defaultOptions: NotificationOptions = {
         icon: "/favicon.ico",

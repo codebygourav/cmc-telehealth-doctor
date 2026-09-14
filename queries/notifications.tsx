@@ -1,4 +1,5 @@
 import { getNotifications, getSingleNotification, getUnreadCount } from "@/api/notification";
+import { useAuth } from "@/context/userContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export enum NotificationQueryKeys {
@@ -7,13 +8,17 @@ export enum NotificationQueryKeys {
 }
 
 interface UseNotificationsOptions {
+  after?: string | null;
   enabled?: boolean;
 }
 
-export function useNotifications({ enabled = true }: UseNotificationsOptions = {}) {
+export function useNotifications({ after, enabled = true }: UseNotificationsOptions = {}) {
+  const { loginTime } = useAuth();
+  const cutoff = after !== undefined ? after : loginTime;
+
   return useQuery({
-    queryKey: [NotificationQueryKeys.NOTIFICATIONS],
-    queryFn: getNotifications,
+    queryKey: [NotificationQueryKeys.NOTIFICATIONS, cutoff],
+    queryFn: () => getNotifications(cutoff ?? undefined),
     enabled,
     staleTime: 5 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -24,10 +29,13 @@ export function useNotifications({ enabled = true }: UseNotificationsOptions = {
   });
 }
 
-export function useUnreadCount({ enabled = true }: UseNotificationsOptions = {}) {
+export function useUnreadCount({ after, enabled = true }: UseNotificationsOptions = {}) {
+  const { loginTime } = useAuth();
+  const cutoff = after !== undefined ? after : loginTime;
+
   return useQuery({
-    queryKey: [NotificationQueryKeys.UNREAD_COUNT],
-    queryFn: getUnreadCount,
+    queryKey: [NotificationQueryKeys.UNREAD_COUNT, cutoff],
+    queryFn: () => getUnreadCount(cutoff ?? undefined),
     enabled,
     staleTime: 5 * 1000,
     gcTime: 10 * 60 * 1000,

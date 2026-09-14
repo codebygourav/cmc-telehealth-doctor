@@ -1,6 +1,7 @@
 "use client";
 
-import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { isNotificationAfterCutoff, usePushNotifications } from "@/hooks/usePushNotifications";
+import { useAuth } from "@/context/userContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +58,7 @@ const EmptyState = ({
 );
 
 export default function NotificationsPage() {
+    const { loginTime } = useAuth();
     const { data, isLoading, isError, error, refetch } = useNotifications();
     const readNotificationMutation = useReadNotification();
     const {
@@ -70,8 +72,13 @@ export default function NotificationsPage() {
     const [readingId, setReadingId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("all");
     const [showPushBanner, setShowPushBanner] = useState(true);
-    const notifications = data?.data ?? [];
-    const unreadCount = data?.meta?.total_unread ?? 0;
+    const rawNotifications = data?.data ?? [];
+
+    const notifications = useMemo(() => {
+        return rawNotifications.filter((item) => isNotificationAfterCutoff(item.created_at, loginTime));
+    }, [rawNotifications, loginTime]);
+
+    const unreadCount = notifications.filter((item) => !item.is_read).length;
 
     const unreadNotifications = useMemo(() => {
         return notifications.filter((item) => !item.is_read);

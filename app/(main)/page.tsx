@@ -26,9 +26,11 @@ import {
 import QuickActionsCard, { QuickActionItem } from "@/components/pages/home/quick-actions-card";
 import NotificationsCardContent from "@/components/ui/notifications-card-content";
 
+import { isNotificationAfterCutoff } from "@/hooks/usePushNotifications";
+
 const Home = () => {
 
-    const { user } = useAuth();
+    const { user, loginTime } = useAuth();
     const router = useRouter();
     const { data, isLoading, isError, error } = useDoctorHome();
     const {
@@ -40,7 +42,8 @@ const Home = () => {
 
     const dashboard = data?.data;
     const summary = dashboard?.summary;
-    const notifications = notificationsData?.data || [];
+    const rawNotifications = notificationsData?.data || [];
+    const notifications = rawNotifications.filter((n) => isNotificationAfterCutoff(n.created_at, loginTime));
 
     const getNotificationIcon = (group: string) => {
         switch (group) {

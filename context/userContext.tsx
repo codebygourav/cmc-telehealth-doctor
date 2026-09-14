@@ -7,6 +7,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 interface UserContextType {
   user: User | null;
   token: string | null;
+  loginTime: string | null;
   initializing: boolean;
   login: (user: User, token: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -17,6 +18,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 const USER_KEY = "@doctor_user";
 const TOKEN_KEY = "@token";
+const LOGIN_TIME_KEY = "@login_time";
 const TOKEN_COOKIE = "doctor_token";
 const ROLE_COOKIE = "doctor_role";
 const LOGIN_PATH = "/auth/login";
@@ -59,6 +61,7 @@ function clearPersistedAuth(): void {
 
   LEGACY_USER_KEYS.forEach((key) => localStorage.removeItem(key));
   LEGACY_TOKEN_KEYS.forEach((key) => localStorage.removeItem(key));
+  localStorage.removeItem(LOGIN_TIME_KEY);
 
   clearCookie(TOKEN_COOKIE);
   clearCookie(ROLE_COOKIE);
@@ -67,12 +70,14 @@ function clearPersistedAuth(): void {
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [loginTime, setLoginTime] = useState<string | null>(null);
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem(USER_KEY);
       const storedToken = localStorage.getItem(TOKEN_KEY);
+      const storedLoginTime = localStorage.getItem(LOGIN_TIME_KEY);
       const cookieToken = getCookieValue(TOKEN_COOKIE);
       const cookieRole = getCookieValue(ROLE_COOKIE);
 
@@ -100,6 +105,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setUser(parsedUser);
       setToken(storedToken);
       setAuthToken(storedToken);
+
+      if (storedLoginTime) {
+        setLoginTime(storedLoginTime);
+      } else {
+        const currentLoginTime = new Date().toISOString();
+        setLoginTime(currentLoginTime);
+        localStorage.setItem(LOGIN_TIME_KEY, currentLoginTime);
+      }
     } catch (e) {
       clearPersistedAuth();
       console.log("Error loading auth data", e);
@@ -112,6 +125,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const handleUnauthorized = () => {
       setUser(null);
       setToken(null);
+      setLoginTime(null);
       setAuthToken(null);
       clearPersistedAuth();
 
@@ -128,12 +142,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (userData: User, authToken: string) => {
+    const sessionLoginTime = new Date().toISOString();
     setUser(userData);
     setToken(authToken);
+    setLoginTime(sessionLoginTime);
     setAuthToken(authToken);
     try {
       localStorage.setItem(USER_KEY, JSON.stringify(userData));
       localStorage.setItem(TOKEN_KEY, authToken);
+      localStorage.setItem(LOGIN_TIME_KEY, sessionLoginTime);
       setCookie(TOKEN_COOKIE, authToken);
       setCookie(ROLE_COOKIE, userData.role);
     } catch (e) {
@@ -144,6 +161,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setUser(null);
     setToken(null);
+    setLoginTime(null);
     setAuthToken(null);
     try {
       clearPersistedAuth();
@@ -165,7 +183,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <UserContext.Provider
-      value={{ user, token, initializing, login, logout, updateUser }}
+      value={{ user, token, loginTime, initializing, login, logout, updateUser }}
     >
       {children}
     </UserContext.Provider>

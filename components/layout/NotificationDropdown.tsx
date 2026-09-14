@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import {
   useNotifications,
   useReadNotification,
-  useUnreadCount,
 } from "@/queries/notifications";
 import {
   Bell,
@@ -28,12 +27,13 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-
-import { isNotificationOlderThanCurrent, showNativeNotification, usePushNotifications } from "@/hooks/usePushNotifications";
+import { useAuth } from "@/context/userContext";
+import { isNotificationAfterCutoff, showNativeNotification, usePushNotifications } from "@/hooks/usePushNotifications";
 
 export function NotificationDropdown() {
+  const { loginTime } = useAuth();
   const {
     permission,
     subscription,
@@ -57,18 +57,16 @@ export function NotificationDropdown() {
     }
   };
 
-  const { data: unreadCountApi = 0 } = useUnreadCount();
   const { data: notificationsData, isLoading: isLoadingNotifications } =
     useNotifications({ enabled: true });
   const markAsReadMutation = useReadNotification();
-  const notifications = notificationsData?.data ?? [];
+  const rawNotifications = notificationsData?.data ?? [];
 
-  const unreadCount = Math.max(
-    unreadCountApi,
-    notificationsData?.unread_count ?? 0,
-    notificationsData?.meta?.total_unread ?? 0,
-    notifications.filter((n) => !n.is_read).length
-  );
+  const notifications = useMemo(() => {
+    return rawNotifications.filter((n) => isNotificationAfterCutoff(n.created_at, loginTime));
+  }, [rawNotifications, loginTime]);
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   useEffect(() => {
     if (!notifications || notifications.length === 0) return;
@@ -91,7 +89,7 @@ export function NotificationDropdown() {
         updatedNotifiedSet.add(item.id);
         newNotificationsFound = true;
 
-        if (isNotificationOlderThanCurrent(item)) {
+        if (!isNotificationAfterCutoff(item.created_at, loginTime)) {
           return;
         }
 
@@ -104,6 +102,7 @@ export function NotificationDropdown() {
             join_url: item.join_url,
             appointment_id: item.appointment_id,
             title: item.title,
+            created_at: item.created_at,
           },
           ...(item.join_url
             ? {
@@ -147,7 +146,7 @@ export function NotificationDropdown() {
         // ignore
       }
     }
-  }, [notifications]);
+  }, [notifications, loginTime]);
 
   const toggleExpand = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -195,9 +194,12 @@ export function NotificationDropdown() {
   };
 
   const formatNotificationTime = (date: string) => {
-    const now = new Date();
+    if (!date) return "";
     const then = new Date(date);
+    if (isNaN(then.getTime())) return "";
+    const now = new Date();
     const diff = now.getTime() - then.getTime();
+    if (diff < 0) return "just now";
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
@@ -330,7 +332,7 @@ export function NotificationDropdown() {
 
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="text-[10px] text-muted-foreground font-semibold whitespace-nowrap">
-                                {notification.created_at}
+                                {formatNotificationTime(notification.created_at)}
                               </span>
                               <ChevronDown className={cn(
                                 "h-4 w-4  transition-all duration-300",
