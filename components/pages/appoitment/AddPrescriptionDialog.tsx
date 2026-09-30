@@ -452,6 +452,7 @@ export default function AddPrescriptionDialog({
         rec.notes !== undefined && rec.notes !== null
           ? rec.notes
           : rec.clinical_notes;
+      const formattedClinicalNotes = formatClinicalValue(rawClinicalNotes);
 
       setMedicalRecordForm({
         final_diagnosis: formatClinicalValue(rec.final_diagnosis),
@@ -461,10 +462,19 @@ export default function AddPrescriptionDialog({
         family_history: formatClinicalValue(rec.family_history),
         personal_history: formatClinicalValue(rec.personal_history),
         examination: formatClinicalValue(rec.examination),
-        notes: formatClinicalValue(rawClinicalNotes),
+        notes: formattedClinicalNotes,
         investigation: formatClinicalValue(rec.investigation),
         treatment: formatClinicalValue(rec.treatment),
       });
+
+      // If prescription notes field has no independent value and is mirroring clinical notes, show as empty
+      setNotes((prevNotes) => {
+        if (prevNotes && formattedClinicalNotes && prevNotes.trim() === formattedClinicalNotes.trim()) {
+          return "";
+        }
+        return prevNotes;
+      });
+
       const files = rec.attached_docs || rec.files || rec.medical_record_files || rec.attached_files || [];
       setExistingMedicalRecordFiles(files);
     }
@@ -810,7 +820,22 @@ export default function AddPrescriptionDialog({
       setGeneralNotes(initialGeneralNotes || "");
       setDiagnosis(initialDiagnosis || "");
       setOrderInvestigation(initialOrderInvestigation || "");
-      setNotes(initialNotes || prescriptionData?.data?.notes || "");
+
+      // Resolve notes: if notes field doesn't have an independent value or mirrors clinical_notes, show as empty
+      const rawNotes = initialNotes || prescriptionData?.data?.notes || "";
+      const clinicalNotesValue =
+        medicalRecordForm.notes ||
+        medicalRecordResponse?.data?.clinical_notes ||
+        medicalRecordResponse?.data?.notes ||
+        prescriptionData?.data?.clinical_notes ||
+        "";
+
+      if (rawNotes && clinicalNotesValue && rawNotes.trim() === clinicalNotesValue.trim()) {
+        setNotes("");
+      } else {
+        setNotes(rawNotes);
+      }
+
       setConfidentialNotes(initialConfidentialNotes || prescriptionData?.data?.confidential_notes || "");
       setInstructionsByDoctor(initialInstructionsByDoctor || "");
       setIncludeReports(Boolean(initialRecommendedTests));

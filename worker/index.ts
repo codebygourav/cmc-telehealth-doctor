@@ -21,8 +21,8 @@ self.addEventListener("push", (event) => {
 
         const options = {
             body: desc,
-            icon: rawData.icon || notificationData.icon || "/favicon.ico",
-            badge: rawData.badge || notificationData.badge || "/favicon.ico",
+            icon: rawData.icon || notificationData.icon || "/icons/icon-192x192.png",
+            badge: rawData.badge || notificationData.badge || "/icons/icon-192x192.png",
             tag: rawData.id || payloadData.id || rawData.tag || "notification-" + Date.now(),
             requireInteraction: true,
             data: {
@@ -53,7 +53,8 @@ self.addEventListener("push", (event) => {
         event.waitUntil(
             self.registration.showNotification("New Notification", {
                 body: text,
-                icon: "/favicon.ico",
+                icon: "/icons/icon-192x192.png",
+                badge: "/icons/icon-192x192.png",
                 data: { url: "/notifications" },
             })
         );

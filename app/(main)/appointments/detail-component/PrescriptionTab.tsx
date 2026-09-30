@@ -448,9 +448,14 @@ export default function PrescriptionTab({
 
   const parsedClinical = parseClinicalInstructions(instructionsByDoctorRaw);
 
+  const rawPrescriptionNotes = data?.data?.notes;
+  const rawClinicalNotes = data?.data?.clinical_notes;
+  const isDistinctPrescriptionNote =
+    Boolean(rawPrescriptionNotes) &&
+    (!rawClinicalNotes || rawPrescriptionNotes.trim() !== rawClinicalNotes.trim());
+
   const notes =
-    data?.data?.notes ||
-    data?.data?.clinical_notes ||
+    (isDistinctPrescriptionNote ? rawPrescriptionNotes : undefined) ||
     (conclusionData?.data as any)?.notes ||
     parsedClinical.notes ||
     undefined;

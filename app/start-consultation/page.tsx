@@ -27,7 +27,15 @@ const ConsultationContent = () => {
     const instructionsByDoctor = parsedClinical.instructionsByDoctor;
     const diagnosis = prescriptionData?.data?.diagnosis || parsedClinical.diagnosis;
     const orderInvestigation = prescriptionData?.data?.order_investigation || parsedClinical.orderInvestigation;
-    const notes = prescriptionData?.data?.notes || parsedClinical.notes;
+    const rawPrescriptionNotes = prescriptionData?.data?.notes;
+    const rawClinicalNotes = prescriptionData?.data?.clinical_notes;
+    const isDistinctPrescriptionNote =
+        Boolean(rawPrescriptionNotes) &&
+        (!rawClinicalNotes || rawPrescriptionNotes.trim() !== rawClinicalNotes.trim());
+    const notes =
+        (isDistinctPrescriptionNote ? rawPrescriptionNotes : undefined) ||
+        parsedClinical.notes ||
+        undefined;
     const confidentialNotes = prescriptionData?.data?.confidential_notes;
 
     const instructionsParts = rawInstructions ? rawInstructions.split("Recommended Tests:") : [];

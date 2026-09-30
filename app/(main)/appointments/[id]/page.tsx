@@ -9,6 +9,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import AppointmentHeader from "../detail-component/AppointmentHeader";
 import OverviewTab from "../detail-component/OverviewTab";
+import PatientHistoryTab from "../detail-component/PatientHistoryTab";
 import PrescriptionTab from "../detail-component/PrescriptionTab";
 import PreviousTab from "../detail-component/PreviousTab";
 import ReportsTab from "../detail-component/ReportsTab";
@@ -70,6 +71,11 @@ export default function AppointmentDetail() {
             content: <ReportsTab appointment={appointment} />,
         },
         {
+            key: "patient_history",
+            label: "Patient History",
+            content: <PatientHistoryTab appointment={appointment} />,
+        },
+        {
             key: "previous",
             label: "Previous Appointments",
             content: <PreviousTab appointment={appointment} />,
@@ -85,22 +91,6 @@ export default function AppointmentDetail() {
             content: <ReviewTab appointment={appointment} />,
         },
     ];
-
-
-    // Loading skeleton
-    if (isLoading) {
-
-        return (
-            <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 py-4 sm:py-6">
-                <div className="flex flex-col gap-2">
-                    <Skeleton className="h-8 w-48 sm:h-9 sm:w-56" />
-                    <Skeleton className="h-32 w-full rounded-xl" />
-                    <Skeleton className="h-12 w-full rounded-lg" />
-                    <Skeleton className="h-64 w-full rounded-xl" />
-                </div>
-            </div>
-        );
-    }
 
 
 

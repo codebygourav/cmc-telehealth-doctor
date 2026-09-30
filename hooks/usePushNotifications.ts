@@ -29,8 +29,8 @@ export function showNativeNotification(title: string, options?: NotificationOpti
     if (Notification.permission !== "granted") return;
 
     const defaultOptions: NotificationOptions = {
-        icon: "/favicon.ico",
-        badge: "/favicon.ico",
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/icon-192x192.png",
         tag: options?.tag || ("notification-" + Date.now()),
         requireInteraction: true,
         ...options,

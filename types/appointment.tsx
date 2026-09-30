@@ -20,6 +20,36 @@ export interface Patient {
 }
 
 
+export interface PatientHistoryMedicine {
+  prescription_id: string;
+  medicine_id?: string;
+  medicine_name: string;
+  dosage?: string;
+  frequency?: string;
+  frequency_label?: string;
+  timings?: string[];
+  meal?: string;
+  start_date?: string;
+  end_date?: string;
+  is_ongoing?: boolean;
+  instructions?: string;
+}
+
+export interface PatientHistoryItem {
+  date?: string | null;
+  date_formatted?: string | null;
+  appointment_id: string;
+  doctor_name?: string | null;
+  prescribed_medicines?: PatientHistoryMedicine[];
+  order_investigation?: string | null;
+  diagnosis?: string | null;
+  notes?: string | null;
+  confidential_notes?: string | null;
+  instructions_by_doctor?: string | null;
+  next_visit_date?: string | null;
+  pdf_url?: string | null;
+}
+
 export interface Appointment {
   appointment_id: string;
   appointment_date: string;
@@ -33,6 +63,7 @@ export interface Appointment {
   fee_amount: number;
   call_now: boolean;
   patient: Patient;
+  patient_history?: PatientHistoryItem[];
 }
 
 export interface PaginationInfo {
@@ -40,6 +71,7 @@ export interface PaginationInfo {
   per_page: number;
   current_page: number;
   last_page: number;
+  total_pages?: number;
 }
 
 export interface AppointmentListResponse {
