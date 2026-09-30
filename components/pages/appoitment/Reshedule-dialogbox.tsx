@@ -15,6 +15,9 @@ interface RescheduleAppointmentDialogProps {
     appointmentId: string;
     setCustomDialogOpen: (val: boolean) => void;
     setDialogData: (data: any) => void;
+    // Booking still awaiting confirmation: rescheduling it also confirms it.
+    isAwaitingConfirmation?: boolean;
+    onSuccess?: () => void;
 }
 
 export function RescheduleAppointmentDialog({
@@ -23,6 +26,8 @@ export function RescheduleAppointmentDialog({
     appointmentId,
     setCustomDialogOpen,
     setDialogData,
+    isAwaitingConfirmation = false,
+    onSuccess,
 }: RescheduleAppointmentDialogProps) {
     const [selectedDate, setSelectedDate] = useState("");
     const [selectedSlot, setSelectedSlot] = useState<any>(null);
@@ -172,6 +177,7 @@ export function RescheduleAppointmentDialog({
                             availability_id: selectedSlot.id,
                             appointment_date: selectedSlot.date,
                             appointment_time: selectedSlot.booking_start_time,
+                            confirm: true,
                         };
 
                         console.log("Reschedule payload:", payload);
@@ -187,10 +193,13 @@ export function RescheduleAppointmentDialog({
 
                             if (res.success) {
                                 setDialogData({
-                                    title: "Appointment Rescheduled",
-                                    description: res.message,
+                                    title: isAwaitingConfirmation ? "Rescheduled & Confirmed" : "Appointment Rescheduled",
+                                    description: isAwaitingConfirmation
+                                        ? "The appointment has been moved to the new slot and confirmed. The patient has been emailed the new timing."
+                                        : res.message,
                                     type: "success",
                                 });
+                                onSuccess?.();
 
                                 onOpenChange(false);
                                 setCustomDialogOpen(true);
@@ -231,6 +240,8 @@ export function RescheduleAppointmentDialog({
                             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                             Rescheduling...
                         </div>
+                    ) : isAwaitingConfirmation ? (
+                        "Reschedule & Confirm"
                     ) : (
                         "Reschedule"
                     )}

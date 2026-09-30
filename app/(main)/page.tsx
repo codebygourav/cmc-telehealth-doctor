@@ -186,6 +186,32 @@ const Home = () => {
                         ))}
                     </section>
 
+                    {/* Bookings waiting for the doctor to confirm or reschedule */}
+                    {!!dashboard?.pending_confirmations?.length && (
+                        <section className="mb-5 rounded-md border border-orange-200 bg-orange-50/40 shadow-[0px_2px_4px_0px_#0000001A]">
+                            <div className="flex items-center justify-between border-b border-orange-200 p-5">
+                                <div>
+                                    <h2 className="text-[#1F1E1E] text-base font-bold">Awaiting Your Confirmation</h2>
+                                    <span className="text-xs sm:text-sm text-muted-foreground">
+                                        {summary?.pending_confirmations ?? dashboard.pending_confirmations.length} booking(s) need you to confirm or reschedule
+                                    </span>
+                                </div>
+                                <Link
+                                    href="/appointments?tab=pending_confirmation"
+                                    className="text-[#1F1E1E] text-sm font-medium flex items-center gap-x-2"
+                                >
+                                    View All
+                                    <ChevronRight size={15} color="#1F1E1E" strokeWidth={3} />
+                                </Link>
+                            </div>
+                            <div className="p-3 sm:p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+                                {dashboard.pending_confirmations.slice(0, 3).map((appointment) => (
+                                    <AppointmentCard key={appointment.id} appointment={appointment} variant="upcoming" />
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
                     {/* Today's Appointments & Notifications Section */}
                     <section className="flex flex-col lg:flex-row gap-4 md:gap-6">
 

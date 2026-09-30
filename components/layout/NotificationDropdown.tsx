@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import {
   useNotifications,
   useReadNotification,
+  useBulkNotificationAction,
 } from "@/queries/notifications";
 import {
   Bell,
@@ -60,6 +61,7 @@ export function NotificationDropdown() {
   const { data: notificationsData, isLoading: isLoadingNotifications } =
     useNotifications({ enabled: true });
   const markAsReadMutation = useReadNotification();
+  const bulkAction = useBulkNotificationAction();
   const rawNotifications = notificationsData?.data ?? [];
 
   const notifications = useMemo(() => {
@@ -119,6 +121,11 @@ export function NotificationDropdown() {
         toast.info(item.title || "New Notification", {
           description: item.desc || "",
           duration: 5000,
+          // Several pop-ups can stack up: one click closes them all.
+          cancel: {
+            label: "Clear all",
+            onClick: () => toast.dismiss(),
+          },
           ...(item.join_url
             ? {
                 action: {
@@ -234,11 +241,47 @@ export function NotificationDropdown() {
               <span className="text-sm font-bold text-foreground">Notifications</span>
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">Recent Alerts</span>
             </div>
-            {unreadCount > 0 && (
-              <Badge variant="secondary" className="bg-primary rounded-sm text-primary-foreground text-[11px] font-semibold h-5 px-2 animate-in fade-in zoom-in duration-300">
-                {unreadCount} New
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <Badge variant="secondary" className="bg-primary rounded-sm text-primary-foreground text-[11px] font-semibold h-5 px-2 animate-in fade-in zoom-in duration-300">
+                  {unreadCount} New
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Bulk actions */}
+          <div className="flex items-center justify-end gap-3 px-4 py-2 border-b border-border/40 text-xs">
+            <button
+              type="button"
+              disabled={bulkAction.isPending || unreadCount === 0}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                bulkAction.mutate("read-all");
+              }}
+              className="font-semibold text-primary hover:underline disabled:opacity-40 disabled:no-underline cursor-pointer disabled:cursor-not-allowed"
+            >
+              Mark all read
+            </button>
+            <span className="text-border">|</span>
+            <button
+              type="button"
+              disabled={bulkAction.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                bulkAction.mutate("clear-all", {
+                  onSuccess: () => {
+                    toast.dismiss();
+                    toast.success("All notifications cleared.");
+                  },
+                });
+              }}
+              className="font-semibold text-red-600 hover:underline disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+            >
+              {bulkAction.isPending ? "Clearing..." : "Clear all"}
+            </button>
           </div>
 
           {/* WebPush Subscription Toggle Banner */}

@@ -15,9 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useParams, useRouter } from "next/navigation";
 import { getStatusColor } from "@/src/utils/getStatusColor";
-import { useState } from "react";
-import { RescheduleAppointmentDialog } from "./Reshedule-dialogbox";
-import CustomDialog from "@/components/custom/Dialogboxs";
+import AppointmentActions from "./AppointmentActions";
 
 interface AppointmentCardProps {
     appointment: any;
@@ -58,9 +56,6 @@ export default function AppointmentCard({
     onCallNow,
 }: AppointmentCardProps) {
 
-    const [openRescheduleDialog, setOpenRescheduleDialog] = useState(false);
-    const [customDialogOpen, setCustomDialogOpen] = useState(false);
-    const [dialogData, setDialogData] = useState<any>(null);
     const joinUrl = appointment?.video_consultation?.join_url || appointment?.join_url;
     const showCallNow = appointment.call_now === true;
     const router = useRouter();
@@ -98,6 +93,12 @@ export default function AppointmentCard({
                                     <h3 className="text-sm sm:text-base font-semibold truncate">
                                         {appointment.patient?.name || appointment?.patient_name || "Unknown Patient"}
                                     </h3>
+                                    {appointment?.booked_by_name &&
+                                        appointment.booked_by_name !== (appointment.patient?.name || appointment?.patient_name) && (
+                                            <p className="text-xs text-muted-foreground truncate">
+                                                Booked by {appointment.booked_by_name}
+                                            </p>
+                                        )}
 
                                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                         <Badge
@@ -216,48 +217,20 @@ export default function AppointmentCard({
                                     <span className="hidden xs:inline">Join Now</span>
                                     <span className="xs:hidden">Join</span>
                                 </Button>
-                            ) : (
-                                // Else show Reschedule if allowed
-                                !shouldHideReschedule && (
-                                    <Button
-                                        className="flex-1 cursor-pointer py-2.5 h-auto font-semibold rounded-md border-[#4D4D4D]"
-                                        variant="outline"
-                                        onClick={() => setOpenRescheduleDialog(true)}
-                                    >
-                                        Reschedule
-                                    </Button>
-                                )
-                            )}
+                            ) : null}
                         </div>
+
+                        {/* Confirm / Reschedule / Mark Attendance */}
+                        <AppointmentActions
+                            appointment={appointment}
+                            hideReschedule={shouldHideReschedule}
+                            className="mt-3"
+                        />
 
                     </div>
 
                 </CardContent>
             </Card>
-
-            <RescheduleAppointmentDialog
-                open={openRescheduleDialog}
-                onOpenChange={setOpenRescheduleDialog}
-                appointmentId={appointment.appointment_id || appointment.id}
-                setCustomDialogOpen={setCustomDialogOpen}
-                setDialogData={setDialogData}
-            />
-
-            <CustomDialog
-                open={customDialogOpen}
-                onClose={() => {
-                    setCustomDialogOpen(false);
-                    setDialogData(null);
-                }}
-                type={dialogData?.title === "Validation Error" ? "danger" : "success"}
-                title={dialogData?.title || ""}
-                description={dialogData?.description || ""}
-                confirmText="OK"
-                onConfirm={() => {
-                    setCustomDialogOpen(false);
-                    setDialogData(null);
-                }}
-            />
 
         </>
     );

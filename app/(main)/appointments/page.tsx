@@ -14,7 +14,7 @@ const AppointmentsContent = () => {
     const router = useRouter();
     const tabParam = searchParams.get("tab");
     const defaultTab =
-        tabParam && ["today", "upcoming", "past", "all"].includes(tabParam)
+        tabParam && ["pending_confirmation", "today", "upcoming", "past", "all"].includes(tabParam)
             ? tabParam
             : "today";
     const [activeTab, setActiveTab] = useState(defaultTab);
@@ -62,7 +62,7 @@ const AppointmentsContent = () => {
     ];
 
     useEffect(() => {
-        if (tabParam && ["today", "upcoming", "past", "all"].includes(tabParam)) {
+        if (tabParam && ["pending_confirmation", "today", "upcoming", "past", "all"].includes(tabParam)) {
             setActiveTab(tabParam);
             setCurrentPage(1);
         }
@@ -109,7 +109,7 @@ const AppointmentsContent = () => {
                         <AppointmentCard
                             key={apt.appointment_id || index}
                             appointment={apt}
-                            variant={activeTab as "today" | "upcoming" | "past" | "all"}
+                            variant={(activeTab === "pending_confirmation" ? "upcoming" : activeTab) as "today" | "upcoming" | "past" | "all"}
                         />
                     ))}
                 </div>
@@ -133,6 +133,11 @@ const AppointmentsContent = () => {
             key: "all",
             label: "All",
             content: activeTab === "all" ? renderCardsWithPagination() : null,
+        },
+        {
+            key: "pending_confirmation",
+            label: "Awaiting Confirmation",
+            content: activeTab === "pending_confirmation" ? renderCardsWithPagination() : null,
         },
         {
             key: "today",
@@ -189,7 +194,7 @@ const AppointmentsContent = () => {
                 tabs={appointmentTabs}
                 activeTab={activeTab}
                 onTabChange={handleTabChange}
-                tabsListClassName="w-full md:max-w-lg overflow-x-auto overflow-y-hidden scrollbar-hide flex-nowrap justify-start sm:justify-start md:justify-start lg:justify-start [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                tabsListClassName="w-full md:max-w-2xl overflow-x-auto overflow-y-hidden scrollbar-hide flex-nowrap justify-start sm:justify-start md:justify-start lg:justify-start [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
             />
         </div>
     );

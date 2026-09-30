@@ -6,6 +6,8 @@ export const rescheduleAppointment = async (payload: {
     availability_id: string;
     appointment_date: string;
     appointment_time: string;
+    // true = the new slot is confirmed (a doctor's reschedule confirms a booking awaiting confirmation)
+    confirm?: boolean;
 }) => {
     try {
         const { data } = await api.post(`/appointments/reschedule`, payload);

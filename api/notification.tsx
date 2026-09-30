@@ -53,6 +53,18 @@ export const getUnreadCount = async (after?: string): Promise<number> => {
   );
 };
 
+export const markAllNotificationsRead = async () => {
+  const { data } = await notificationsApi.post("/notifications/read-all");
+  return data;
+};
+
+// "Clear all": mark everything read and hide it from the list (archived).
+export const clearAllNotifications = async () => {
+  await notificationsApi.post("/notifications/read-all");
+  const { data } = await notificationsApi.post("/notifications/archive-all");
+  return data;
+};
+
 export const storePushSubscription = async (subscription: any) => {
   const { data } = await notificationsApi.post("/webpush/subscribe", subscription);
   return data;

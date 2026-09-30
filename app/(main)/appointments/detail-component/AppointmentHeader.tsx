@@ -9,10 +9,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, CheckCircle, Dot, Mail, Phone, Video } from "lucide-react";
 import { getStatusColor } from "@/src/utils/getStatusColor";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cancelAppointment } from "@/mutations/mange-appoitment";
 import CustomDialog from "@/components/custom/Dialogboxs";
+import AppointmentActions from "@/components/pages/appoitment/AppointmentActions";
 
 const getInitials = (name: string) => {
     if (!name) return "?";
@@ -26,12 +27,14 @@ const getInitials = (name: string) => {
 
 export default function AppointmentHeader({ appointment }: { appointment: any }) {
 
-    console.log("all data " ,appointment);
-    
-
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [localStatus, setLocalStatus] = useState(appointment?.status);
+
+    // Keep the badge in sync after confirm / reschedule / attendance refresh the appointment.
+    useEffect(() => {
+        setLocalStatus(appointment?.status);
+    }, [appointment?.status]);
     const patient = appointment?.patient || {};
     const schedule = appointment?.schedule || {};
     const [successOpen, setSuccessOpen] = useState(false);
@@ -104,6 +107,10 @@ export default function AppointmentHeader({ appointment }: { appointment: any })
                                     </span>
                                 </div>
 
+                                {appointment?.booked_by_name && appointment.booked_by_name !== patient?.name && (
+                                    <p className="text-sm text-muted-foreground">Booked by {appointment.booked_by_name}</p>
+                                )}
+
                                 <div className="flex items-center flex-wrap gap-x-2.5 text-sm text-muted-foreground">
                                     <p className="text-sm font-medium flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#F5F6F8]">
                                         <Mail className="h-3 w-3" /> {patient?.email || "Not provided"}
@@ -139,6 +146,8 @@ export default function AppointmentHeader({ appointment }: { appointment: any })
                                     Join Now
                                 </Button>
                             )}
+
+                            <AppointmentActions appointment={appointment} className="justify-end" />
                         </div>
 
                     </div>
@@ -205,6 +214,8 @@ export default function AppointmentHeader({ appointment }: { appointment: any })
                                 {schedule?.consultation_type_label || "Video"}
                             </Badge>
                         </div>
+
+                        <AppointmentActions appointment={appointment} />
 
                         {/* Join Now Button - Bottom */}
                         {!successOpen &&

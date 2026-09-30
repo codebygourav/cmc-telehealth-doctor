@@ -1,4 +1,4 @@
-import { getNotifications, getSingleNotification, getUnreadCount } from "@/api/notification";
+import { clearAllNotifications, getNotifications, getSingleNotification, getUnreadCount, markAllNotificationsRead } from "@/api/notification";
 import { useAuth } from "@/context/userContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -43,6 +43,20 @@ export function useUnreadCount({ after, enabled = true }: UseNotificationsOption
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+  });
+}
+
+// Mark all read / clear all (read + archived), then refresh the list and badge.
+export function useBulkNotificationAction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (action: "read-all" | "clear-all") =>
+      action === "clear-all" ? clearAllNotifications() : markAllNotificationsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [NotificationQueryKeys.NOTIFICATIONS] });
+      queryClient.invalidateQueries({ queryKey: [NotificationQueryKeys.UNREAD_COUNT] });
+    },
   });
 }
 

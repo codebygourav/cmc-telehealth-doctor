@@ -1,5 +1,6 @@
 export interface DashboardSummary {
   todays_appointments: number;
+  pending_confirmations?: number;
   upcoming_appointments: number;
   cancelled_appointments: number;
   average_review_score: number;
@@ -14,6 +15,11 @@ export interface DashboardAppointment {
   consultation_type: string;
   status: string;
   call_now?: boolean;
+  booked_by_name?: string | null;
+  awaiting_confirmation?: boolean;
+  can_confirm?: boolean;
+  can_mark_attendance?: boolean;
+  attendance?: "present" | "absent" | null;
 }
 
 export interface DoctorReview {
@@ -58,6 +64,7 @@ export interface DoctorHomeData {
   };
   summary: DashboardSummary;
   todays_appointments: DashboardAppointment[];
+  pending_confirmations?: DashboardAppointment[];
   upcoming_appointments: DashboardAppointment[];
   doctor_reviews: DoctorReview[];
   review_summary: ReviewSummary;
