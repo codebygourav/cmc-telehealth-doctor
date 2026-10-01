@@ -3,7 +3,6 @@ import { Cormorant_Garamond, Manrope, Geist_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 import { Providers } from "./providers";
-import Head from "next/head";
 
 const cormorant = Cormorant_Garamond({
     subsets: ['latin'],
@@ -26,7 +25,11 @@ export const metadata: Metadata = {
     description: "A Progressive Web App for Doctors in Cmc Telehealth",
     manifest: "/manifest.webmanifest",
     icons: {
-        icon: "/favicon.ico",
+        icon: [
+            { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+        ],
+        shortcut: "/icons/icon-192x192.png",
+        apple: "/icons/icon-192x192.png",
     },
 };
 
@@ -37,9 +40,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             className={cn("antialiased", fontMono.variable, "font-sans", manrope.variable, cormorant.variable)}
             suppressHydrationWarning
         >
-            <Head>
-                <link rel="icon" href="/favicon.ico" />
-            </Head>
+            <head>
+                <link rel="icon" href="/icons/icon-192x192.png" type="image/png" sizes="192x192" />
+                <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+            </head>
             <body className="min-h-full flex flex-col" suppressHydrationWarning>
                 <Providers>
                     {children}
