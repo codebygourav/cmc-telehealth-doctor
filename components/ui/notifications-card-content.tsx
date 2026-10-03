@@ -4,6 +4,7 @@ import { CardContent } from "@/components/ui/card";
 import { Bell, Video } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "./button";
+import { isJoinCallEligible } from "@/lib/notification-utils";
 
 interface NotificationItem {
     id: string;
@@ -87,15 +88,16 @@ export default function NotificationsCardContent({
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
 
+
                                     <p className="text-[#1E1E1E] font-medium text-sm">
                                         {notification.title}
                                     </p>
 
                                     <div className="flex items-center gap-2">
-                                        {notification.join_url && (
+                                        {isJoinCallEligible(notification) && (
                                             <Button
                                                 size="sm"
-                                                className="h-6 px-2 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-all"
+                                                className="h-6 px-2 text-[10px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-md shadow-sm transition-all"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     window.open(
@@ -109,7 +111,7 @@ export default function NotificationsCardContent({
                                             </Button>
                                         )}
                                         {!notification.is_read && (
-                                            <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-blue-500 shrink-0 mt-1" />
+                                            <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-primary shrink-0 mt-1" />
                                         )}
                                     </div>
                                 </div>

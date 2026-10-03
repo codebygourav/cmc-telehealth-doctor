@@ -136,7 +136,7 @@ export default function AppointmentActions({ appointment, hideReschedule = false
                 )}
 
                 {canConfirm && (
-                    <Button size="sm" className="h-auto py-2 px-3 font-semibold rounded-md cursor-pointer" onClick={() => {
+                    <Button size="sm" className="h-10 py-2.5 px-3.5 text-xs sm:text-sm font-semibold rounded-md cursor-pointer gap-1.5" onClick={() => {
                         const initTime = getDefaultFutureTime(appointmentDate, rawTimeStr);
                         setVisitTime(initTime);
                         setConfirmOpen(true);
@@ -150,7 +150,7 @@ export default function AppointmentActions({ appointment, hideReschedule = false
                     <Button
                         size="sm"
                         variant="outline"
-                        className="h-auto py-2 px-3 font-semibold rounded-md cursor-pointer border-[#4D4D4D]"
+                        className="h-10 py-2.5 px-3.5 text-xs sm:text-sm font-semibold rounded-md cursor-pointer border-[#4D4D4D] text-[#4D4D4D] gap-1.5"
                         onClick={() => setRescheduleOpen(true)}
                     >
                         <CalendarClock className="h-4 w-4" />
@@ -162,7 +162,7 @@ export default function AppointmentActions({ appointment, hideReschedule = false
                     <Button
                         size="sm"
                         variant="outline"
-                        className="h-auto py-2 px-3 font-semibold rounded-md cursor-pointer border-primary text-primary"
+                        className="h-10 py-2.5 px-3.5 text-xs sm:text-sm font-semibold rounded-md cursor-pointer border-primary text-primary gap-1.5"
                         onClick={openAttendance}
                     >
                         <ClipboardCheck className="h-4 w-4" />

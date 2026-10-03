@@ -191,7 +191,8 @@ export default function AppointmentCard({
 
                             {/* Always show View button */}
                             <Button
-                                className="min-w-24 flex-1 cursor-pointer py-2.5 h-auto font-semibold rounded-md"
+                                variant="outline"
+                                className="min-w-20 sm:min-w-24 flex-1 cursor-pointer h-10 py-2.5 px-3.5 text-xs sm:text-sm font-semibold rounded-md border-primary text-primary hover:bg-primary/5"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     router.push(`/appointments/${appointment.appointment_id || appointment.id}`);
@@ -203,18 +204,16 @@ export default function AppointmentCard({
                             {/* Show Join Now if video consultation is joinable */}
                             {appointment.video_consultation?.can_join || appointment.call_now ? (
                                 <Button
-                                    variant="outline"
-                                    className="flex-1 h-auto border-primary cursor-pointer text-xs sm:text-sm gap-1.5 flex items-center justify-center"
+                                    className="flex-1 cursor-pointer h-10 py-2.5 px-3.5 text-xs sm:text-sm font-semibold rounded-md bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 flex items-center justify-center shadow-sm"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         window.open(
                                             `/start-consultation?room_url=${encodeURIComponent(joinUrl)}&appointment_id=${appointment.appointment_id || appointment.id}`,
                                             "_blank"
                                         );
-                                        // window.open(`/start-consultation?room_url=${joinUrl}&appointment_id=${appointment.appointment_id || appointment.id}`, "_blank");
                                     }}
                                 >
-                                    <PhoneCallIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                    <PhoneCallIcon className="h-3.5 w-3.5" />
                                     <span className="hidden xs:inline">Join Now</span>
                                     <span className="xs:hidden">Join</span>
                                 </Button>

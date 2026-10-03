@@ -279,21 +279,23 @@ export function Header() {
                     </SheetHeader>
 
                     {/* Navigation Items */}
-                    <nav className="flex flex-col gap-1 p-4">
+                    <nav className="flex flex-col gap-2.5 p-4 overflow-y-auto">
                       {navItems.map((item) => (
                         <Link
                           key={item.href}
                           href={item.href}
                           onClick={() => setIsMobileMenuOpen(false)}
                           className={cn(
-                            "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                            "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition-all duration-200 shadow-2xs",
                             pathname === item.href
-                              ? "bg-primary text-primary-foreground"
-                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                              ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                              : "border-border/70 bg-background text-foreground/85 hover:border-primary/50 hover:bg-primary/5 hover:text-primary",
                           )}
                         >
-                          {item.icon}
-                          <span>{item.title}</span>
+                          <span className={cn("shrink-0", pathname === item.href ? "text-primary-foreground" : "text-primary")}>
+                            {item.icon}
+                          </span>
+                          <span className="flex-1">{item.title}</span>
                           {item.badge ? (
                             <Badge className="ml-auto">
                               {Number(item.badge) > 99 ? "99+" : item.badge}
@@ -302,11 +304,11 @@ export function Header() {
                         </Link>
                       ))}
 
-                      <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                      <div className="mt-2 rounded-2xl border border-border/80 bg-muted/20 p-3.5 space-y-2.5 shadow-2xs">
                         <div className="flex items-center justify-between gap-2">
                           <div>
-                            <p className="text-sm font-semibold text-slate-900">Notifications</p>
-                            <p className="text-[11px] text-slate-500">Enable push alerts for appointments and updates.</p>
+                            <p className="text-sm font-semibold text-foreground">Notifications</p>
+                            <p className="text-[11px] text-muted-foreground">Enable push alerts for appointments and updates.</p>
                           </div>
                           <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
                             {subscription ? "On" : permission === "denied" ? "Blocked" : "Off"}
@@ -315,7 +317,7 @@ export function Header() {
                         <Button
                           type="button"
                           variant={subscription ? "outline" : "default"}
-                          className="w-full justify-center rounded-xl"
+                          className="w-full justify-center rounded-xl font-semibold text-xs"
                           disabled={!isSupported || notificationsLoading || permission === "denied"}
                           onClick={async () => {
                             try {
@@ -341,17 +343,18 @@ export function Header() {
                         </Button>
                       </div>
 
-                      <Separator className="my-2" />
+                      <Separator className="my-1" />
 
                       {/* Logout Button */}
                       <button
+                        type="button"
                         onClick={async () => {
                           await logout();
                           window.location.href = "/auth/login";
                         }}
-                        className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors w-full"
+                        className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm font-semibold text-destructive transition-all duration-200 hover:bg-destructive/10 cursor-pointer w-full"
                       >
-                        <LogOut className="h-4 w-4" />
+                        <LogOut className="h-4 w-4 shrink-0 text-destructive" />
                         <span>Log out</span>
                       </button>
                     </nav>

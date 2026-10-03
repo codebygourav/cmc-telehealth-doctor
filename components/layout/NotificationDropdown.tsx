@@ -32,6 +32,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/userContext";
 import { isNotificationAfterCutoff, showNativeNotification, usePushNotifications } from "@/hooks/usePushNotifications";
+import { isJoinCallEligible } from "@/lib/notification-utils";
 
 export function NotificationDropdown() {
   const { loginTime } = useAuth();
@@ -188,7 +189,7 @@ export function NotificationDropdown() {
   const getNotificationTypeColor = (group: string) => {
     switch (group?.toLowerCase()) {
       case "appointment":
-        return "text-blue-600";
+        return "text-primary";
       case "review":
         return "text-amber-500";
       case "document":
@@ -353,7 +354,7 @@ export function NotificationDropdown() {
                         <div className="flex items-center gap-3 w-full">
                           <div className={cn(
                             "flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-all relative border border-border/10 shadow-sm",
-                            notification.group === "appointment" && "bg-blue-100/50 text-blue-600",
+                            notification.group === "appointment" && "bg-primary/10 text-primary",
                             notification.group === "review" && "bg-amber-100/50 text-amber-500",
                             notification.group === "availability" && "bg-emerald-100/50 text-emerald-600",
                             notification.group === "document" && "bg-rose-100/50 text-rose-600",
@@ -368,7 +369,7 @@ export function NotificationDropdown() {
                           <div className="flex items-center justify-between flex-1 min-w-0">
                             <span className={cn(
                               "text-[13px] truncate transition-colors",
-                              !notification.is_read ? "text-foreground" : ""
+                              !notification.is_read ? "text-foreground font-semibold" : ""
                             )}>
                               {notification.title}
                             </span>
@@ -403,10 +404,10 @@ export function NotificationDropdown() {
                                 )}>
                                   {notification.group}
                                 </span>
-                                {Boolean(notification.join_url) && (
+                                {isJoinCallEligible(notification) && (
                                   <Button
                                     size="sm"
-                                    className="h-6 px-2 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-all active:scale-95"
+                                    className="h-6 px-2 text-[10px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-md shadow-sm transition-all active:scale-95"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();

@@ -139,10 +139,11 @@ export default function AppointmentHeader({ appointment }: { appointment: any })
                             {callNow && joinUrl && (
                                 <Button
                                     variant="default"
-                                    onClick={() => window.open(`/start-consultation?room_url=${joinUrl}&appointment_id=${appointment.appointment_id}`, "_blank")}
+                                    onClick={() => window.open(`/start-consultation?room_url=${encodeURIComponent(joinUrl)}&appointment_id=${appointment.appointment_id || appointment.id}`, "_blank")}
                                     disabled={!joinUrl}
-                                    className="h-auto py-2 px-4"
+                                    className="h-10 py-2.5 px-4 font-semibold rounded-md gap-1.5 cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
                                 >
+                                    <Phone className="h-4 w-4" />
                                     Join Now
                                 </Button>
                             )}

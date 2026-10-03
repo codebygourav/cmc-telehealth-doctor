@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationItem } from "@/types/notification";
+import { isJoinCallEligible } from "@/lib/notification-utils";
 
 const getNotificationIcon = (group: string) => {
     switch (group?.toLowerCase()) {
@@ -156,10 +157,10 @@ export function NotificationCard({
 
                         {/* Button - Right */}
                         <div className="shrink-0 pt-0.5 flex items-center gap-2">
-                            {Boolean(notification.join_url) && (
+                            {isJoinCallEligible(notification) && (
                                 <Button
                                     size="sm"
-                                    className="h-8 sm:h-9 text-xs sm:text-sm px-2.5 sm:px-3 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
+                                    className="h-8 sm:h-9 text-xs sm:text-sm px-2.5 sm:px-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         window.open(`/start-consultation?room_url=${encodeURIComponent(notification.join_url || "")}&appointment_id=${notification.appointment_id || ""}`, "_blank");
@@ -191,10 +192,10 @@ export function NotificationCard({
 
                     {/* Mobile Button - Below Content */}
                     <div className="sm:hidden flex flex-col gap-2">
-                        {Boolean(notification.join_url) && (
+                        {isJoinCallEligible(notification) && (
                             <Button
                                 size="sm"
-                                className="w-full mt-2 h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
+                                className="w-full mt-2 h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     window.open(`/start-consultation?room_url=${encodeURIComponent(notification.join_url || "")}&appointment_id=${notification.appointment_id || ""}`, "_blank");
