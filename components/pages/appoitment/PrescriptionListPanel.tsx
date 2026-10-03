@@ -16,6 +16,10 @@ interface PrescriptionListPanelProps {
     stampOptions: Array<{ label: string; value: string }>;
     onStampChange: (value: string) => void;
     onFinalSubmit: () => void;
+    // The dialog shows Save in its fixed footer instead.
+    hideSubmit?: boolean;
+    // The medicines list is shown under the add-medicine form instead.
+    hideMedicineList?: boolean;
     addPrescriptionPending: boolean;
     errors: Record<string, { message?: string } | undefined>;
     frequencyOptions: Array<{ label: string; value: string }>;
@@ -55,6 +59,8 @@ export default function PrescriptionListPanel({
     stampOptions,
     onStampChange,
     onFinalSubmit,
+    hideSubmit = false,
+    hideMedicineList = false,
     addPrescriptionPending,
     errors,
     frequencyOptions,
@@ -154,8 +160,9 @@ export default function PrescriptionListPanel({
     };
 
     return (
-        <div className={`md:col-span-5 rounded-[28px] border border-slate-200 bg-linear-to-b from-white to-slate-50/70 p-4 sm:p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] space-y-4 self-start ${mobileTab === "list" ? "block" : "hidden md:block"}`}>
-            <div className="rounded-2xl border border-slate-200 bg-white/90 px-3 py-2.5 shadow-sm">
+        <div className={`md:col-span-5 rounded-lg border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4 self-start md:sticky md:top-0 md:max-h-[calc(92vh-13rem)] md:overflow-y-auto ${mobileTab === "list" ? "block" : "hidden md:block"}`}>
+            {!hideMedicineList && (<>
+            <div className="rounded-lg border border-slate-200 bg-white/90 px-3 py-2.5 shadow-sm">
                 <div className="flex items-center justify-between gap-2">
                     <div>
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Add Prescription</p>
@@ -168,7 +175,7 @@ export default function PrescriptionListPanel({
             </div>
 
             {addedMedicines.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-14 text-center border-2 border-dashed border-slate-200 rounded-2xl p-4 bg-white">
+                <div className="flex flex-col items-center justify-center py-14 text-center border-2 border-dashed border-slate-200 rounded-lg p-4 bg-white">
                     <ClipboardList className="h-9 w-9 text-slate-400 mb-2 stroke-[1.6]" />
                     <p className="text-xs font-semibold text-slate-700">No medicines added yet</p>
                     <p className="text-[10px] text-slate-500 mt-1 max-w-45 leading-relaxed">
@@ -188,18 +195,24 @@ export default function PrescriptionListPanel({
                             ].filter(Boolean);
 
                             return (
-                                <div key={index} className="p-3 border border-slate-200 rounded-2xl bg-white hover:shadow-md hover:border-slate-300 transition-all text-xs space-y-2 relative group shadow-sm">
+                                <div key={index} className="p-3 border border-slate-200 rounded-lg bg-white hover:shadow-md hover:border-slate-300 transition-all text-xs space-y-2 relative group shadow-sm">
                                     <div className="flex justify-between items-start gap-2">
                                         <div className="space-y-0.5">
                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                 <span className="font-bold text-slate-900 text-sm leading-tight">{med.medicine_name}</span>
-                                                <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded-full text-slate-600 font-semibold uppercase tracking-wider">
-                                                    {med.medication_type}
-                                                </span>
+                                                {med.medication_type && (
+                                                    <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded-full text-slate-600 font-semibold uppercase tracking-wider">
+                                                        {med.medication_type}
+                                                    </span>
+                                                )}
                                             </div>
-                                            <p className="text-[10px] sm:text-[11px] text-slate-600">
-                                                {med.dosage} • {frequencyOptions.find((f) => f.value === med.frequency)?.label || med.frequency}
-                                            </p>
+                                            {med.template ? (
+                                                <p className="whitespace-pre-line text-[11px] leading-relaxed text-slate-700">{med.instructions}</p>
+                                            ) : (
+                                                <p className="text-[10px] sm:text-[11px] text-slate-600">
+                                                    {med.dosage} • {frequencyOptions.find((f) => f.value === med.frequency)?.label || med.frequency}
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -214,7 +227,7 @@ export default function PrescriptionListPanel({
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[10px] text-slate-600 pt-2 border-t border-slate-100 mt-1 leading-normal">
+                                    {!med.template && <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[10px] text-slate-600 pt-2 border-t border-slate-100 mt-1 leading-normal">
                                         <div>
                                             <span className="font-semibold text-slate-900">Timing:</span>{" "}
                                             {timingsList.length > 0 ? timingsList.join(", ") : "As needed"}
@@ -234,7 +247,7 @@ export default function PrescriptionListPanel({
                                                 &ldquo;{med.instructions}&rdquo;
                                             </div>
                                         )}
-                                    </div>
+                                    </div>}
                                 </div>
                             );
                         })}
@@ -242,8 +255,10 @@ export default function PrescriptionListPanel({
                 </div>
             )}
 
+            </>)}
+
             {(findingsText.trim() || nextVisitDate) && (
-                <div className="p-3 border border-primary/20 rounded-2xl bg-primary/5 text-xs space-y-2 animate-in fade-in duration-200 shadow-sm">
+                <div className="p-3 border border-primary/20 rounded-lg bg-primary/5 text-xs space-y-2 animate-in fade-in duration-200 shadow-sm">
                     <div className="font-bold text-primary flex items-center gap-1.5">
                         <ClipboardList className="h-3.5 w-3.5" />
                         <span>Findings & Notes Preview</span>
@@ -264,7 +279,7 @@ export default function PrescriptionListPanel({
             )}
 
             {includeReports && (recommendedTests.trim() || reportFiles.length > 0) && (
-                <div className="p-3 border border-indigo-200 rounded-2xl bg-indigo-50/50 text-xs space-y-2 animate-in fade-in duration-200 shadow-sm">
+                <div className="p-3 border border-indigo-200 rounded-lg bg-indigo-50/50 text-xs space-y-2 animate-in fade-in duration-200 shadow-sm">
                     <div className="font-bold text-indigo-700 flex items-center gap-1.5">
                         <FileText className="h-3.5 w-3.5" />
                         <span>Diagnostics Preview</span>
@@ -285,81 +300,85 @@ export default function PrescriptionListPanel({
                 </div>
             )}
 
-            <div className="pt-4 border-t border-slate-200 space-y-4 bg-transparent">
+            <div className={`space-y-4 ${hideMedicineList ? "" : "pt-4 border-t border-slate-200"}`}>
+                <div>
+                    <h3 className="text-sm font-semibold text-slate-900">Consultation notes</h3>
+                    <p className="text-xs text-slate-500">Printed on the prescription.</p>
+                </div>
                 {/* Order Investigation Field */}
-                <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <Label className="text-xs font-semibold">Order Investigation</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-slate-800">Order Investigation</Label>
                     <Textarea
                         rows={2}
                         value={orderInvestigation}
                         onChange={(e) => onOrderInvestigationChange?.(e.target.value)}
                         placeholder="Write or edit order investigations..."
-                        className="text-xs rounded-2xl resize-none bg-white border-slate-200"
+                        className="min-h-20 text-sm rounded-lg resize-y bg-white border-slate-300 focus-visible:border-primary"
                     />
                 </div>
 
                 {/* Diagnosis Field */}
-                <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <Label className="text-xs font-semibold">Diagnosis</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-slate-800">Diagnosis</Label>
                     <Textarea
                         rows={2}
                         value={diagnosis}
                         onChange={(e) => onDiagnosisChange?.(e.target.value)}
                         placeholder="Write or edit diagnosis..."
-                        className="text-xs rounded-2xl resize-none bg-white border-slate-200"
+                        className="min-h-20 text-sm rounded-lg resize-y bg-white border-slate-300 focus-visible:border-primary"
                     />
                 </div>
 
                 {/* Notes Field */}
-                <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <Label className="text-xs font-semibold">Notes</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-slate-800">Notes</Label>
                     <Textarea
                         rows={2}
                         value={notes}
                         onChange={(e) => onNotesChange?.(e.target.value)}
                         placeholder="Write or edit notes / patient instructions..."
-                        className="text-xs rounded-2xl resize-none bg-white border-slate-200"
+                        className="min-h-20 text-sm rounded-lg resize-y bg-white border-slate-300 focus-visible:border-primary"
                     />
                 </div>
 
                 {/* Confidential Notes Field */}
-                <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <Label className="text-xs font-semibold">Confidential Notes</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-slate-800">Confidential Notes</Label>
                     <Textarea
                         rows={2}
                         value={confidentialNotes}
                         onChange={(e) => onConfidentialNotesChange?.(e.target.value)}
                         placeholder="Write or edit confidential notes..."
-                        className="text-xs rounded-2xl resize-none bg-white border-slate-200"
+                        className="min-h-20 text-sm rounded-lg resize-y bg-white border-slate-300 focus-visible:border-primary"
                     />
                 </div>
 
                 {/* Instructions by Doctor Field */}
-                <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <Label className="text-xs font-semibold">Instructions by Doctor</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-slate-800">Instructions by Doctor</Label>
                     <Textarea
                         rows={2}
                         value={instructionsByDoctor}
                         onChange={(e) => onInstructionsByDoctorChange?.(e.target.value)}
                         placeholder="Write or edit instructions by doctor..."
-                        className="text-xs rounded-2xl resize-none bg-white border-slate-200"
+                        className="min-h-20 text-sm rounded-lg resize-y bg-white border-slate-300 focus-visible:border-primary"
                     />
                 </div>
 
                 {/* Next Follow-up Date Field */}
-                <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <Label className="text-xs font-semibold">Next Follow-up Date</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-slate-800">Next Follow-up Date</Label>
                     <Input
                         type="date"
                         min={new Date().toISOString().split("T")[0]}
                         value={nextVisitDate}
                         onChange={(e) => onNextVisitDateChange?.(e.target.value)}
-                        className="h-9 text-xs rounded-2xl border-slate-200 bg-white"
+                        className="h-9 text-xs rounded-lg border-slate-200 bg-white"
                     />
                 </div>
 
-                <div className="space-y-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <Label className="text-xs font-semibold">Stamp Preference *</Label>
+                <div className="space-y-1 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                    <Label className="text-sm font-semibold text-slate-800">Stamp Preference *</Label>
                     <Select value={stampPreference} onValueChange={onStampChange}>
                         <SelectTrigger className="h-8.5 text-xs rounded-lg">
                             <SelectValue placeholder="Select stamp preference" />
@@ -375,11 +394,11 @@ export default function PrescriptionListPanel({
                     {errors.stamp_preference && <p className="text-[11px] text-red-500 font-medium">{errors.stamp_preference.message}</p>}
                 </div>
 
-                <Button
+                {!hideSubmit && <Button
                     type="button"
                     onClick={onFinalSubmit}
                     disabled={addPrescriptionPending || (addedMedicines.length === 0 && !findingsText.trim() && !nextVisitDate && !recommendedTests.trim() && reportFiles.length === 0)}
-                    className="w-full h-11 text-xs sm:text-sm font-semibold rounded-2xl shadow-sm bg-slate-900 hover:bg-slate-800 text-white"
+                    className="w-full h-11 text-xs sm:text-sm font-semibold rounded-lg shadow-sm bg-slate-900 hover:bg-slate-800 text-white"
                 >
                     {addPrescriptionPending ? (
                         <>
@@ -389,7 +408,7 @@ export default function PrescriptionListPanel({
                     ) : (
                         `Save & Submit (${addedMedicines.length} new meds)`
                     )}
-                </Button>
+                </Button>}
             </div>
         </div>
     );

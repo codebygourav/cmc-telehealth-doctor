@@ -83,3 +83,18 @@ export const deleteConclusionFile = async (fileId: string, appointmentId?: strin
 
   return data;
 };
+// Edit Conclusion: only the conclusion fields (no medicines). Empty strings clear a field.
+export const updateConclusion = async (
+  appointmentId: string,
+  fields: {
+    diagnosis: string;
+    order_investigation: string;
+    notes: string;
+    confidential_notes: string;
+    instructions_by_doctor: string;
+    next_visit_date: string;
+  },
+) => {
+  const { data } = await api.post(`/appointments/doctor-instructions/${appointmentId}`, fields);
+  return data;
+};

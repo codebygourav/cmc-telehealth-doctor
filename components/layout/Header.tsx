@@ -20,6 +20,7 @@ import {
   SheetTrigger,
 } from "@/components/ui";
 import { useAuth } from "@/context/userContext";
+import { useDoctorProfile } from "@/queries/useProfile";
 import { cn } from "@/lib/utils";
 import icon from "@/public/assets/icon/logo-green.png";
 import type { NavItem } from "@/types/header";
@@ -67,6 +68,9 @@ export function Header() {
 
   const pathname = usePathname();
   const { user, initializing, logout } = useAuth();
+  // Test-mode flag from the profile API (works for sessions started before the flag was in the login response).
+  const { data: doctorProfile } = useDoctorProfile();
+  const isTestDoctor = Boolean(user?.is_test_doctor || (doctorProfile?.data as { is_test_doctor?: boolean } | undefined)?.is_test_doctor);
   const {
     permission,
     subscription,
@@ -140,8 +144,8 @@ export function Header() {
                 className={cn(
                   "relative flex items-center gap-2 rounded-md px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors",
                   pathname === item.href
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground bg-accent hover:bg-accent hover:text-accent-foreground",
+                    ? "border border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/85"
+                    : "border border-primary bg-white text-primary hover:bg-primary hover:text-primary-foreground",
                 )}
               >
                 {item.icon}
@@ -167,8 +171,11 @@ export function Header() {
             <div className="flex items-center gap-2 sm:gap-3">
               {/* Desktop User Info - Only visible on desktop */}
               <div className="flex-col text-right hidden lg:flex">
-                <span className="text-sm font-semibold leading-none">
+                <span className="flex items-center justify-end gap-1.5 text-sm font-semibold leading-none">
                   {initializing ? "unknown name" : name}
+                  {!initializing && isTestDoctor && (
+                    <span className="rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">Test</span>
+                  )}
                 </span>
                 <span className="text-[11px] text-muted-foreground font-medium">
                   {initializing
@@ -250,8 +257,11 @@ export function Header() {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="text-base font-semibold truncate">
+                            <p className="flex items-center gap-1.5 text-base font-semibold truncate">
                               {initializing ? "Loading..." : name}
+                              {!initializing && isTestDoctor && (
+                                <span className="rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">Test</span>
+                              )}
                             </p>
                             <p className="text-sm text-muted-foreground truncate">
                               {initializing ? "Loading..." : user?.email || "healthcare@info.test"}

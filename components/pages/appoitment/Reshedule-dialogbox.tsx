@@ -6,8 +6,10 @@ import { Button } from "@/components/ui";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/context/userContext";
 import { rescheduleAppointment } from "@/mutations/reschedule";
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Building2, CalendarDays, ChevronLeft, ChevronRight, Clock, Loader2, Video } from "lucide-react";
+import { getDefaultFutureTime, isFutureTimeOnDate, parseTo24HourTime } from "@/api/appointment-actions";
+import VideoTimePicker from "./VideoTimePicker";
 
 interface RescheduleAppointmentDialogProps {
     open: boolean;
@@ -31,221 +33,260 @@ export function RescheduleAppointmentDialog({
 }: RescheduleAppointmentDialogProps) {
     const [selectedDate, setSelectedDate] = useState("");
     const [selectedSlot, setSelectedSlot] = useState<any>(null);
+    // Exact visit time inside the chosen OPD slot (e.g. 10:45 in a 10 AM - 4 PM OPD).
+    const [visitTime, setVisitTime] = useState("");
+    // Video slots: the call can be set at any time on that date. In-person: the slot time.
+    const isVideoSlot = String(selectedSlot?.consultation_type || "").toLowerCase().includes("video");
+    const visitTimeValid = !selectedSlot || !isVideoSlot || isFutureTimeOnDate(selectedSlot?.date, visitTime);
+    const pickSlot = (slot: any) => {
+        setSelectedSlot(slot);
+        const rawSlotTime = slot?.booking_start_time || slot?.start_time || "";
+        const defaultTime = getDefaultFutureTime(slot?.date, rawSlotTime);
+        setVisitTime(defaultTime);
+    };
     const [slots, setSlots] = useState<any[]>([]);
+    const [schedule, setSchedule] = useState<{ consultation_type: string; opd_type: string | null; label: string } | null>(null);
+    const [loadingSlots, setLoadingSlots] = useState(false);
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
+    const dateStrip = useRef<HTMLDivElement>(null);
+    const slideDates = (direction: 1 | -1) =>
+        dateStrip.current?.scrollBy({ left: direction * dateStrip.current.clientWidth * 0.8, behavior: "smooth" });
 
     useEffect(() => {
         if (open && user?.doctor_id) {
             fetchSlots();
         }
-    }, [open, user]);
+    }, [open, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchSlots = async () => {
         try {
             const doctorId = user?.doctor_id;
             if (!doctorId) return;
+            setLoadingSlots(true);
 
-            const res = await getDoctorSlots(doctorId);
+            const res = await getDoctorSlots(doctorId, appointmentId);
+            setSchedule(res?.schedule ?? null);
 
-            const formattedSlots = res?.data?.flatMap((dayItem: any) =>
-                dayItem.slots.map((slot: any) => {
-                    const dateObj = new Date(slot.date);
-                    const day = dateObj.getDate();
-                    const day_name = slot.day_of_week
-                        ? slot.day_of_week.charAt(0).toUpperCase() + slot.day_of_week.slice(1)
-                        : "";
-
-                    return { ...slot, day, day_name };
-                })
-            );
-
-            setSlots(formattedSlots || []);
-
-            if (formattedSlots.length > 0) {
-                setSelectedDate(formattedSlots[0].date);
-            }
-
+            const formattedSlots = (res?.data ?? []).flatMap((dayItem: any) => dayItem.slots);
+            setSlots(formattedSlots);
+            const firstFree = formattedSlots.find((slot: any) => slot.available !== false);
+            setSelectedDate(firstFree?.date ?? formattedSlots[0]?.date ?? "");
             setSelectedSlot(null);
+            setVisitTime("");
         } catch (err) {
             console.log("Slot fetch error", err);
+        } finally {
+            setLoadingSlots(false);
         }
     };
 
     const uniqueDates = Array.from(new Set(slots.map((slot) => slot.date)));
+    const slotsForDate = slots.filter((s) => s.date === selectedDate);
+    const longDate = (date: string) =>
+        new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    const isVideoSchedule = schedule?.consultation_type === "video";
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-3xl! rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 max-h-[90vh] overflow-y-auto">
+            {/* Bottom sheet on phones, centred dialog from sm up. */}
+            <DialogContent className="flex max-h-[88dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-b-none rounded-t-2xl p-0 max-sm:top-auto max-sm:bottom-0 max-sm:left-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:data-[state=open]:slide-in-from-bottom-10 sm:max-h-[90vh] sm:w-[90vw] sm:max-w-2xl sm:rounded-xl">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">
-                    <div className="text-base sm:text-lg md:text-xl font-semibold">
-                        <DialogTitle className="text-base sm:text-lg md:text-xl">
-                            Select Schedules
-                        </DialogTitle>
-                    </div>
-                    <span className="text-xs sm:text-sm text-muted-foreground">
-                        {selectedDate
-                            ? (() => {
-                                const slotForDate = slots.find((s) => s.date === selectedDate);
-                                if (!slotForDate) return "Select a date";
-                                return `${slotForDate.day_name}, ${slotForDate.day} ${new Date(
-                                    slotForDate.date
-                                ).toLocaleString("default", { month: "long" })} ${new Date(
-                                    slotForDate.date
-                                ).getFullYear()}`;
-                            })()
-                            : "Select a date"}
-                    </span>
+                <div className="shrink-0 border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
+                    <DialogTitle className="text-lg font-semibold sm:text-xl">Reschedule Appointment</DialogTitle>
+                    <p className="text-xs text-muted-foreground">Pick a new date, then a time.</p>
                 </div>
 
-                {/* Dates Horizontal Scroll */}
-                {uniqueDates.length > 0 && (
-                    <div className="flex gap-2 sm:gap-3 mt-2 overflow-x-auto overflow-y-hidden scrollbar-hide pb-2">
-                        {uniqueDates.map((date) => {
-                            const slotForDate = slots.find((s) => s.date === date);
-                            return (
-                                <button
-                                    key={date}
-                                    onClick={() => {
-                                        setSelectedDate(date);
-                                        setSelectedSlot(null);
-                                    }}
-                                    className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-lg text-center transition-all duration-200 min-w-[60px] sm:min-w-[70px] ${selectedDate === date
-                                        ? "bg-primary text-white shadow-md scale-105"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                        }`}
-                                >
-                                    <span className="text-sm sm:text-base font-semibold">
-                                        {slotForDate?.day}
-                                    </span>
-                                    <span className="text-[10px] sm:text-xs">
-                                        {slotForDate?.day_name?.slice(0, 3)}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
-
-                {/* Time Slots Grid */}
-                <div className="mt-4 sm:mt-6">
-                    <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">
-                        Available Time Slots
-                    </h3>
-                    <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
-                        {slots
-                            .filter((s) => s.date === selectedDate)
-                            .map((slot) => (
-                                <div
-                                    key={slot.id}
-                                    onClick={() => setSelectedSlot(slot)}
-                                    className={`py-2 sm:py-3 px-1 sm:px-2 flex flex-col items-center justify-center text-center cursor-pointer rounded-lg transition-all duration-200 ${selectedSlot?.id === slot.id
-                                        ? "bg-primary text-white shadow-md scale-105"
-                                        : "bg-gray-100 hover:bg-green-100 hover:scale-105"
-                                        }`}
-                                >
-                                    <p className="font-medium text-[10px] xs:text-xs sm:text-sm">
-                                        {slot.start_time} - {slot.end_time}
-                                    </p>
-                                    <p className="text-[8px] xs:text-[9px] sm:text-xs mt-0.5 opacity-90">
-                                        {slot.consultation_type_label}
-                                        {slot.consultation_type === "in-person" && slot.opd_type
-                                            ? ` (${slot.opd_type})`
-                                            : ""}
-                                    </p>
-                                </div>
-                            ))}
-                    </div>
-                    {slots.filter((s) => s.date === selectedDate).length === 0 && (
-                        <div className="text-center py-6 sm:py-8">
-                            <p className="text-xs sm:text-sm text-muted-foreground">
-                                No available slots for this date
-                            </p>
+                <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
+                    {schedule && (
+                        <div className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 ${isVideoSchedule ? "border-blue-200 bg-blue-50 text-blue-900" : "border-primary/20 bg-primary/5 text-primary"}`}>
+                            {isVideoSchedule ? <Video className="h-5 w-5 shrink-0" /> : <Building2 className="h-5 w-5 shrink-0" />}
+                            <div className="text-sm">
+                                <p className="font-semibold">You are on the {schedule.label}</p>
+                                <p className="text-xs opacity-80">
+                                    {isVideoSchedule
+                                        ? "Video appointment: only video dates are shown."
+                                        : `In-person ${schedule.opd_type === "private" ? "private" : "general"} OPD appointment: only ${schedule.opd_type === "private" ? "private" : "general"} OPD dates are shown.`}
+                                </p>
+                            </div>
                         </div>
                     )}
+
+                    {loadingSlots ? (
+                        <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+                            <Loader2 className="h-5 w-5 animate-spin text-primary" /> Loading available slots...
+                        </div>
+                    ) : uniqueDates.length === 0 ? (
+                        <div className="py-12 text-center text-sm text-muted-foreground">
+                            <CalendarDays className="mx-auto mb-2 h-8 w-8 text-slate-300" />
+                            No {schedule ? schedule.label.toLowerCase() : "available"} dates found.
+                        </div>
+                    ) : (
+                        <>
+                            {/* Dates */}
+                            <div>
+                                <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
+                                    <CalendarDays className="h-4 w-4" /> Date
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <button type="button" onClick={() => slideDates(-1)} aria-label="Previous dates"
+                                        className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-primary hover:border-primary sm:flex">
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </button>
+                                    <div ref={dateStrip} role="tablist" aria-label="Available dates"
+                                        className="flex min-w-0 flex-1 snap-x gap-2 overflow-x-auto scroll-smooth py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                        {uniqueDates.map((date) => {
+                                            const d = new Date(`${date}T00:00:00`);
+                                            const free = slots.filter((s) => s.date === date && s.available !== false).length;
+                                            const selected = selectedDate === date;
+                                            return (
+                                                <button key={date} type="button" role="tab" aria-selected={selected}
+                                                    onClick={() => { setSelectedDate(date); setSelectedSlot(null); }}
+                                                    title={`${free} free`}
+                                                    className={`flex h-16 py-2 w-16 shrink-0 snap-start flex-col items-center justify-center rounded-lg border leading-none transition-colors ${selected
+                                                        ? "border-primary bg-primary text-white"
+                                                        : free > 0 ? "border-slate-200 bg-white text-slate-900 hover:border-primary/50" : "border-slate-200 bg-slate-50 text-slate-400"}`}>
+                                                    <span className="text-[10px] font-semibold uppercase">{d.toLocaleDateString("en-US", { weekday: "short" })}</span>
+                                                    <span className="text-lg font-bold">{d.getDate()}</span>
+                                                    <span className={`text-[10px] ${selected ? "text-white/80" : "text-muted-foreground"}`}>{d.toLocaleDateString("en-US", { month: "short" })}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <button type="button" onClick={() => slideDates(1)} aria-label="Next dates"
+                                        className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-primary hover:border-primary sm:flex">
+                                        <ChevronRight className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Times */}
+                            <div>
+                                <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
+                                    <Clock className="h-4 w-4" /> Time{selectedDate ? ` · ${longDate(selectedDate)}` : ""}
+                                </p>
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                    {slotsForDate.map((slot) => {
+                                        const selected = selectedSlot?.id === slot.id && selectedSlot?.date === slot.date;
+                                        const full = slot.available === false;
+                                        const video = String(slot.consultation_type).toLowerCase() === "video";
+                                        return (
+                                            <button key={`${slot.id}-${slot.date}`} type="button" disabled={full}
+                                                onClick={() => pickSlot(slot)}
+                                                className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${selected
+                                                    ? "border-primary bg-primary text-white"
+                                                    : full ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
+                                                        : "border-slate-200 bg-white text-slate-900 hover:border-primary hover:text-primary"}`}>
+                                                <span className="block text-sm font-semibold">{slot.start_time} - {slot.end_time}</span>
+                                                <span className={`mt-0.5 flex items-center gap-1 text-[11px] ${selected ? "text-white/80" : "text-muted-foreground"}`}>
+                                                    {video ? <Video className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
+                                                    {video ? "Video" : `In-person · ${slot.opd_type === "private" ? "Private" : "General"} OPD`}
+                                                    {full ? " · Full" : ""}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {slotsForDate.length === 0 && (
+                                    <p className="py-6 text-center text-sm text-muted-foreground">No available slots for this date</p>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {/* Video slot: choose any call time on that date */}
+                    {selectedSlot && isVideoSlot && (
+                        <VideoTimePicker
+                            id="reschedule-visit-time"
+                            date={selectedSlot.date}
+                            value={visitTime}
+                            onChange={setVisitTime}
+                        />
+                    )}
+
                 </div>
 
-                {/* Reschedule Button */}
-                <button
-                    disabled={!selectedSlot || loading}
-                    onClick={async () => {
-                        if (!selectedSlot) return;
+                {/* Footer */}
+                <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                    <p className="text-sm">
+                        {selectedSlot
+                            ? <span className="text-primary"><span className="font-semibold">Selected:</span> {longDate(selectedSlot.date)}, {selectedSlot.start_time}</span>
+                            : <span className="text-muted-foreground">Select a time slot</span>}
+                    </p>
+                    <button
+                        disabled={!selectedSlot || loading || !visitTimeValid}
+                        onClick={async () => {
+                            if (!selectedSlot) return;
 
-                        const payload = {
-                            appointment_id: appointmentId,
-                            availability_id: selectedSlot.id,
-                            appointment_date: selectedSlot.date,
-                            appointment_time: selectedSlot.booking_start_time,
-                            confirm: true,
-                        };
+                            const payload = {
+                                appointment_id: appointmentId,
+                                availability_id: selectedSlot.id,
+                                appointment_date: selectedSlot.date,
+                                appointment_time: isVideoSlot && visitTime ? `${visitTime}:00` : selectedSlot.booking_start_time,
+                                confirm: true,
+                            };
 
-                        console.log("Reschedule payload:", payload);
+                            try {
+                                setLoading(true);
+                                const res = await rescheduleAppointment(payload);
 
-                        try {
-                            setLoading(true);
-                            const res = await rescheduleAppointment(payload);
 
-                            console.log("✅ FULL API RESPONSE:", res);
-                            console.log("✅ SUCCESS:", res.success);
-                            console.log("✅ MESSAGE:", res.message);
-                            console.log("✅ DATA:", res.data);
+                                if (res.success) {
+                                    setDialogData({
+                                        title: isAwaitingConfirmation ? "Rescheduled & Confirmed" : "Appointment Rescheduled",
+                                        description: isAwaitingConfirmation
+                                            ? "The appointment has been moved to the new slot and confirmed. The patient has been emailed the new timing."
+                                            : res.message,
+                                        type: "success",
+                                    });
+                                    onSuccess?.();
 
-                            if (res.success) {
+                                    onOpenChange(false);
+                                    setCustomDialogOpen(true);
+                                } else {
+                                    setDialogData({
+                                        title: "Error",
+                                        description: res.message || "Something went wrong.",
+                                        type: "danger",
+                                    });
+                                    onOpenChange(false);
+                                    setCustomDialogOpen(true);
+                                }
+                            } catch (err: any) {
+                                console.error("Error rescheduling:", err);
+
                                 setDialogData({
-                                    title: isAwaitingConfirmation ? "Rescheduled & Confirmed" : "Appointment Rescheduled",
-                                    description: isAwaitingConfirmation
-                                        ? "The appointment has been moved to the new slot and confirmed. The patient has been emailed the new timing."
-                                        : res.message,
-                                    type: "success",
-                                });
-                                onSuccess?.();
-
-                                onOpenChange(false);
-                                setCustomDialogOpen(true);
-                            } else {
-                                setDialogData({
-                                    title: "Error",
-                                    description: res.message || "Something went wrong.",
+                                    title: "Validation Error",
+                                    description:
+                                        err.response?.data?.errors?.message ||
+                                        err.response?.data?.message ||
+                                        "Something went wrong",
                                     type: "danger",
                                 });
+
                                 onOpenChange(false);
                                 setCustomDialogOpen(true);
+                            } finally {
+                                setLoading(false);
                             }
-                        } catch (err: any) {
-                            console.error("Error rescheduling:", err);
-
-                            setDialogData({
-                                title: "Validation Error",
-                                description:
-                                    err.response?.data?.errors?.message ||
-                                    err.response?.data?.message ||
-                                    "Something went wrong",
-                                type: "danger",
-                            });
-
-                            onOpenChange(false);
-                            setCustomDialogOpen(true);
-                        } finally {
-                            setLoading(false);
-                        }
-                    }}
-                    className={`w-full mt-4 sm:mt-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-all duration-200 text-sm sm:text-base ${selectedSlot && !loading
-                        ? "bg-primary text-white hover:bg-primary/90 active:scale-98"
-                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        }`}
-                >
-                    {loading ? (
-                        <div className="flex items-center justify-center gap-2">
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                            Rescheduling...
-                        </div>
-                    ) : isAwaitingConfirmation ? (
-                        "Reschedule & Confirm"
-                    ) : (
-                        "Reschedule"
-                    )}
-                </button>
+                        }}
+                        className={`w-full rounded-lg px-6 py-2.5 text-sm font-semibold transition-all duration-200 sm:w-auto ${selectedSlot && !loading && visitTimeValid
+                            ? "bg-primary text-white hover:bg-primary/90 active:scale-98"
+                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            }`}
+                    >
+                        {loading ? (
+                            <div className="flex items-center justify-center gap-2">
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                Rescheduling...
+                            </div>
+                        ) : isAwaitingConfirmation ? (
+                            "Reschedule & Confirm"
+                        ) : (
+                            "Reschedule"
+                        )}
+                    </button>
+                </div>
             </DialogContent>
         </Dialog>
     );

@@ -186,11 +186,12 @@ export default function AppointmentCard({
                         </div>
 
                         {/* Actions */}
-                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-5">
+                        {/* View, Join, Confirm / Reschedule / Attendance on one row (wraps on small screens) */}
+                        <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-5">
 
                             {/* Always show View button */}
                             <Button
-                                className="flex-1 cursor-pointer py-2.5 h-auto font-semibold rounded-md"
+                                className="min-w-24 flex-1 cursor-pointer py-2.5 h-auto font-semibold rounded-md"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     router.push(`/appointments/${appointment.appointment_id || appointment.id}`);
@@ -218,14 +219,13 @@ export default function AppointmentCard({
                                     <span className="xs:hidden">Join</span>
                                 </Button>
                             ) : null}
-                        </div>
 
-                        {/* Confirm / Reschedule / Mark Attendance */}
-                        <AppointmentActions
-                            appointment={appointment}
-                            hideReschedule={shouldHideReschedule}
-                            className="mt-3"
-                        />
+                            <AppointmentActions
+                                appointment={appointment}
+                                hideReschedule={shouldHideReschedule}
+                                className="shrink-0"
+                            />
+                        </div>
 
                     </div>
 

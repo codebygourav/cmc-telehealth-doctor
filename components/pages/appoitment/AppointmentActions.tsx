@@ -1,6 +1,6 @@
 "use client";
 
-import { confirmAppointment, getApiErrorMessage, markAttendance } from "@/api/appointment-actions";
+import { confirmAppointment, formatClock, getApiErrorMessage, getDefaultFutureTime, isFutureTimeOnDate, markAttendance, parseTo24HourTime } from "@/api/appointment-actions";
 import CustomDialog from "@/components/custom/Dialogboxs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, CheckCircle2, ClipboardCheck, UserCheck, UserX } from "lucide-react";
 import { useState } from "react";
 import { RescheduleAppointmentDialog } from "./Reshedule-dialogbox";
+import VideoTimePicker from "./VideoTimePicker";
 
 type Attendance = "present" | "absent";
 
@@ -46,6 +47,15 @@ export default function AppointmentActions({ appointment, hideReschedule = false
     const [loading, setLoading] = useState(false);
     const [choice, setChoice] = useState<Attendance | null>(null);
     const [voucher, setVoucher] = useState("");
+    // Video consultations: the doctor picks the call time (any time that day) when confirming.
+    // In-person visits are confirmed at the booked slot time (no time to choose).
+    const consultationType: string = String(appointment?.consultation_type || appointment?.schedule?.consultation_type || "").toLowerCase();
+    const isVideo = consultationType.includes("video") || appointment?.slot_window?.mode === "any";
+    const appointmentDate: string = appointment?.appointment_date || appointment?.schedule?.date || appointment?.date || "";
+    const rawTimeStr: string = appointment?.appointment_time || appointment?.schedule?.time || appointment?.time || "";
+    const bookedTime: string = parseTo24HourTime(rawTimeStr);
+    const [visitTime, setVisitTime] = useState(() => getDefaultFutureTime(appointmentDate, rawTimeStr));
+    const visitTimeValid = !isVideo || isFutureTimeOnDate(appointmentDate, visitTime);
     const [resultOpen, setResultOpen] = useState(false);
     const [result, setResult] = useState<{ title: string; description: string; type: "success" | "danger" } | null>(null);
 
@@ -63,9 +73,12 @@ export default function AppointmentActions({ appointment, hideReschedule = false
     const handleConfirm = async () => {
         try {
             setLoading(true);
-            await confirmAppointment(appointmentId);
+            await confirmAppointment(appointmentId, isVideo ? visitTime || null : null);
             setConfirmOpen(false);
-            showResult("Appointment Confirmed", "The patient has been emailed the confirmation.");
+            showResult(
+                "Appointment Confirmed",
+                `The patient has been emailed the confirmation${isVideo && visitTime ? ` for ${formatClock(visitTime)}` : ""}.`,
+            );
             refresh();
         } catch (err) {
             setConfirmOpen(false);
@@ -123,7 +136,11 @@ export default function AppointmentActions({ appointment, hideReschedule = false
                 )}
 
                 {canConfirm && (
-                    <Button size="sm" className="h-auto py-2 px-3 font-semibold rounded-md cursor-pointer" onClick={() => setConfirmOpen(true)}>
+                    <Button size="sm" className="h-auto py-2 px-3 font-semibold rounded-md cursor-pointer" onClick={() => {
+                        const initTime = getDefaultFutureTime(appointmentDate, rawTimeStr);
+                        setVisitTime(initTime);
+                        setConfirmOpen(true);
+                    }}>
                         <CheckCircle2 className="h-4 w-4" />
                         Confirm
                     </Button>
@@ -154,18 +171,36 @@ export default function AppointmentActions({ appointment, hideReschedule = false
                 )}
             </div>
 
-            <CustomDialog
-                open={confirmOpen}
-                onClose={() => setConfirmOpen(false)}
-                icon={<CheckCircle2 className="h-7 w-7 text-green-600" />}
-                title="Confirm Appointment"
-                description={`Confirm the booking for ${appointment?.patient?.name || appointment?.patient_name || "this patient"}? The patient will receive a confirmation email.`}
-                confirmText={loading ? "Confirming..." : "Yes, Confirm"}
-                cancelText="Not now"
-                onConfirm={handleConfirm}
-                loading={loading}
-                type="success"
-            />
+            <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                <DialogContent className="max-w-[95vw] sm:max-w-lg rounded-xl p-5">
+                    <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        Confirm Appointment
+                    </DialogTitle>
+                    <p className="text-sm text-muted-foreground">
+                        Confirm the booking for {appointment?.patient?.name || appointment?.patient_name || "this patient"}.
+                        {isVideo
+                            ? " Choose the time of the video call; the patient is emailed this time."
+                            : ` The patient will be emailed the confirmation${bookedTime ? ` for ${formatClock(bookedTime)}` : ""}.`}
+                    </p>
+
+                    {isVideo && (
+                        <VideoTimePicker
+                            id={`visit-time-${appointmentId}`}
+                            date={appointmentDate}
+                            value={visitTime}
+                            onChange={setVisitTime}
+                        />
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-1">
+                        <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={loading}>Not now</Button>
+                        <Button onClick={handleConfirm} disabled={loading || !visitTimeValid}>
+                            {loading ? "Confirming..." : "Yes, Confirm"}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={attendanceOpen} onOpenChange={setAttendanceOpen}>
                 <DialogContent className="max-w-[95vw] sm:max-w-md rounded-xl p-5">

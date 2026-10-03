@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill, Download, Loader2 } from "lucide-react";
+import { Eye, Save, Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill, Download, Loader2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -42,6 +42,9 @@ import { cleanAndDeduplicateText, escapeRegExp, formatClinicalValue } from "@/sr
 import PrescriptionEntryModeSelector from "./PrescriptionEntryModeSelector";
 import PrescriptionListPanel from "./PrescriptionListPanel";
 import PrescriptionMedicineForm from "./PrescriptionMedicineForm";
+import FormularyMedicineEntry from "./FormularyMedicineEntry";
+import AddedMedicinesList from "./AddedMedicinesList";
+import { previewPrescriptionPdf } from "@/api/addPrescription";
 import PrescriptionSuccessDialog from "./PrescriptionSuccessDialog";
 import PrescriptionVoiceAssistantPanel from "./PrescriptionVoiceAssistantPanel";
 import PreviousPrescriptionsDialog from "./PreviousPrescriptionsDialog";
@@ -133,6 +136,10 @@ interface AddPrescriptionDialogProps {
   onOpenChange: (open: boolean) => void;
   appointmentId?: string;
   initialTab?: "findings" | "medicines" | "reports" | "medical_record" | "prescribe";
+  // Open straight into editing this medicine (index in initialMedicines).
+  initialEditIndex?: number | null;
+  // "medicines": only the medicine search + list (Edit Medicines); "full": the whole builder.
+  mode?: "full" | "medicines" | "medical_record" | "reports";
   assistantConfig?: {
     enabled?: boolean;
     input_mode?: string;
@@ -175,7 +182,8 @@ const defaultFormValues: PrescriptionForm = {
   remarks: "",
   follow_up_note: "",
   instructions: "",
-  stamp_preference: "only_global",
+  // Doctor's own (department) stamp with signature by default.
+  stamp_preference: "only_department",
 };
 
 const medicationTypeOptions = [
@@ -198,12 +206,12 @@ const frequencyOptions = [
 
 const stampOptions = [
   {
-    label: "Global Stamp (With Signature)",
-    value: "only_global",
+    label: "Doctor / Department Stamp (With Signature)",
+    value: "only_department",
   },
   {
-    label: "Department Stamp (With Signature)",
-    value: "only_department",
+    label: "Global Stamp (With Signature)",
+    value: "only_global",
   },
   {
     label: "Both (Global & Department Stamp with Signature)",
@@ -286,6 +294,8 @@ export default function AddPrescriptionDialog({
   onOpenChange,
   appointmentId: propAppointmentId,
   initialTab,
+  initialEditIndex = null,
+  mode = "full",
   assistantConfig,
   initialMedicines = [],
   initialFindings = "",
@@ -395,6 +405,14 @@ export default function AddPrescriptionDialog({
         ? "medical_record"
         : "prescribe"
   );
+
+  useEffect(() => {
+    if (open && initialTab) {
+      if (initialTab === "reports") setActiveTab("reports");
+      else if (initialTab === "medical_record") setActiveTab("medical_record");
+      else setActiveTab("prescribe");
+    }
+  }, [open, initialTab]);
 
   const { data: prescriptionData } = usePrescriptionByAppointmentId(appointmentId || "");
   const pdfUrl = prescriptionData?.data?.pdf_url;
@@ -789,7 +807,11 @@ export default function AddPrescriptionDialog({
         if (!endDateVal && parts[1] && parts[1].trim()) endDateVal = parts[1].trim();
       }
 
+      // Saved formulary line: no frequency / dosage, everything is in the notes.
+      const isTemplate = !String(med.frequency || "").trim() && !String(med.dosage || "").trim() && !!instructionsStr.trim();
+
       return {
+        template: isTemplate,
         medicine_id: med.medicine_id || med.prescription_id || null,
         medicine_name: med.name || med.medicine_name || "",
         medication_type: med.type || med.medication_type || "tablet",
@@ -822,7 +844,18 @@ export default function AddPrescriptionDialog({
       setOrderInvestigation(initialOrderInvestigation || "");
 
       // Resolve notes: if notes field doesn't have an independent value or mirrors clinical_notes, show as empty
-      const rawNotes = initialNotes || prescriptionData?.data?.notes || "";
+      // Notes can be stored as a list (e.g. ["I have very high fever"]): show them as plain text.
+      const toPlainText = (value: unknown): string => {
+        if (Array.isArray(value)) return value.filter(Boolean).join("\n");
+        if (typeof value === "string" && value.trim().startsWith("[")) {
+          try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) return parsed.filter(Boolean).join("\n");
+          } catch { /* plain text */ }
+        }
+        return typeof value === "string" ? value : "";
+      };
+      const rawNotes = toPlainText(initialNotes || prescriptionData?.data?.notes || "");
       const clinicalNotesValue =
         medicalRecordForm.notes ||
         medicalRecordResponse?.data?.clinical_notes ||
@@ -840,6 +873,18 @@ export default function AddPrescriptionDialog({
       setInstructionsByDoctor(initialInstructionsByDoctor || "");
       setIncludeReports(Boolean(initialRecommendedTests));
       setAddedMedicines(mapInitialMedicinesToAdded(initialMedicines));
+      // Each button opens its own part: medicines / medical record / reports / the full builder.
+      if (mode === "medical_record") setActiveTab("medical_record");
+      else if (mode === "reports") {
+        setActiveTab("reports");
+        setIncludeReports(true);
+      }
+      else setActiveTab("prescribe");
+      if (mode !== "full") setEntryMode("manual");
+      if (initialEditIndex !== null && initialEditIndex >= 0) {
+        setEntryMode("manual");
+        setEditingIndex(initialEditIndex);
+      }
       return;
     }
 
@@ -905,6 +950,8 @@ export default function AddPrescriptionDialog({
     initialConfidentialNotes,
     initialInstructionsByDoctor,
     initialMedicines,
+    initialEditIndex,
+    mode,
     prescriptionData?.data?.notes,
     prescriptionData?.data?.confidential_notes,
   ]);
@@ -1292,6 +1339,64 @@ export default function AddPrescriptionDialog({
 
   const [submittingUnified, setSubmittingUnified] = useState(false);
 
+  // Same medicines payload for saving and for the PDF preview.
+  const buildMedicinesPayload = () =>
+    addedMedicines.map((med) => {
+      const timings: string[] = [];
+      if (med.timing_morning) timings.push("morning");
+      if (med.timing_afternoon) timings.push("afternoon");
+      if (med.timing_evening) timings.push("evening");
+      if (med.timing_night) timings.push("night");
+
+      return {
+        medicine_id: med.medicine_id || null,
+        medicine_name: (med.medicine_name || "").trim(),
+        medication_type: med.medication_type || (med.template ? "" : "tablet"),
+        strength: med.strength || "",
+        dosage: med.dosage,
+        // Formulary lines carry dose / timing in their notes (instructions).
+        frequency: med.template ? "" : med.frequency || "OD",
+        timings,
+        meal: med.meal,
+        application_area: med.application_area || "",
+        start_date: med.start_date || getTodayDate(),
+        end_date: med.end_date || null,
+        instructions: med.instructions || "",
+      };
+    });
+
+  // PDF preview of what is in the form now (not saved), so mistakes can be fixed first.
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const openPreview = async () => {
+    if (!appointmentId) return;
+    try {
+      setPreviewing(true);
+      const blob = await previewPrescriptionPdf(appointmentId, {
+        stamp_preference: getValues("stamp_preference"),
+        order_investigation: orderInvestigation.trim(),
+        diagnosis: diagnosis.trim(),
+        notes: notes.trim(),
+        instructions_by_doctor: instructionsByDoctor.trim(),
+        medicines: buildMedicinesPayload(),
+      });
+      setPreviewUrl(URL.createObjectURL(blob));
+    } catch (error: any) {
+      let message = "Could not create the preview.";
+      try {
+        const text = await error?.response?.data?.text?.();
+        message = JSON.parse(text)?.errors?.message || message;
+      } catch { /* not JSON */ }
+      setToastMessage({ text: message, type: "error" });
+    } finally {
+      setPreviewing(false);
+    }
+  };
+  const closePreview = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+  };
+
   const handleFinalSubmit = async () => {
     const hasMedicalRecordData =
       Boolean(medicalRecordForm.chief_complaint.trim()) ||
@@ -1363,28 +1468,7 @@ export default function AddPrescriptionDialog({
 
       if (addedMedicines.length > 0) {
         const stampPref = getValues("stamp_preference");
-        const medicinesPayload = addedMedicines.map((med) => {
-          const timings: string[] = [];
-          if (med.timing_morning) timings.push("morning");
-          if (med.timing_afternoon) timings.push("afternoon");
-          if (med.timing_evening) timings.push("evening");
-          if (med.timing_night) timings.push("night");
-
-          return {
-            medicine_id: med.medicine_id || null,
-            medicine_name: (med.medicine_name || "").trim(),
-            medication_type: med.medication_type || "tablet",
-            strength: med.strength || "",
-            dosage: med.dosage,
-            frequency: med.frequency || "OD",
-            timings,
-            meal: med.meal,
-            application_area: med.application_area || "",
-            start_date: med.start_date || getTodayDate(),
-            end_date: med.end_date || null,
-            instructions: med.instructions || "",
-          };
-        });
+        const medicinesPayload = buildMedicinesPayload();
 
         const payload = {
           draft_id: draftId,
@@ -1411,6 +1495,19 @@ export default function AddPrescriptionDialog({
     } finally {
       setSubmittingUnified(false);
     }
+  };
+
+  // Formulary entry: add a new line or replace the one being edited.
+  const handleSaveFormularyMedicine = (medicine: AddedMedicine) => {
+    if (editingIndex !== null) {
+      setAddedMedicines((prev) => prev.map((item, index) => (index === editingIndex ? medicine : item)));
+      setEditingIndex(null);
+      setToastMessage({ text: `Updated ${medicine.medicine_name}.`, type: "success" });
+    } else {
+      setAddedMedicines((prev) => [...prev, medicine]);
+      setToastMessage({ text: `Added ${medicine.medicine_name} to the prescription.`, type: "success" });
+    }
+    setMobileTab("list");
   };
 
   const handleSuccessClose = () => {
@@ -1855,8 +1952,56 @@ export default function AddPrescriptionDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[95vw] max-h-[92vh] sm:max-w-6xl! rounded-[28px] p-0 overflow-hidden flex flex-col gap-0! fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-slate-200 bg-linear-to-br from-white via-slate-50 to-sky-50 shadow-[0_30px_90px_rgba(15,23,42,0.18)]">
-          <div className="absolute top-3 sm:top-3.5 right-12 sm:right-14 z-50 flex items-center gap-2 sm:gap-2.5">
+        <DialogContent className="max-sm:pb-0 w-[95vw] max-h-[92vh] sm:max-w-6xl! rounded-lg p-0 overflow-hidden flex flex-col gap-0! fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-slate-200 bg-linear-to-br from-white via-slate-50 to-sky-50 shadow-[0_30px_90px_rgba(15,23,42,0.18)]">
+          {toastMessage && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-100 animate-in fade-in slide-in-from-top-4 duration-300">
+              <div
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold shadow-lg border ${toastMessage.type === "success" ? "bg-green-600 text-white border-green-700" : "bg-red-600 text-white border-red-700"}`}
+              >
+                <span>{toastMessage.text}</span>
+                <button
+                  type="button"
+                  onClick={() => setToastMessage(null)}
+                  className="rounded-full hover:bg-white/10 p-0.5"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          <DialogHeader className="shrink-0 border-b border-slate-200 bg-white/70 py-3 pl-4 pr-12 backdrop-blur sm:px-6 sm:py-5 sm:pr-[440px]">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="space-y-1">
+                <div className="hidden items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-700 sm:inline-flex">
+                  Add Prescription
+                </div>
+                <DialogTitle className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900">
+                  {mode === "medicines" ? "Edit medicines" : mode === "medical_record" ? "Patient medical record" : mode === "reports" ? "Tests & reports" : "Build a new prescription"}
+                </DialogTitle>
+
+              </div>
+
+              {entryMode !== null && dictationEnabled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopListening(false);
+                    setVoiceDraftMedicine(null);
+                    setMissingFieldsList([]);
+                    setEntryMode(null);
+                  }}
+                  className="mr-8 flex items-center gap-1.5 text-primary font-semibold text-[11px] sm:mr-10 sm:text-xs uppercase tracking-wide hover:translate-x-1 transition-transform shrink-0"
+                >
+                  <Undo2 className="h-3.5 w-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">Switch Mode</span>
+                </button>
+              )}
+            </div>
+          </DialogHeader>
+
+          {/* Downloads: own row under the title on phones, top right from sm up. */}
+          <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white/70 px-4 py-2 sm:absolute sm:top-3.5 sm:right-14 sm:z-50 sm:gap-2.5 sm:border-0 sm:bg-transparent sm:p-0">
             <button
               type="button"
               disabled={downloadMedicalRecordMutation.isPending || !appointmentId}
@@ -1895,55 +2040,9 @@ export default function AddPrescriptionDialog({
             </button>
           </div>
 
-          {toastMessage && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-100 animate-in fade-in slide-in-from-top-4 duration-300">
-              <div
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold shadow-lg border ${toastMessage.type === "success" ? "bg-green-600 text-white border-green-700" : "bg-red-600 text-white border-red-700"}`}
-              >
-                <span>{toastMessage.text}</span>
-                <button
-                  type="button"
-                  onClick={() => setToastMessage(null)}
-                  className="rounded-full hover:bg-white/10 p-0.5"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          <DialogHeader className="border-b border-slate-200 px-5 py-4 sm:px-6 sm:py-5 pr-64 sm:pr-[440px] shrink-0 bg-white/70 backdrop-blur">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-700">
-                  Add Prescription
-                </div>
-                <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                  Build a new prescription
-                </DialogTitle>
-
-              </div>
-
-              {entryMode !== null && dictationEnabled && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    stopListening(false);
-                    setVoiceDraftMedicine(null);
-                    setMissingFieldsList([]);
-                    setEntryMode(null);
-                  }}
-                  className="mr-8 flex items-center gap-1.5 text-primary font-semibold text-[11px] sm:mr-10 sm:text-xs uppercase tracking-wide hover:translate-x-1 transition-transform shrink-0"
-                >
-                  <Undo2 className="h-3.5 w-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">Switch Mode</span>
-                </button>
-              )}
-            </div>
-          </DialogHeader>
 
           {entryMode !== null && (
-            <div className="flex md:hidden border-b bg-background px-4 py-3 shrink-0">
+            <div className={`${mode !== "full" ? "hidden" : "flex"} md:hidden border-b bg-background px-4 py-3 shrink-0`}>
               <div className="flex w-full bg-muted/20 p-1 rounded-lg border">
                 <button
                   type="button"
@@ -1983,55 +2082,35 @@ export default function AddPrescriptionDialog({
                 <div className="space-y-5">
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
                     <div
-                      className={`md:col-span-7  p-0 sm:p-0  ${mobileTab === "form" ? "block" : "hidden md:block"}`}
+                      className={mode !== "full" ? "md:col-span-12" : `md:col-span-7  p-0 sm:p-0  ${mobileTab === "form" ? "block" : "hidden md:block"}`}
                     >
                       {/* Sub-Tabs */}
-                      <div className="flex mb-5 gap-2 fEnable Desktop Pushlex-wrap rounded-lg border border-slate-100 bg-slate-50 p-1.5 shadow-sm justify-center">
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab("medical_record")}
-                          className={`flex items-center gap-2 px-2 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${activeTab === "medical_record"
-                            ? "bg-muted text-black shadow-sm ring-1 ring-slate-200"
-                            : "text-slate-500 hover:bg-white/70"
-                            }`}
-                        >
-                          <ClipboardList className="h-4 w-4" />
-                          Patient Medical Record
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab("prescribe")}
-                          className={`flex items-center gap-2 px-2 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${activeTab === "prescribe"
-                            ? "bg-muted text-black shadow-sm ring-1 ring-slate-200"
-                            : "text-slate-500 hover:bg-white/70"
-                            }`}
-                        >
-                          <Stethoscope className="h-4 w-4" />
-                          Prescribe Medicine
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab("reports")}
-                          className={`flex items-center gap-2 px-2 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${activeTab === "reports"
-                            ? "bg-muted text-black shadow-sm ring-1 ring-slate-200"
-                            : "text-slate-500 hover:bg-white/70"
-                            }`}
-                        >
-                          <FileText className="h-4 w-4" />
-                          Medical Report
-                        </button>
+                      <div className={`hidden mb-5 grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm`} role="tablist">
+                        {([
+                          ["medical_record", "Medical Record", ClipboardList],
+                          ["prescribe", "Prescribe", Stethoscope],
+                          ["reports", "Reports", FileText],
+                        ] as const).map(([key, label, Icon]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTab === key}
+                            onClick={() => setActiveTab(key)}
+                            className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-xs font-semibold transition-colors sm:text-sm ${activeTab === key
+                              ? "bg-primary text-white shadow-sm"
+                              : "text-slate-600 hover:bg-slate-50 hover:text-primary"
+                              }`}
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{label}</span>
+                          </button>
+                        ))}
                       </div>
 
 
 
-                      {activeTab === "prescribe" && (
-                        <div className="space-y-5 animate-in fade-in duration-200">
 
-                          <div className="pt-2">
-                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Prescribe Medicines</h3>
-                          </div>
-                        </div>
-                      )}
 
                       {activeTab === "prescribe" && (
                         <div className="animate-in fade-in duration-200">
@@ -2332,121 +2411,26 @@ export default function AddPrescriptionDialog({
                               />
                             )
                           ) : (
-                            <PrescriptionMedicineForm
-                              title={
-                                editingIndex !== null
-                                  ? "Edit Medicine Details"
-                                  : "Add Medicine Details"
-                              }
-                              editingIndex={editingIndex}
-                              selectedMedicineName={selectedMedicineName}
-                              selectedMedicineSource={selectedMedicineSource}
-                              searchQuery={searchQuery}
-                              setSearchQuery={setSearchQuery}
-                              medicineList={medicineList}
-                              isSearchingMedicine={isSearchingMedicine}
-                              medicineStatus={medicineStatus}
-                              errors={
-                                errors as Record<
-                                  string,
-                                  { message?: string } | undefined
-                                >
-                              }
-                              medicationType={medicationType}
-                              strength={strength}
-                              dosage={dosage}
-                              frequency={frequency}
-                              meal={meal}
-                              applicationArea={applicationArea}
-                              remarks={remarks}
-                              followUpNote={followUpNote}
-                              timingMorning={timingMorning}
-                              timingAfternoon={timingAfternoon}
-                              timingEvening={timingEvening}
-                              timingNight={timingNight}
-                              startDate={startDate}
-                              endDate={endDate}
-                              instructions={instructions}
-                              medicationTypeOptions={resolvedMedicationTypeOptions}
-                              strengthOptions={strengthOptions}
-                              frequencyOptions={resolvedFrequencyOptions}
-                              mealOptions={resolvedMealOptions}
-                              dosageOptions={dosageOptions}
-                              applicationAreaOptions={applicationAreaOptions}
-                              durationOptions={durationOptions}
-                              fieldRules={fieldRules}
-                              onSelectMedicine={handleSelectMedicine}
-                              onUseCustomMedicine={handleUseCustomMedicine}
-                              onClearSelectedMedicine={clearSelectedMedicine}
-                              onMedicationTypeChange={(value) =>
-                                setValue("medication_type", value, {
-                                  shouldValidate: true,
-                                })
-                              }
-                              onStrengthChange={(value) =>
-                                setValue("strength", value, {
-                                  shouldValidate: true,
-                                })
-                              }
-                              onDosageChange={(value) =>
-                                setValue("dosage", value, { shouldValidate: true })
-                              }
-                              onFrequencyChange={(value) =>
-                                setValue("frequency", value, {
-                                  shouldValidate: true,
-                                })
-                              }
-                              onMealChange={(value) =>
-                                setValue(
-                                  "meal",
-                                  value as PrescriptionForm["meal"],
-                                  { shouldValidate: true },
-                                )
-                              }
-                              onApplicationAreaChange={(value) =>
-                                setValue("application_area", value, {
-                                  shouldValidate: true,
-                                })
-                              }
-                              onDurationPresetChange={handleDurationPresetChange}
-                              onRemarksChange={(value) =>
-                                setValue("remarks", value, {
-                                  shouldValidate: true,
-                                })
-                              }
-                              onFollowUpNoteChange={(value) =>
-                                setValue("follow_up_note", value, {
-                                  shouldValidate: true,
-                                })
-                              }
-                              onTimingChange={(name, value) =>
-                                setValue(name, value)
-                              }
-                              onStartDateChange={setStartDate}
-                              onEndDateChange={setEndDate}
-                              onInstructionsChange={(value) =>
-                                setValue("instructions", value, {
-                                  shouldValidate: true,
-                                })
-                              }
-                              onSubmit={handleAddOrUpdateMedicine}
-                              onCancel={
-                                editingIndex !== null ? handleCancelEdit : undefined
-                              }
-                              submitLabel={
-                                editingIndex !== null
-                                  ? "Update Medicine"
-                                  : "+ Add to Prescription List"
-                              }
-                              fullWidthButton={editingIndex === null}
-                            />
+                            <div className="space-y-4">
+                              <FormularyMedicineEntry
+                                editing={editingIndex !== null ? addedMedicines[editingIndex] ?? null : null}
+                                onSave={handleSaveFormularyMedicine}
+                                onCancelEdit={handleCancelEdit}
+                              />
+                              <AddedMedicinesList
+                                medicines={addedMedicines}
+                                editingIndex={editingIndex}
+                                onEdit={handleEditMedicine}
+                                onDelete={handleDeleteMedicine}
+                              />
+                            </div>
                           )}
                         </div>
                       )}
 
                       {activeTab === "reports" && (
                         <div className="space-y-5 animate-in fade-in duration-200">
-                          <div className="flex items-center justify-between p-3.5 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                          <div className="hidden">
                             <div>
                               <h4 className="text-sm font-bold text-slate-900">Recommend Tests & Upload Reports</h4>
                               <p className="text-xs text-slate-500">Add investigations or upload supporting records in the same flow.</p>
@@ -2467,17 +2451,6 @@ export default function AddPrescriptionDialog({
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                   <label className="text-xs font-semibold text-slate-600">Recommend Tests / Reports (to Patients)</label>
-                                  <button
-                                    type="button"
-                                    onClick={toggleListeningTests}
-                                    className={`p-1.5 rounded-full border transition-all ${isListeningTests
-                                      ? "bg-red-500 text-white border-red-500 animate-pulse shadow-sm"
-                                      : "bg-blue-50 hover:bg-blue-100/80 text-blue-600 border-blue-200 shadow-sm"
-                                      }`}
-                                    title="Dictate tests"
-                                  >
-                                    <Mic className="h-4 w-4" />
-                                  </button>
                                 </div>
                                 <Textarea
                                   value={recommendedTests}
@@ -2811,13 +2784,13 @@ export default function AddPrescriptionDialog({
                             </div>
                           </div>
 
-                          {/* Submit Patient Medical Record Button */}
-                          <div className="pt-3 flex justify-end border-t border-slate-100">
+                          {/* Save button: pinned to the bottom of the sheet on phones, end of the form from sm up. */}
+                          <div className="sticky -bottom-3 z-10 -mx-3 -mb-3 flex justify-end border-t border-slate-200 bg-white/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:mb-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none">
                             <Button
                               type="button"
                               onClick={handleSaveMedicalRecordOnly}
                               disabled={saveMedicalRecordMutation.isPending}
-                              className="w-full sm:w-auto px-6 h-11 text-xs sm:text-sm font-semibold rounded-2xl shadow-sm bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center gap-2 transition-all"
+                              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary bg-primary px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
                             >
                               {saveMedicalRecordMutation.isPending ? (
                                 <>
@@ -2836,7 +2809,7 @@ export default function AddPrescriptionDialog({
                       )}
                     </div>
 
-                    <PrescriptionListPanel
+                    {mode === "full" && <PrescriptionListPanel
                       addedMedicines={addedMedicines}
                       onEditMedicine={handleEditMedicine}
                       onDeleteMedicine={handleDeleteMedicine}
@@ -2848,6 +2821,8 @@ export default function AddPrescriptionDialog({
                         })
                       }
                       onFinalSubmit={handleFinalSubmit}
+                      hideSubmit
+                      hideMedicineList={entryMode !== "voice"}
                       addPrescriptionPending={submittingUnified}
                       errors={
                         errors as Record<
@@ -2876,11 +2851,51 @@ export default function AddPrescriptionDialog({
                       includeReports={includeReports}
                       recommendedTests={recommendedTests}
                       reportFiles={reportFiles}
-                    />
+                    />}
                   </div>
                 </div>
               )}
             </form>
+          </div>
+
+          {/* Fixed footer: always visible, never scrolls away */}
+          {entryMode !== null && mode !== "medical_record" && (
+            <div className="flex shrink-0 flex-col gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <p className="text-xs text-slate-500">
+                <span className="font-semibold text-slate-900">{addedMedicines.length}</span> {addedMedicines.length === 1 ? "medicine" : "medicines"} in this prescription
+              </p>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                {mode !== "reports" && <Button type="button" variant="outline" onClick={openPreview} disabled={previewing || addedMedicines.length === 0} className="sm:min-w-36">
+                  {previewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
+                  Preview PDF
+                </Button>}
+                <Button
+                  type="button"
+                  onClick={handleFinalSubmit}
+                  disabled={submittingUnified || (addedMedicines.length === 0 && !findingsText.trim() && !nextVisitDate && !recommendedTests.trim() && reportFiles.length === 0)}
+                  className="sm:min-w-52"
+                >
+                  {submittingUnified ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save & Submit</>}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF preview: check it, close to fix anything, then save */}
+      <Dialog open={!!previewUrl} onOpenChange={(value) => !value && closePreview()}>
+        <DialogContent className="flex h-[92vh] w-[95vw] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-4xl!">
+          <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-3">
+            <DialogTitle className="text-base font-semibold">Prescription preview</DialogTitle>
+            <p className="text-xs text-slate-500">Not saved yet. Close to fix anything, then Save &amp; Submit to create the final PDF.</p>
+          </DialogHeader>
+          {previewUrl && <iframe src={previewUrl} title="Prescription preview" className="min-h-0 flex-1 bg-slate-100" />}
+          <div className="flex shrink-0 justify-end gap-2 border-t border-slate-200 px-5 py-3">
+            <Button type="button" variant="outline" onClick={closePreview}>Close &amp; edit</Button>
+            <Button type="button" onClick={() => { closePreview(); handleFinalSubmit(); }} disabled={submittingUnified}>
+              <Save className="mr-2 h-4 w-4" /> Looks good, Save &amp; Submit
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

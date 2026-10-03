@@ -42,6 +42,8 @@ export type MedicineItem = {
 export type MedicineSource = "inventory" | "doctor_added" | "custom" | null;
 
 export type AddedMedicine = {
+  // Formulary line: medicine_name is locked, everything else is in the free-text instructions.
+  template?: boolean;
   medicine_id?: string | null;
   medicine_name: string;
   medication_type: string;

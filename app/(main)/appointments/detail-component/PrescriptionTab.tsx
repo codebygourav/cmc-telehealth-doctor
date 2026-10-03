@@ -1,6 +1,7 @@
 "use client";
 
 import AddPrescriptionDialog from "@/components/pages/appoitment/AddPrescriptionDialog";
+import EditConclusionDialog from "@/components/pages/appoitment/EditConclusionDialog";
 import PatientMedicalRecordTab from "@/components/pages/appoitment/PatientMedicalRecordTab";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,26 +18,28 @@ import { useConclusionByAppointmentId } from "@/queries/useConclusionByAppointme
 import { usePrescriptionByAppointmentId } from "@/queries/usePrescriptionByAppointmentId";
 import { useDeletePrescriptionItem } from "@/queries/useDeletePrescriptionItem";
 import { useDeleteConclusionFile } from "@/queries/useDeleteConclusionFile";
-import { getStatusColor } from "@/src/utils/getStatusColor";
 import { cleanAndDeduplicateText, parseClinicalInstructions } from "@/src/utils/cleanClinicalText";
 import {
   AlertCircle,
-  Calendar,
-  ChevronDown,
-  ChevronUp,
-  ClipboardList,
   Clock,
   Download,
   ExternalLink,
-  Eye,
   FileImage,
   FileText,
   Mic,
-  Stethoscope,
   Trash2,
   Pencil,
+  ClipboardPlus,
+  FilePlus2,
+  ClipboardCheck,
+  CalendarDays,
+  Stethoscope,
+  FlaskConical,
+  NotebookPen,
+  ListChecks,
+  Lock,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 // TypeScript interfaces
 interface Medicine {
@@ -85,7 +88,6 @@ type DraftHistoryItem = {
   }>;
 };
 
-type MealTiming = "before_meal" | "after_meal" | "with_meal" | string;
 type DictationAssistantConfig = {
   enabled?: boolean;
   input_mode?: string;
@@ -140,268 +142,8 @@ const isImageFile = (filenameOrUrl: string | undefined | null): boolean => {
   );
 };
 
-const renderFormattedContent = (text: string | undefined | null) => {
-  if (!text || !text.trim()) return null;
-
-  const rawLines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (rawLines.length === 0) return null;
-
-  return (
-    <ol className="list-decimal list-inside space-y-1 text-xs text-foreground font-medium mt-1">
-      {rawLines.map((line, idx) => (
-        <li key={idx} className="leading-relaxed">
-          {line.replace(/^[\d+[\.\)]|\-\|\*]\s*/, "")}
-        </li>
-      ))}
-    </ol>
-  );
-};
 
 // Accordion Item Component
-const MedicineAccordionItem = ({
-  medicine,
-  index,
-  onDelete,
-  onEdit,
-}: {
-  medicine: Medicine;
-  index: number;
-  onDelete: (medicine: Medicine) => void;
-  onEdit: (medicine: Medicine) => void;
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const getMealLabel = useCallback((meal: MealTiming): string => {
-    switch (meal) {
-      case "before_meal":
-        return "Before Meal";
-      case "after_meal":
-        return "After Meal";
-      case "with_meal":
-        return "With Meal";
-      default:
-        return meal || "Not specified";
-    }
-  }, []);
-
-  const toggleOpen = useCallback(() => {
-    setIsOpen((prev) => !prev);
-  }, []);
-
-  return (
-    <Card className="overflow-hidden border border-muted hover:border-primary/40 hover:shadow-md transition-all duration-300 rounded-2xl bg-linear-to-br from-background to-muted/10">
-      <div
-        className="cursor-pointer hover:bg-muted/20 transition-colors"
-        onClick={toggleOpen}
-        role="button"
-        aria-expanded={isOpen}
-        aria-controls={`medicine-details-${medicine.prescription_id}`}
-      >
-        <CardHeader className="p-4 sm:p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-              <div className="p-2 sm:p-2.5 rounded-xl bg-primary/10 shrink-0 border border-primary/20 shadow-sm">
-                <span className="text-xs sm:text-sm font-bold text-primary">
-                  #{index}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                  <h4 className="font-bold text-sm sm:text-base text-foreground tracking-tight truncate">
-                    {medicine.name}
-                  </h4>
-                  <Badge
-                    variant="secondary"
-                    className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-md"
-                  >
-                    {medicine.type}
-                  </Badge>
-                  <Badge
-                    className={`${getStatusColor("session", medicine.status)} text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-md`}
-                  >
-                    {medicine.status}
-                  </Badge>
-                  {medicine.medicine_source === "doctor_added" && (
-                    <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border border-amber-200 text-[10px] sm:text-xs px-2 py-0.5 rounded-md">
-                      Doctor-added
-                    </Badge>
-                  )}
-                  {medicine.medicine_source === "inventory" && (
-                    <Badge
-                      variant="outline"
-                      className="border-primary/20 text-primary bg-primary/5 text-[10px] sm:text-xs px-2 py-0.5 rounded-md font-semibold"
-                    >
-                      Stock medicine
-                    </Badge>
-                  )}
-                  {medicine.created_via === "speech" && (
-                    <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border border-blue-200 text-[10px] sm:text-xs px-2 py-0.5 rounded-md">
-                      Voice draft
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1.5 text-xs text-muted-foreground font-medium">
-                  <span className="text-foreground font-semibold">{medicine.dosage}</span>
-                  <span className="text-muted-foreground/60">•</span>
-                  <span className="capitalize">
-                    {medicine.use_type === "sos"
-                      ? "SOS (As Needed)"
-                      : medicine.use_type && medicine.use_type !== "regular"
-                        ? medicine.use_type.replace("_", " ")
-                        : medicine.frequencylabel}
-                  </span>
-                  {medicine.use_type !== "sos" && medicine.times && (
-                    <>
-                      <span className="text-muted-foreground/60">•</span>
-                      <span>{medicine.times}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl shrink-0"
-                title="Edit medicine"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(medicine);
-                }}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl shrink-0"
-                title="Delete medicine"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(medicine);
-                }}
-              >
-                <Trash2 className="h-4.5 w-4.5" />
-              </Button>
-              {isOpen ? (
-                <ChevronUp className="h-5 w-5 text-muted-foreground shrink-0" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-muted-foreground shrink-0" />
-              )}
-            </div>
-          </div>
-        </CardHeader>
-      </div>
-
-      {isOpen && (
-        <CardContent
-          className="p-4 sm:p-5 pt-0 border-t bg-muted/5"
-          id={`medicine-details-${medicine.prescription_id}`}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            {/* Column 1: Intake & Dosage Details */}
-            <div className="p-3.5 bg-background border border-muted rounded-xl space-y-3">
-              <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Intake & Dosing</p>
-              <div className="space-y-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase">Meal Relation</span>
-                  <span className="font-semibold text-foreground">{getMealLabel(medicine.meal)}</span>
-                </div>
-                {medicine.use_type && medicine.use_type !== "regular" && medicine.use_type !== "sos" && (
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase">Special Instructions</span>
-                    <span className="font-semibold text-foreground capitalize">Take as {medicine.use_type.replace("_", " ")}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Column 2: Duration & Origin */}
-            <div className="p-3.5 bg-background border border-muted rounded-xl space-y-3">
-              <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">Duration & Origin</p>
-              <div className="space-y-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase">Duration</span>
-                  <span className="font-semibold text-foreground">{medicine.date}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase">Source</span>
-                  <span className="font-semibold text-foreground">
-                    {medicine.medicine_source === "doctor_added"
-                      ? "Doctor-added medicine"
-                      : medicine.medicine_source === "inventory"
-                        ? "Stock medicine"
-                        : "Unknown"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block text-[10px] uppercase">Entry Method</span>
-                  <span className="font-semibold text-foreground">
-                    {medicine.created_via === "speech" ? "Voice dictation" : "Standard entry"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Column 3: Instructions & Custom Notes */}
-            <div className="p-3.5 bg-background border border-muted rounded-xl space-y-3">
-              <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Instructions & SOS Rules</p>
-              <div className="space-y-2 text-xs">
-                {medicine.use_type === "sos" && (
-                  <div className="space-y-1.5 border-b pb-2 mb-2">
-                    {medicine.take_when && (
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase">SOS Criteria</span>
-                        <span className="font-semibold text-foreground capitalize">{medicine.take_when}</span>
-                      </div>
-                    )}
-                    {medicine.min_gap && (
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase">Min Gap</span>
-                        <span className="font-semibold text-foreground capitalize">{medicine.min_gap}</span>
-                      </div>
-                    )}
-                    {medicine.max_doses_per_day && (
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase">Max Doses Per Day</span>
-                        <span className="font-semibold text-foreground capitalize">{medicine.max_doses_per_day}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {medicine.instructions && medicine.instructions.length > 0 && (
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase mb-1">Standard Instructions</span>
-                    <ul className="list-disc list-inside space-y-0.5 text-blue-700 font-medium bg-blue-50/50 p-2 rounded-lg border border-blue-100">
-                      {medicine.instructions.map((ins: string, i: number) => (
-                        <li key={`${medicine.prescription_id}-instruction-${i}`} className="text-[11px] truncate">
-                          {ins}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {medicine.notes && (
-                  <div className="pt-1">
-                    <span className="text-muted-foreground block text-[10px] uppercase">Notes</span>
-                    <p className="italic text-amber-900 bg-amber-50/50 p-2 rounded-lg border border-amber-100">{medicine.notes}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      )}
-    </Card>
-  );
-};
-
 export default function PrescriptionTab({
   appointmentId,
 }: {
@@ -415,10 +157,14 @@ export default function PrescriptionTab({
   const { data: conclusionData } = useConclusionByAppointmentId(appointmentId);
   const [subTab, setSubTab] = useState<"prescription" | "medical_record">("prescription");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [dialogTab, setDialogTab] = useState<"findings" | "medicines" | "reports">("findings");
+  const [dialogTab, setDialogTab] = useState<"findings" | "medicines" | "reports" | "medical_record" | "prescribe">("prescribe");
+  const [dialogMode, setDialogMode] = useState<"full" | "medicines" | "medical_record" | "reports">("full");
   const [deleteTarget, setDeleteTarget] = useState<Medicine | null>(null);
   const [fileToDelete, setFileToDelete] = useState<ConclusionReportFile | null>(null);
   const [previewFile, setPreviewFile] = useState<ConclusionReportFile | null>(null);
+  // Medicine row being edited (opens the dialog on it) and the small conclusion editor.
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [isConclusionOpen, setIsConclusionOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -531,10 +277,19 @@ export default function PrescriptionTab({
     return (
       <>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 mt-4 mb-4 w-full">
+          <Button type="button" variant="outline" className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm flex items-center gap-1.5"
+            onClick={() => { setEditIndex(null); setDialogMode("medical_record"); setDialogTab("medical_record"); setIsAddDialogOpen(true); }}>
+            <ClipboardPlus className="h-3.5 w-3.5" /> Medical Record
+          </Button>
+          <Button type="button" variant="outline" className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm flex items-center gap-1.5"
+            onClick={() => { setEditIndex(null); setDialogMode("reports"); setDialogTab("reports"); setIsAddDialogOpen(true); }}>
+            <FilePlus2 className="h-3.5 w-3.5" /> Tests & Reports
+          </Button>
           <Button
             type="button"
             onClick={() => {
-              setDialogTab("medicines");
+              setDialogMode("full");
+              setDialogTab("prescribe");
               setIsAddDialogOpen(true);
             }}
             className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm"
@@ -559,6 +314,7 @@ export default function PrescriptionTab({
         <AddPrescriptionDialog
           open={isAddDialogOpen}
           onOpenChange={setIsAddDialogOpen}
+          mode={dialogMode}
           initialTab={dialogTab}
           assistantConfig={dictationAssistant}
           initialMedicines={medicines}
@@ -579,10 +335,25 @@ export default function PrescriptionTab({
   return (
     <div className="space-y-4 sm:space-y-5 md:space-y-6">
       <div className="flex flex-wrap items-center justify-end gap-2 w-full">
-        <Button
+        {pdfUrl && (
+            <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
+              className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-white px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/5 sm:h-9 sm:w-auto sm:text-sm">
+              <Download className="h-3.5 w-3.5" /> Download Prescription (PDF)
+            </a>
+          )}
+          <Button type="button" variant="outline" className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm flex items-center gap-1.5"
+            onClick={() => { setEditIndex(null); setDialogMode("medical_record"); setDialogTab("medical_record"); setIsAddDialogOpen(true); }}>
+            <ClipboardPlus className="h-3.5 w-3.5" /> Medical Record
+          </Button>
+          <Button type="button" variant="outline" className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm flex items-center gap-1.5"
+            onClick={() => { setEditIndex(null); setDialogMode("reports"); setDialogTab("reports"); setIsAddDialogOpen(true); }}>
+            <FilePlus2 className="h-3.5 w-3.5" /> Tests & Reports
+          </Button>
+          <Button
           type="button"
           onClick={() => {
-            setDialogTab("medicines");
+            setDialogMode("full");
+            setDialogTab("prescribe");
             setIsAddDialogOpen(true);
           }}
           className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm flex items-center gap-1.5"
@@ -631,7 +402,9 @@ export default function PrescriptionTab({
               size="sm"
               className="h-8 text-xs flex items-center gap-1 shrink-0"
               onClick={() => {
-                setDialogTab("medicines");
+                setEditIndex(null);
+                setDialogMode("medicines");
+                setDialogTab("prescribe");
                 setIsAddDialogOpen(true);
               }}
             >
@@ -640,19 +413,65 @@ export default function PrescriptionTab({
             </Button>
           </div>
 
-          <div className="space-y-2 sm:space-y-3">
-            {medicines.map((medicine: Medicine, index: number) => (
-              <MedicineAccordionItem
-                key={medicine.prescription_id}
-                medicine={medicine}
-                index={index + 1}
-                onDelete={(med) => setDeleteTarget(med)}
-                onEdit={(med) => {
-                  setDialogTab("medicines");
-                  setIsAddDialogOpen(true);
-                }}
-              />
-            ))}
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="overflow-x-auto">
+              <table className="block w-full text-left text-sm md:table">
+                <thead className="hidden bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500 md:table-header-group">
+                  <tr>
+                    <th className="w-10 px-4 py-3">#</th>
+                    <th className="px-4 py-3">Medicine</th>
+                    <th className="px-4 py-3">How to take</th>
+                    <th className="px-4 py-3">Duration</th>
+                    <th className="w-24 px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="block divide-y divide-slate-100 md:table-row-group">
+                  {medicines.map((medicine: Medicine, index: number) => {
+                    const m = medicine as any;
+                    // Formulary lines carry everything in their notes (no dosage / frequency).
+                    const isNoteLine = !String(m.dosage || "").trim() && !String(m.frequency || m.frequencylabel || "").trim();
+                    const howToTake = isNoteLine ? "" : [m.dosage, m.frequencylabel || m.frequency, Array.isArray(m.times) ? m.times.join(", ") : m.times, m.meal?.replace?.(/_/g, " ")]
+                      .filter((part: unknown) => typeof part === "string" && part.trim())
+                      .join(" · ");
+                    const duration = typeof m.date === "string" && /\S\s*-\s*\S/.test(m.date) ? m.date : "";
+                    const notesText = Array.isArray(m.instructions) ? m.instructions.join(", ") : m.instructions || m.notes || "";
+                    return (
+                      <tr key={m.prescription_id || index} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 px-3 py-3 align-top hover:bg-slate-50/60 md:table-row md:p-0">
+                        <td className="hidden px-4 py-3 text-slate-400 md:table-cell">{index + 1}</td>
+                        <td className="min-w-0 md:table-cell md:px-4 md:py-3">
+                          <p className="font-semibold leading-snug text-slate-900"><span className="mr-1 text-slate-400 md:hidden">{index + 1}.</span>{m.name || m.medicine_name}</p>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {m.type && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{m.type}</span>}
+                            {m.created_via === "speech" && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">Voice</span>}
+                            {m.medicine_source === "doctor_added" && <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Typed</span>}
+                          </div>
+                        </td>
+                        <td className="col-span-2 row-start-2 text-slate-700 md:table-cell md:px-4 md:py-3">
+                          {howToTake && <p>{howToTake}</p>}
+                          {notesText && <p className={`whitespace-pre-line ${howToTake ? "mt-1 text-xs text-slate-500" : "text-slate-800"}`}>{notesText}</p>}
+                          {!howToTake && !notesText && <span className="text-slate-400">—</span>}
+                        </td>
+                        <td className="col-span-2 row-start-3 text-xs text-slate-500 md:table-cell md:whitespace-nowrap md:px-4 md:py-3 md:text-sm md:text-slate-600"><span className="md:hidden">Duration: </span>{duration || (isNoteLine ? "As in notes" : "—")}</td>
+                        <td className="col-start-2 row-start-1 md:table-cell md:px-4 md:py-3">
+                          <div className="flex justify-end gap-1">
+                            <button type="button" title="Edit" aria-label={`Edit ${m.name || m.medicine_name}`}
+                              onClick={() => { setEditIndex(index); setDialogMode("medicines"); setDialogTab("prescribe"); setIsAddDialogOpen(true); }}
+                              className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-primary">
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button type="button" title="Remove" aria-label={`Remove ${m.name || m.medicine_name}`}
+                              onClick={() => setDeleteTarget(medicine)}
+                              className="rounded-md p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Recommended Diagnostics / Tests */}
@@ -762,21 +581,6 @@ export default function PrescriptionTab({
             </Card>
           )}
 
-          {/* PDF Download Button */}
-          {pdfUrl && (
-            <div className="pt-2 text-right">
-              <a
-                href={pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-[11px] sm:text-sm font-medium w-full sm:w-auto"
-              >
-                <Download className="h-3 w-3 sm:h-4 sm:w-4" />
-                Download Prescription (PDF)
-                <ExternalLink className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-              </a>
-            </div>
-          )}
         </div>
       )}
 
@@ -918,140 +722,69 @@ export default function PrescriptionTab({
         </Card>
       )}
 
-      {/* Doctor Instructions, Diagnosis, Order/Investigation, Notes & Next Visit Card */}
-      {(instructionsByDoctor || diagnosis || orderInvestigation || notes || nextVisitDate) && (
-        <Card className="overflow-hidden p-0">
-          <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-4 border-b flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-              {/* Doctor's Advice */}
-              Conclusion
-            </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs flex items-center gap-1 shrink-0"
-              onClick={() => {
-                setDialogTab("findings");
-                setIsAddDialogOpen(true);
-              }}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Edit Conclusion
+      {/* Conclusion: icon sections, next visit banner, confidential notes kept apart */}
+      {(instructionsByDoctor || diagnosis || orderInvestigation || notes || confidentialNotes || nextVisitDate) && (
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10"><ClipboardCheck className="h-4 w-4 text-primary" /></span>
+              <h3 className="text-sm font-semibold text-slate-900 sm:text-base">Conclusion</h3>
+            </div>
+            <Button variant="outline" size="sm" className="h-8 shrink-0 gap-1 text-xs" onClick={() => setIsConclusionOpen(true)}>
+              <Pencil className="h-3.5 w-3.5" /> Edit Conclusion
             </Button>
-          </CardHeader>
+          </header>
 
-          <CardContent className="p-0 space-y-2 p-2 sm:p-3">
-            {/* Diagnosis */}
-            {diagnosis && (
-              <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
-                <div className="p-1.5 sm:p-2 rounded-lg bg-indigo-100 shrink-0">
-                  <Stethoscope className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wide">
-                    Final Diagnosis
-                  </p>
-                  {renderFormattedContent(diagnosis)}
+          <div className="space-y-4 p-3 sm:p-4">
+            {nextVisitDate && (
+              <div className="flex items-center gap-3 rounded-lg bg-primary px-4 py-3 text-white">
+                <CalendarDays className="h-5 w-5 shrink-0" />
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-white/70">Next visit</p>
+                  <p className="text-sm font-semibold">{new Date(nextVisitDate).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
                 </div>
               </div>
             )}
 
-            {/* Order / Investigation */}
-            {orderInvestigation && (
-              <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
-                <div className="p-1.5 sm:p-2 rounded-lg bg-amber-100 shrink-0">
-                  <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4 text-amber-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wide">
-                    Order / Investigation
-                  </p>
-                  <p className="text-[11px] sm:text-sm mt-1 leading-relaxed wrap-break-word font-semibold text-foreground whitespace-pre-line">
-                    {orderInvestigation}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Notes */}
-            {notes && (
-              <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
-                <div className="p-1.5 sm:p-2 rounded-lg bg-blue-100 shrink-0">
-                  <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wide">
-                    Notes
-                  </p>
-                  <p className="text-[11px] sm:text-sm mt-1 leading-relaxed wrap-break-word font-semibold text-foreground whitespace-pre-line">
-                    {notes}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Instructions by Doctor */}
-            {instructionsByDoctor && (
-              <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
-                <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 shrink-0">
-                  <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wide">
-                    Instructions by Doctor
-                  </p>
-                  {(() => {
-                    const cleaned = cleanAndDeduplicateText(instructionsByDoctor);
-                    const lines = cleaned
-                      .split(/\r?\n/)
-                      .map((l) => l.trim())
-                      .filter(Boolean);
-
-                    if (lines.length > 1) {
-                      return (
-                        <ul className="list-disc list-inside space-y-1.5 mt-1.5 text-[11px] sm:text-sm leading-relaxed wrap-break-word text-foreground">
-                          {lines.map((line, idx) => (
-                            <li key={idx} className="pl-1">
-                              {line}
-                            </li>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {([
+                ["Final diagnosis", diagnosis, Stethoscope],
+                ["Order / Investigation", orderInvestigation, FlaskConical],
+                ["Notes", notes, NotebookPen],
+                ["Instructions by doctor", instructionsByDoctor ? cleanAndDeduplicateText(instructionsByDoctor) || instructionsByDoctor : undefined, ListChecks],
+              ] as [string, string | undefined, typeof Stethoscope][])
+                .filter(([, value]) => typeof value === "string" && value.trim())
+                .map(([label, value, Icon]) => {
+                  const lines = String(value).split(/\n+/).map((l) => l.replace(/^(\d+[.)]\s+|[-•*]\s*)/, "").trim()).filter(Boolean);
+                  return (
+                    <div key={label} className="min-w-0 rounded-lg border border-slate-100 bg-slate-50/70 p-3">
+                      <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        <Icon className="h-3.5 w-3.5 text-primary" /> {label}
+                      </p>
+                      {lines.length > 1 ? (
+                        <ul className="space-y-1 text-sm text-slate-800">
+                          {lines.map((line, i) => (
+                            <li key={i} className="flex gap-2 break-words"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />{line}</li>
                           ))}
                         </ul>
-                      );
-                    }
+                      ) : (
+                        <p className="break-words text-sm leading-relaxed text-slate-800">{lines[0]}</p>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
 
-                    return (
-                      <p className="text-[11px] sm:text-sm mt-1 leading-relaxed wrap-break-word whitespace-pre-line text-foreground">
-                        {cleaned || instructionsByDoctor}
-                      </p>
-                    );
-                  })()}
-                </div>
+            {confidentialNotes && confidentialNotes.trim() && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+                  <Lock className="h-3.5 w-3.5" /> Confidential notes · not shown to the patient
+                </p>
+                <p className="whitespace-pre-line break-words text-sm text-amber-900">{confidentialNotes}</p>
               </div>
             )}
-
-            {/* Next Visit Date */}
-            {nextVisitDate && (
-              <div className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-lg">
-                <div className="p-1.5 sm:p-2 rounded-lg bg-green-100 shrink-0">
-                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wide">
-                    Next Visit Date
-                  </p>
-                  <p className="text-[11px] sm:text-sm font-medium mt-1 wrap-break-word">
-                    {new Date(nextVisitDate).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
 
       {/* File URLs - Only show for type "other" */}
@@ -1087,10 +820,19 @@ export default function PrescriptionTab({
         </div>
       )}
 
+      <EditConclusionDialog
+        open={isConclusionOpen}
+        onOpenChange={setIsConclusionOpen}
+        appointmentId={appointmentId}
+        initial={{ diagnosis, orderInvestigation, notes, confidentialNotes, instructionsByDoctor, nextVisitDate }}
+      />
+
       <AddPrescriptionDialog
         open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
+        onOpenChange={(value) => { setIsAddDialogOpen(value); if (!value) setEditIndex(null); }}
+        mode={dialogMode}
         initialTab={dialogTab}
+        initialEditIndex={editIndex}
         assistantConfig={dictationAssistant}
         initialMedicines={medicines}
         initialFindings={initialFindings}

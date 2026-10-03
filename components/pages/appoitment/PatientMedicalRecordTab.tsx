@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -69,8 +68,12 @@ const renderFormattedContent = (text: string | undefined | null) => {
 
   if (rawLines.length === 0) return null;
 
+  if (rawLines.length === 1) {
+    return <p className="text-sm leading-relaxed text-slate-800">{rawLines[0].replace(/^[\d+[\.\)]|\-|\*]\s*/, "")}</p>;
+  }
+
   return (
-    <ol className="list-decimal list-inside space-y-1 text-xs text-foreground font-medium mt-1">
+    <ol className="list-decimal list-inside space-y-1 text-sm text-slate-800">
       {rawLines.map((line, idx) => (
         <li key={idx} className="leading-relaxed">
           {line.replace(/^[\d+[\.\)]|\-\|\*]\s*/, "")}
@@ -90,8 +93,10 @@ export default function PatientMedicalRecordTab({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-4" aria-busy="true">
+        <div className="h-4 w-56 animate-pulse rounded bg-slate-100" />
+        <div className="h-3 w-full animate-pulse rounded bg-slate-100" />
+        <div className="h-3 w-2/3 animate-pulse rounded bg-slate-100" />
       </div>
     );
   }
@@ -145,126 +150,86 @@ export default function PatientMedicalRecordTab({
 
   if (filesList.length === 0 && medicalFields.length === 0) {
     return (
-      <Card className="rounded-2xl border-dashed mt-2">
-        <CardContent className="p-8 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <FileText className="h-12 w-12 text-muted-foreground/60" />
-            <div className="space-y-1">
-              <h4 className="font-semibold text-base text-foreground">
-                No Patient Medical Record Recorded
-              </h4>
-              <p className="text-xs text-muted-foreground">
-                No clinical medical records or media files found for this appointment.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-3 rounded-lg border border-dashed border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+        <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+        No patient medical record for this appointment yet.
+      </div>
     );
   }
 
   return (
     <div className="space-y-5">
-      {/* Patient Medical Record Fields Preview Card */}
+      {/* Patient Medical Record summary: compact tiles, two columns on wider screens */}
       {medicalFields.length > 0 && (
-        <Card className="rounded-2xl border shadow-xs overflow-hidden">
-          <CardHeader className="p-4 border-b bg-muted/10 flex flex-row items-center justify-between">
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <header className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
             <div className="flex items-center gap-2">
-              <Stethoscope className="h-4 w-4 text-primary" />
-              <CardTitle className="text-sm font-bold text-foreground">
-                Patient Medical Record Summary
-              </CardTitle>
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10"><Stethoscope className="h-4 w-4 text-primary" /></span>
+              <h3 className="text-sm font-semibold text-slate-900 sm:text-base">Patient Medical Record Summary</h3>
             </div>
-            <Badge variant="secondary" className="text-[10px]">
-              Recorded Summary
-            </Badge>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {medicalFields.map((field) => (
-                <div
-                  key={field.label}
-                  className="p-3 bg-muted/20 border border-muted/50 rounded-xl space-y-1"
-                >
-                  <p className="text-xs font-bold text-foreground">{field.label}</p>
-                  {renderFormattedContent(field.value)}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+            <Badge variant="secondary" className="text-[10px] sm:text-xs">{medicalFields.length} fields</Badge>
+          </header>
+          <dl className="grid grid-cols-1 gap-3 p-3 sm:p-4 md:grid-cols-2">
+            {medicalFields.map((field) => (
+              <div key={field.label} className={`min-w-0 rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 ${field.label === "Final Diagnosis" ? "md:col-span-2 border-primary/20 bg-primary/5" : ""}`}>
+                <dt className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{field.label}</dt>
+                <dd className="min-w-0 break-words">{renderFormattedContent(field.value)}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
       )}
 
-      {/* Media & Report Files Section */}
+      {/* Media & Report Files */}
       {filesList.length > 0 && (
-        <Card className="rounded-2xl border shadow-xs overflow-hidden">
-          <CardHeader className="p-4 border-b bg-muted/10 flex flex-row items-center justify-between">
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <header className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
             <div className="flex items-center gap-2">
-              <Paperclip className="h-4 w-4 text-primary" />
-              <CardTitle className="text-sm font-bold text-foreground">
-                Attached Media & Reports ({filesList.length})
-              </CardTitle>
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10"><Paperclip className="h-4 w-4 text-primary" /></span>
+              <h3 className="text-sm font-semibold text-slate-900 sm:text-base">Attached Media & Reports</h3>
             </div>
-            <Badge variant="secondary" className="text-[10px]">
-              Uploaded Attachments
-            </Badge>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {filesList.map((file, idx) => {
-                const fullUrl = getFileUrl(file);
-                const isImg = isImageFile(file.file_url || file.url || file.name || file.file_name);
-                const fileName = file.name || file.file_name || `Attachment #${idx + 1}`;
+            <Badge variant="secondary" className="text-[10px] sm:text-xs">{filesList.length} file{filesList.length === 1 ? "" : "s"}</Badge>
+          </header>
+          <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
+            {filesList.map((file, idx) => {
+              const fullUrl = getFileUrl(file);
+              const isImg = isImageFile(file.file_url || file.url || file.name || file.file_name);
+              const fileName = file.name || file.file_name || `Attachment #${idx + 1}`;
+              const ext = (fileName.split("?")[0].split(".").pop() || "file").slice(0, 4).toUpperCase();
 
-                return (
-                  <div
-                    key={file.id || idx}
-                    className="flex items-center justify-between p-3 bg-background border hover:border-primary/40 rounded-xl transition-all shadow-2xs gap-2"
-                  >
-                    <a
-                      href={fullUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 flex-1 min-w-0 text-xs font-semibold text-foreground hover:underline truncate"
-                    >
-                      {isImg ? (
-                        <FileImage className="h-4 w-4 text-indigo-600 shrink-0" />
-                      ) : (
-                        <FileText className="h-4 w-4 text-slate-500 shrink-0" />
-                      )}
-                      <span className="truncate">{fileName}</span>
-                    </a>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      <a
-                        href={fullUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1.5 text-muted-foreground hover:text-primary transition-colors bg-muted/40 hover:bg-primary/10 rounded-lg"
-                        title="Open file"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                      {file.id && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg"
-                          title="Delete media file"
-                          onClick={() => handleDeleteFile(file.id)}
-                          disabled={deletingFileId === file.id}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
+              return (
+                <div key={file.id || idx} className="group flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 p-2.5 transition-colors hover:border-primary/40 hover:bg-primary/5">
+                  <a href={fullUrl} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-center gap-3">
+                    {isImg ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={fullUrl} alt="" className="h-11 w-11 shrink-0 rounded-md border object-cover" />
+                    ) : (
+                      <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-md bg-slate-100 text-slate-500">
+                        {isImg ? <FileImage className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                        <span className="text-[9px] font-bold">{ext}</span>
+                      </span>
+                    )}
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-slate-800 group-hover:text-primary" title={fileName}>{fileName}</span>
+                      <span className="text-xs text-slate-500">Open in new tab</span>
+                    </span>
+                  </a>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" title="Open file"
+                      className="rounded-md p-1.5 text-slate-500 hover:bg-primary/10 hover:text-primary"><ExternalLink className="h-4 w-4" /></a>
+                    {file.id && (
+                      <Button type="button" variant="ghost" size="icon" title="Delete file"
+                        className="h-8 w-8 rounded-md text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteFile(file.id)} disabled={deletingFileId === file.id}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
     </div>
   );

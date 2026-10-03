@@ -23,4 +23,6 @@ export interface User {
     phone: string;
     address: Address;
     status: string;
+  // Doctor in test mode (only this doctor and their own patients see their data)
+  is_test_doctor?: boolean;
 }
