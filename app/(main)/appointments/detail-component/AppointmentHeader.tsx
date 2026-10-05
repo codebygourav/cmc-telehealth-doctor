@@ -69,7 +69,7 @@ export default function AppointmentHeader({ appointment }: { appointment: any })
     // Video visit still open: the doctor completes it (leaving the call never does).
     const isOpenVideo = String(appointment?.consultation_type || "").toLowerCase() === "video"
         && ["confirmed", "rescheduled"].includes(String(appointment?.status));
-    const canComplete = isOpenVideo && (appointment?.awaiting_completion || appointment?.call_is_rejoin);
+    const canComplete = typeof appointment?.can_complete === "boolean" ? appointment.can_complete : isOpenVideo && (appointment?.awaiting_completion || appointment?.call_is_rejoin);
     const [askComplete, setAskComplete] = useState(false);
 
     return (

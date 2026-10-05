@@ -140,6 +140,8 @@ interface AddPrescriptionDialogProps {
   initialEditIndex?: number | null;
   // "medicines": only the medicine search + list (Edit Medicines); "full": the whole builder.
   mode?: "full" | "medicines" | "medical_record" | "reports";
+  // Video call screen: tabs "Prescription" + "Patient medical record" inside the builder.
+  showRecordTab?: boolean;
   assistantConfig?: {
     enabled?: boolean;
     input_mode?: string;
@@ -296,6 +298,7 @@ export default function AddPrescriptionDialog({
   initialTab,
   initialEditIndex = null,
   mode = "full",
+  showRecordTab = false,
   assistantConfig,
   initialMedicines = [],
   initialFindings = "",
@@ -2080,33 +2083,35 @@ export default function AddPrescriptionDialog({
                 />
               ) : (
                 <div className="space-y-5">
+                  {/* Video call screen: full-width tabs above both columns. */}
+                  {showRecordTab && mode === "full" && (
+                    <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
+                      {([
+                        ["prescribe", "Prescription", Stethoscope],
+                        ["medical_record", "Patient medical record", ClipboardList],
+                        ["reports", "Tests & reports", FileText],
+                      ] as const).map(([key, label, Icon]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          role="tab"
+                          aria-selected={activeTab === key}
+                          onClick={() => { setActiveTab(key); if (key === "reports") setIncludeReports(true); }}
+                          className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-xs font-semibold transition-colors sm:text-sm ${activeTab === key
+                            ? "bg-primary text-white shadow-sm"
+                            : "text-slate-600 hover:bg-slate-50 hover:text-primary"
+                            }`}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
                     <div
-                      className={mode !== "full" ? "md:col-span-12" : `md:col-span-7  p-0 sm:p-0  ${mobileTab === "form" ? "block" : "hidden md:block"}`}
+                      className={mode !== "full" || (showRecordTab && activeTab === "medical_record") ? "md:col-span-12" : `md:col-span-7  p-0 sm:p-0  ${mobileTab === "form" ? "block" : "hidden md:block"}`}
                     >
-                      {/* Sub-Tabs */}
-                      <div className={`hidden mb-5 grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm`} role="tablist">
-                        {([
-                          ["medical_record", "Medical Record", ClipboardList],
-                          ["prescribe", "Prescribe", Stethoscope],
-                          ["reports", "Reports", FileText],
-                        ] as const).map(([key, label, Icon]) => (
-                          <button
-                            key={key}
-                            type="button"
-                            role="tab"
-                            aria-selected={activeTab === key}
-                            onClick={() => setActiveTab(key)}
-                            className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-xs font-semibold transition-colors sm:text-sm ${activeTab === key
-                              ? "bg-primary text-white shadow-sm"
-                              : "text-slate-600 hover:bg-slate-50 hover:text-primary"
-                              }`}
-                          >
-                            <Icon className="h-4 w-4 shrink-0" />
-                            <span className="truncate">{label}</span>
-                          </button>
-                        ))}
-                      </div>
 
 
 
@@ -2809,7 +2814,7 @@ export default function AddPrescriptionDialog({
                       )}
                     </div>
 
-                    {mode === "full" && <PrescriptionListPanel
+                    {mode === "full" && !(showRecordTab && activeTab === "medical_record") && <PrescriptionListPanel
                       addedMedicines={addedMedicines}
                       onEditMedicine={handleEditMedicine}
                       onDeleteMedicine={handleDeleteMedicine}
@@ -2859,7 +2864,7 @@ export default function AddPrescriptionDialog({
           </div>
 
           {/* Fixed footer: always visible, never scrolls away */}
-          {entryMode !== null && mode !== "medical_record" && (
+          {entryMode !== null && mode !== "medical_record" && !(showRecordTab && activeTab === "medical_record") && (
             <div className="flex shrink-0 flex-col gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <p className="text-xs text-slate-500">
                 <span className="font-semibold text-slate-900">{addedMedicines.length}</span> {addedMedicines.length === 1 ? "medicine" : "medicines"} in this prescription

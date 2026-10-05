@@ -64,12 +64,36 @@ export default function AppointmentCard({
     const router = useRouter();
     const [askComplete, setAskComplete] = useState(false);
     const isOpenVideo = String(appointment.consultation_type).toLowerCase() === "video" && ["confirmed", "rescheduled"].includes(String(appointment.status));
-    const canComplete = isOpenVideo && (appointment.awaiting_completion || appointment.call_is_rejoin);
+    const canComplete = typeof appointment.can_complete === "boolean" ? appointment.can_complete : isOpenVideo && (appointment.awaiting_completion || appointment.call_is_rejoin);
 
-    // button show hide in rescheduled", "failed", "completed base
+    const apptDateStr = appointment.appointment_date || appointment.date;
+    const isToday = (() => {
+        if (!apptDateStr) return false;
+        const d = new Date(apptDateStr);
+        if (isNaN(d.getTime())) return false;
+        const today = new Date();
+        return (
+            d.getFullYear() === today.getFullYear() &&
+            d.getMonth() === today.getMonth() &&
+            d.getDate() === today.getDate()
+        );
+    })();
+    const isPastDate = (() => {
+        if (!apptDateStr) return false;
+        const d = new Date(apptDateStr);
+        if (isNaN(d.getTime())) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime() < today.getTime();
+    })();
+
+    // Reschedule rule: allow for today regardless of completed status; block past dates or cancelled/failed.
     const shouldHideReschedule =
+        isPastDate ||
         variant === "past" ||
-        ["failed", "cancelled", "rescheduled", "completed"].includes(appointment.status);
+        ["failed", "cancelled"].includes(appointment.status) ||
+        (!isToday && ["completed"].includes(appointment.status));
 
     return (
         <>
@@ -195,7 +219,8 @@ export default function AppointmentCard({
 
                         {/* Actions */}
                         {/* View, Join, Confirm / Reschedule / Attendance on one row (wraps on small screens) */}
-                        <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-5">
+                        {/* Two buttons per row (one per row on phones); the shared actions join the same grid. */}
+                        <div className="mt-4 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:mt-5 [&>*]:w-full [&_button]:w-full">
 
                             {/* Always show View button */}
                             <Button
@@ -234,14 +259,14 @@ export default function AppointmentCard({
                                     className={`flex-1 cursor-pointer h-10 py-2.5 px-3.5 text-xs sm:text-sm font-semibold rounded-md gap-1.5 ${appointment.awaiting_completion ? "border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100" : "border-primary text-primary hover:bg-primary/5"}`}
                                     onClick={(e) => { e.stopPropagation(); setAskComplete(true); }}
                                 >
-                                    <CheckCircle2 className="h-3.5 w-3.5" /> Complete
+                                    <CheckCircle2 className="h-3.5 w-3.5" /> Mark complete
                                 </Button>
                             )}
 
                             <AppointmentActions
                                 appointment={appointment}
                                 hideReschedule={shouldHideReschedule}
-                                className="shrink-0"
+                                className="contents"
                             />
                         </div>
 

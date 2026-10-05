@@ -168,7 +168,40 @@ export function RescheduleAppointmentDialog({
                                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                                     {slotsForDate.map((slot) => {
                                         const selected = selectedSlot?.id === slot.id && selectedSlot?.date === slot.date;
-                                        const full = slot.available === false;
+                                        
+                                        // Check if slot time has passed based on current time for today's date
+                                        const isPastSlot = (() => {
+                                            if (!slot.date) return false;
+                                            const now = new Date();
+                                            const d = new Date(`${slot.date}T00:00:00`);
+                                            const isToday =
+                                                d.getFullYear() === now.getFullYear() &&
+                                                d.getMonth() === now.getMonth() &&
+                                                d.getDate() === now.getDate();
+                                            if (!isToday) return false;
+
+                                            const checkTime = slot.end_time || slot.start_time || "";
+                                            let hours = 0;
+                                            let minutes = 0;
+                                            const match = checkTime.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+                                            if (match) {
+                                                hours = parseInt(match[1], 10);
+                                                minutes = parseInt(match[2], 10);
+                                                const ampm = match[3]?.toUpperCase();
+                                                if (ampm === "PM" && hours < 12) hours += 12;
+                                                if (ampm === "AM" && hours === 12) hours = 0;
+                                            } else {
+                                                const parts = checkTime.split(":");
+                                                if (parts.length >= 2) {
+                                                    hours = parseInt(parts[0], 10);
+                                                    minutes = parseInt(parts[1], 10);
+                                                }
+                                            }
+                                            const slotTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+                                            return slotTime.getTime() <= now.getTime();
+                                        })();
+
+                                        const full = slot.available === false || isPastSlot;
                                         const video = String(slot.consultation_type).toLowerCase() === "video";
                                         return (
                                             <button key={`${slot.id}-${slot.date}`} type="button" disabled={full}
@@ -181,7 +214,7 @@ export function RescheduleAppointmentDialog({
                                                 <span className={`mt-0.5 flex items-center gap-1 text-[11px] ${selected ? "text-white/80" : "text-muted-foreground"}`}>
                                                     {video ? <Video className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
                                                     {video ? "Video" : `In-person · ${slot.opd_type === "private" ? "Private" : "General"} OPD`}
-                                                    {full ? " · Full" : ""}
+                                                    {isPastSlot ? " · Passed" : full ? " · Full" : ""}
                                                 </span>
                                             </button>
                                         );

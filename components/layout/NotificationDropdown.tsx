@@ -339,7 +339,7 @@ export function NotificationDropdown() {
                 </div>
               ) : notifications.length > 0 ? (
                 <div className="flex flex-col">
-                  {notifications.slice(0, 5).map((notification) => (
+                  {notifications.slice(0, 5).map((notification: any) => (
                     <div
                       key={notification.id}
                       className={cn(

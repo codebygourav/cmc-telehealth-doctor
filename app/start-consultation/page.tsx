@@ -158,6 +158,7 @@ const ConsultationContent = () => {
                     open={isPrescribeDialogOpen}
                     onOpenChange={setIsPrescribeDialogOpen}
                     appointmentId={appointmentId}
+                    showRecordTab
                     initialTab="medicines"
                     assistantConfig={dictationAssistant}
                     initialMedicines={medicines}

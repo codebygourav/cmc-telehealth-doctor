@@ -22,11 +22,12 @@ interface CompleteConsultationDialogProps {
 export default function CompleteConsultationDialog({ open, onOpenChange, appointmentId, patientName, onRejoin, onCompleted }: CompleteConsultationDialogProps) {
     const queryClient = useQueryClient();
     const [saving, setSaving] = useState(false);
+    const [voucher, setVoucher] = useState("");
 
     const complete = async () => {
         try {
             setSaving(true);
-            await completeAppointment(appointmentId);
+            await completeAppointment(appointmentId, voucher.trim() || undefined);
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ["appointment"] }),
                 queryClient.invalidateQueries({ queryKey: ["my-appointments"] }),
@@ -47,11 +48,17 @@ export default function CompleteConsultationDialog({ open, onOpenChange, appoint
             <DialogContent className="sm:max-w-md">
                 <DialogTitle className="text-lg font-semibold">Complete this appointment?</DialogTitle>
                 <DialogDescription className="text-sm text-slate-600">
-                    You left the call{patientName ? ` with ${patientName}` : ""}. Mark the appointment as completed only when the consultation is done.
-                    Until then you (and your staff) can rejoin any time before the appointment ends.
+                    Mark the consultation{patientName ? ` with ${patientName}` : ""} as completed when it is done.
+                    The patient is marked <strong>present</strong> automatically. You can still rejoin the call today.
                 </DialogDescription>
+                <div>
+                    <label htmlFor="complete-voucher" className="mb-1 block text-sm font-medium text-slate-800">Voucher number <span className="font-normal text-slate-500">(optional)</span></label>
+                    <input id="complete-voucher" value={voucher} onChange={(e) => setVoucher(e.target.value)} maxLength={100}
+                        placeholder="e.g. V-12345"
+                        className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
+                </div>
                 <ul className="space-y-1.5 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-                    <li>• <strong>Completed:</strong> the patient sees it as completed. You can still rejoin until the end time; the patient can rejoin only after you do.</li>
+                    <li>• <strong>Completed:</strong> the patient sees it as completed and is marked present. You and the patient can still rejoin the call today.</li>
                     <li>• <strong>Not yet:</strong> the appointment stays open and both of you can rejoin.</li>
                 </ul>
                 <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

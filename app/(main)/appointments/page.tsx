@@ -90,7 +90,15 @@ const AppointmentsContent = () => {
         });
     };
 
-    const filteredAppointments = applyFilters(appointments);
+    // Date order: today -> future (soonest first); "Past" newest first.
+    const visitTime = (apt: any) => {
+        const date = String(apt.appointment_date || apt.schedule?.date || apt.date || "").slice(0, 10);
+        const time = String(apt.appointment_time || apt.schedule?.time || "00:00").slice(0, 8);
+        const t = Date.parse(`${date}T${/^\d{1,2}:\d{2}/.test(time) ? time.padStart(5, "0") : "00:00"}`);
+        return Number.isNaN(t) ? 0 : t;
+    };
+    const filteredAppointments = applyFilters(appointments).sort((a: any, b: any) =>
+        activeTab === "past" ? visitTime(b) - visitTime(a) : visitTime(a) - visitTime(b));
 
     // ✅ Render Cards & Pagination
     const renderCardsWithPagination = () => {

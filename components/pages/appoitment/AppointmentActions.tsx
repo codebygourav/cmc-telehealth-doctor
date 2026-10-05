@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+
 import { confirmAppointment, formatClock, getApiErrorMessage, getDefaultFutureTime, isFutureTimeOnDate, markAttendance, parseTo24HourTime } from "@/api/appointment-actions";
 import CustomDialog from "@/components/custom/Dialogboxs";
 import { Button } from "@/components/ui/button";
@@ -35,7 +37,32 @@ export default function AppointmentActions({ appointment, hideReschedule = false
 
     const isAwaiting = appointment?.awaiting_confirmation === true || status === "awaiting_confirmation";
     const canConfirm = appointment?.can_confirm ?? isAwaiting;
-    const canReschedule = !hideReschedule && ACTIVE_STATUSES.includes(status);
+    const isToday = (() => {
+        const dStr = appointment?.appointment_date || appointment?.date;
+        if (!dStr) return false;
+        const d = new Date(dStr);
+        if (isNaN(d.getTime())) return false;
+        const today = new Date();
+        return (
+            d.getFullYear() === today.getFullYear() &&
+            d.getMonth() === today.getMonth() &&
+            d.getDate() === today.getDate()
+        );
+    })();
+    // Today's and upcoming open appointments only (never a past date). The server decides
+    // (can_reschedule); the date check is the fallback for older responses.
+    const isPastDate = (() => {
+        const dStr = appointment?.appointment_date || appointment?.schedule?.date || appointment?.date;
+        if (!dStr) return false;
+        const d = new Date(String(dStr).slice(0, 10) + "T00:00:00");
+        if (isNaN(d.getTime())) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return d < today;
+    })();
+    const canReschedule = !hideReschedule && (typeof appointment?.can_reschedule === "boolean"
+        ? appointment.can_reschedule
+        : (isToday || !isPastDate) && ACTIVE_STATUSES.includes(status));
     const canMarkAttendance = appointment?.can_mark_attendance === true;
     const markedAttendance: Attendance | null =
         (typeof appointment?.attendance === "string" ? appointment.attendance : appointment?.attendance?.status) || null;
@@ -121,7 +148,7 @@ export default function AppointmentActions({ appointment, hideReschedule = false
 
     return (
         <>
-            <div className={`flex flex-wrap items-center gap-2 ${className}`} onClick={(e) => e.stopPropagation()}>
+            <div className={cn("flex flex-wrap items-center gap-2", className)} onClick={(e) => e.stopPropagation()}>
                 {markedAttendance && (
                     <span
                         className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold border ${markedAttendance === "present"
