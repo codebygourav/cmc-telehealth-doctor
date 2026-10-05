@@ -86,7 +86,7 @@ export default function CategoryCombobox({ options, value, onChange, className }
             </div>
 
             {open && (
-                <ul role="listbox" className="absolute z-40 mt-1 max-h-72 w-full min-w-[16rem] overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+                <ul role="listbox" className="absolute z-40 mt-1 max-h-72 w-full overflow-auto sm:min-w-[16rem] rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
                     {filtered.map((o, i) => (
                         <li key={o.id} role="option" aria-selected={o.id === value}
                             onMouseDown={(e) => { e.preventDefault(); pick(o.id); }}

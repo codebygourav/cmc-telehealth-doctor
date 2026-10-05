@@ -287,19 +287,19 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
                 {!picked ? (
                     <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-semibold" role="radiogroup" aria-label="Search by">
+                    <div className="flex w-full rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-semibold sm:inline-flex sm:w-auto" role="radiogroup" aria-label="Search by">
                         {([["trade", "Trade name"], ["generic", "Generic name"]] as const).map(([key, label]) => (
                             <button key={key} type="button" role="radio" aria-checked={searchBy === key}
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => { setSearchBy(key); setOpen(true); searchRef.current?.focus(); }}
-                                className={cn("rounded-md px-3 py-1.5 transition-colors", searchBy === key ? "bg-primary text-white shadow-sm" : "text-slate-600 hover:text-primary")}>
+                                className={cn("flex-1 rounded-md px-3 py-1.5 transition-colors sm:flex-none", searchBy === key ? "bg-primary text-white shadow-sm" : "text-slate-600 hover:text-primary")}>
                                 {label}
                             </button>
                         ))}
                     </div>
                     <CategoryCombobox options={categories} value={categoryId}
                         onChange={(id) => { setCategoryId(id); setOpen(true); setTimeout(() => searchRef.current?.focus(), 0); }}
-                        className="flex-1 sm:max-w-xs" />
+                        className="w-full sm:w-auto sm:flex-1 sm:max-w-xs" />
                     </div>
                     <div className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
