@@ -340,14 +340,25 @@ const MySchedulesPage = () => {
                             Today
                         </button>
                     </div>
-                    <div className="p-3">
+                    <div className="p-2 sm:p-3">
                         <Calendar
                             mode="single"
                             selected={selectedDate}
                             onSelect={onDateClick}
                             month={currentDate}
                             onMonthChange={onMonthChange}
-                            className="w-full p-0"
+                            className="w-full p-0 [--cell-size:--spacing(9)]"
+                            classNames={{
+                                root: "w-full",
+                                months: "relative flex w-full flex-col",
+                                month: "flex w-full flex-col gap-3",
+                                weekdays: "flex w-full",
+                                weekday: "flex-1 min-w-0 text-center text-[11px] font-medium uppercase text-muted-foreground select-none",
+                                week: "mt-1 flex w-full",
+                                day: "flex-1 min-w-0 p-0.5 text-center select-none",
+                                today: "",
+                                outside: "",
+                            }}
                             components={{
                                 DayButton: ({ day, modifiers, ...props }) => {
                                     const date = day.date;
@@ -359,7 +370,7 @@ const MySchedulesPage = () => {
                                         <button
                                             {...props}
                                             className={cn(
-                                                "relative flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg text-sm transition-colors",
+                                                "relative flex h-10 w-full min-w-0 flex-col items-center justify-center gap-1 rounded-lg text-sm transition-colors sm:h-11",
                                                 isSelected
                                                     ? "bg-primary text-primary-foreground font-semibold shadow-sm"
                                                     : isTodayDate

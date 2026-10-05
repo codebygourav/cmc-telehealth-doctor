@@ -123,8 +123,8 @@ const AppointmentCard = ({
                     </span>
                 </div>
             </div>
-            <Badge className={`${getStatusColor('appointment', status)} shrink-0 text-[11px]`}>{status}</Badge>
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <Badge className={`${getStatusColor('appointment', status)} max-w-[96px] shrink-0 truncate text-[10px] sm:text-[11px]`}>{status}</Badge>
+            <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />
         </button>
     )
 }

@@ -30,14 +30,15 @@ const DoctorOpdSchedule = ({
     }
 
     return (
-        <div className="space-y-2 md:max-h-[520px] md:overflow-y-auto">
+        <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 snap-x md:mx-0 md:block md:space-y-2 md:overflow-x-visible md:px-0 md:max-h-[520px] md:overflow-y-auto">
             {OPDSlotsForSelectedDate.map((slot, index) => (
+                <div key={slot.id || index} className="w-[220px] shrink-0 snap-start md:w-auto">
                 <OPDSlotCard
-                    key={slot.id || index}
                     slot={slot}
                     isSelected={selectedSlot?.id === slot.id}
                     onClick={() => onSlotClick(slot)}
                 />
+                </div>
             ))}
         </div>
     )
