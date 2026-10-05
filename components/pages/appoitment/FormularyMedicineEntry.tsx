@@ -298,6 +298,7 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
                         ))}
                     </div>
                     <CategoryCombobox options={categories} value={categoryId}
+                        onOpen={() => { if (!categories.length) getMedicineCategories().then(setCategories).catch(() => {}); }}
                         onChange={(id) => { setCategoryId(id); setOpen(true); setTimeout(() => searchRef.current?.focus(), 0); }}
                         className="w-full sm:w-auto sm:flex-1 sm:max-w-xs" />
                     </div>
