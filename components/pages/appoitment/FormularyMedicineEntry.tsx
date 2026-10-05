@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Loader2, Lock, Pill, Plus, Search, X } from "lucide-react";
-import { getMedicines } from "@/api/medicines";
+import { getFormularyMedicines, getMedicineCategories } from "@/api/medicines";
+import CategoryCombobox from "./CategoryCombobox";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { AddedMedicine } from "./prescription-dialog-types";
@@ -80,6 +81,19 @@ interface FormularyMedicineEntryProps {
  */
 export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }: FormularyMedicineEntryProps) {
     const [query, setQuery] = useState("");
+    // Search by trade name or generic name (the list shows and sorts by the chosen one).
+    const [searchBy, setSearchBy] = useState<"trade" | "generic">("trade");
+    const [categoryId, setCategoryId] = useState("");
+    const [categories, setCategories] = useState<{ id: string; name: string; medicines: number }[]>([]);
+    // Paged results: the next batch loads while scrolling the dropdown (never all 1,800+ at once).
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const PAGE_SIZE = 30;
+
+    useEffect(() => {
+        getMedicineCategories().then(setCategories).catch(() => setCategories([]));
+    }, []);
     const [results, setResults] = useState<FormularyMedicine[]>([]);
     const [searching, setSearching] = useState(false);
     const [open, setOpen] = useState(false);
@@ -101,19 +115,21 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
 
     // Search the formulary by trade or generic name: short debounce, cached results, and an old
     // response never replaces a newer one.
-    const cache = useRef(new Map<string, FormularyMedicine[]>());
+    const cache = useRef(new Map<string, { list: FormularyMedicine[]; page: number; hasMore: boolean }>());
     const latest = useRef("");
     useEffect(() => {
         const term = query.trim().toLowerCase();
-        latest.current = term;
-        if (term.length < 2) {
-            setResults([]);
-            setSearching(false);
-            return;
+        // Empty box: browse A-Z (shown as soon as the field is clicked). Page 1 only here.
+        const key = `${searchBy}|${categoryId}|${term}`;
+        latest.current = key;
+        if (term.length === 1) {
+            return; // wait for a second letter
         }
-        const cached = cache.current.get(term);
+        const cached = cache.current.get(key);
         if (cached) {
-            setResults(cached);
+            setResults(cached.list);
+            setPage(cached.page);
+            setHasMore(cached.hasMore);
             setActive(0);
             setSearching(false);
             return;
@@ -121,21 +137,50 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
         setSearching(true);
         const timer = setTimeout(async () => {
             try {
-                const response = await getMedicines({ search: term, per_page: 12 });
-                const list = (response.data || []) as unknown as FormularyMedicine[];
-                cache.current.set(term, list);
-                if (latest.current === term) {
+                const response: any = await getFormularyMedicines({ search: term, by: searchBy, category_id: categoryId || undefined, limit: PAGE_SIZE, page: 1 });
+                const list = (response.data || []) as FormularyMedicine[];
+                const more = Boolean(response.meta?.has_more);
+                cache.current.set(key, { list, page: 1, hasMore: more });
+                if (latest.current === key) {
                     setResults(list);
+                    setPage(1);
+                    setHasMore(more);
                     setActive(0);
                 }
             } catch {
-                if (latest.current === term) setResults([]);
+                if (latest.current === key) {
+                    setResults([]);
+                    setHasMore(false);
+                }
             } finally {
-                if (latest.current === term) setSearching(false);
+                if (latest.current === key) setSearching(false);
             }
-        }, 120);
+        }, term ? 120 : 0);
         return () => clearTimeout(timer);
-    }, [query]);
+    }, [query, searchBy, categoryId]);
+
+    // Scrolled near the bottom of the dropdown: load the next batch.
+    const loadMore = async () => {
+        if (!hasMore || loadingMore || searching) return;
+        const key = latest.current;
+        const term = query.trim().toLowerCase();
+        setLoadingMore(true);
+        try {
+            const next = page + 1;
+            const response: any = await getFormularyMedicines({ search: term, by: searchBy, category_id: categoryId || undefined, limit: PAGE_SIZE, page: next });
+            if (latest.current !== key) return;
+            const merged = [...results, ...((response.data || []) as FormularyMedicine[])];
+            const more = Boolean(response.meta?.has_more);
+            setResults(merged);
+            setPage(next);
+            setHasMore(more);
+            cache.current.set(key, { list: merged, page: next, hasMore: more });
+        } catch {
+            // keep what is shown; scrolling again retries
+        } finally {
+            setLoadingMore(false);
+        }
+    };
 
     const choose = (medicine: FormularyMedicine) => {
         const line = medicine.label || [medicine.name, medicine.generic_name && `(${medicine.generic_name})`, medicine.strength, medicine.form].filter(Boolean).join(" ");
@@ -214,7 +259,7 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
         if (e.key === "ArrowDown") {
             e.preventDefault();
             setOpen(true);
-            setActive((i) => Math.min(i + 1, items.length));
+            setActive((i) => Math.min(i + 1, query.trim() ? items.length : Math.max(items.length - 1, 0)));
         } else if (e.key === "ArrowUp") {
             e.preventDefault();
             setActive((i) => Math.max(i - 1, 0));
@@ -240,6 +285,22 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
             <div className="space-y-4 p-5">
                 {/* Medicine: search, or the locked line once picked */}
                 {!picked ? (
+                    <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-semibold" role="radiogroup" aria-label="Search by">
+                        {([["trade", "Trade name"], ["generic", "Generic name"]] as const).map(([key, label]) => (
+                            <button key={key} type="button" role="radio" aria-checked={searchBy === key}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => { setSearchBy(key); setOpen(true); searchRef.current?.focus(); }}
+                                className={cn("rounded-md px-3 py-1.5 transition-colors", searchBy === key ? "bg-primary text-white shadow-sm" : "text-slate-600 hover:text-primary")}>
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                    <CategoryCombobox options={categories} value={categoryId}
+                        onChange={(id) => { setCategoryId(id); setOpen(true); setTimeout(() => searchRef.current?.focus(), 0); }}
+                        className="flex-1 sm:max-w-xs" />
+                    </div>
                     <div className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <input
@@ -249,39 +310,53 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
                             onFocus={() => setOpen(true)}
                             onBlur={() => setTimeout(() => setOpen(false), 150)}
                             onKeyDown={onKeyDown}
-                            placeholder="e.g. Augmentin or Amoxicillin"
+                            placeholder={searchBy === "generic" ? "Generic name, e.g. Amoxicillin (or click to browse)" : "Trade name, e.g. Augmentin (or click to browse)"}
                             aria-label="Search medicine"
                             className="h-12 w-full rounded-lg border border-slate-300 bg-white pl-10 pr-10 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
                         />
                         {searching && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />}
 
-                        {open && query.trim().length >= 2 && (
-                            <ul role="listbox" className="absolute z-30 mt-1.5 max-h-80 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl">
+                        {open && query.trim().length !== 1 && (
+                            <ul role="listbox" className="absolute z-30 mt-1.5 max-h-80 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl"
+                                onScroll={(e) => {
+                                    const el = e.currentTarget;
+                                    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80) loadMore();
+                                }}>
                                 {items.map((medicine, index) => (
                                     <li key={medicine.id} role="option" aria-selected={index === active}
                                         onMouseDown={(e) => { e.preventDefault(); choose(medicine); }}
                                         onMouseEnter={() => setActive(index)}
                                         className={cn("cursor-pointer px-4 py-2.5", index === active ? "bg-primary/10" : "hover:bg-slate-50")}>
                                         <div className="flex items-baseline justify-between gap-3">
-                                            <span className="truncate text-sm font-semibold text-slate-900">{medicine.name}</span>
+                                            <span className="truncate text-sm font-semibold text-slate-900">
+                                                {searchBy === "generic" ? (medicine.generic_name || medicine.name) : medicine.name}
+                                            </span>
                                             {medicine.category && <span className="shrink-0 truncate text-[10px] font-medium uppercase tracking-wide text-slate-400">{medicine.category}</span>}
                                         </div>
-                                        {medicine.generic_name && <p className="truncate text-xs text-primary">{medicine.generic_name}</p>}
+                                        {searchBy === "generic"
+                                            ? <p className="truncate text-xs text-primary">{medicine.name}</p>
+                                            : medicine.generic_name && <p className="truncate text-xs text-primary">{medicine.generic_name}</p>}
                                         <p className="truncate text-[11px] text-slate-500">
                                             {[medicine.strength, medicine.form, medicine.company].filter(Boolean).join(" · ")}
                                         </p>
                                     </li>
                                 ))}
-                                {!searching && items.length === 0 && (
-                                    <li className="px-4 py-2 text-xs text-slate-500">No match in the formulary.</li>
+                                {(loadingMore || (hasMore && items.length > 0)) && (
+                                    <li className="flex items-center justify-center gap-2 px-4 py-2 text-xs text-slate-500">
+                                        {loadingMore ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading more…</> : "Scroll for more"}
+                                    </li>
                                 )}
-                                <li role="option" aria-selected={active === items.length}
+                                {!searching && items.length === 0 && (
+                                    <li className="px-4 py-2 text-xs text-slate-500">{query.trim() ? "No match in the formulary." : "No medicines in the formulary yet."}</li>
+                                )}
+                                {query.trim() && <li role="option" aria-selected={active === items.length}
                                     onMouseDown={(e) => { e.preventDefault(); useTyped(); }}
                                     className={cn("flex cursor-pointer items-center gap-2 border-t border-slate-100 px-4 py-2.5 text-sm text-slate-700", active === items.length ? "bg-primary/10" : "hover:bg-slate-50")}>
                                     <Plus className="h-4 w-4 text-primary" /> Use &ldquo;{query.trim()}&rdquo; as typed
-                                </li>
+                                </li>}
                             </ul>
                         )}
+                    </div>
                     </div>
                 ) : (
                     <div className="flex items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3">

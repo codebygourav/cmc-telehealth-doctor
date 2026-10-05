@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Video, Phone, MapPin } from "lucide-react";
+import { Clock, Video, Phone, MapPin, ChevronRight } from "lucide-react";
 import { getStatusColor } from "@/src/utils/getStatusColor";
 
 interface AppointmentCardProps {
@@ -100,57 +100,32 @@ const AppointmentCard = ({
     }
 
     // Patient card rendering
-    const typeIcons = {
-        Video: <Video className="h-3 w-3" />,
-        Phone: <Phone className="h-3 w-3" />,
-        "In-Person": <MapPin className="h-3 w-3" />
-    };
-
-    const typeColors = {
-        Video: "border-blue-200",
-        Phone: "border-gray-200",
-        "In-Person": "border-purple-200"
-    };
+    const isVideo = appointmentType === "Video";
+    const initials = title?.split(' ').filter(Boolean).slice(0, 2).map((n: string) => n[0]).join('').toUpperCase() || "PT";
 
     return (
-        <Card
-            className={`border-border py-0 hover:shadow-md transition-all cursor-pointer ${className}`}
+        <button
+            type="button"
             onClick={onClick}
+            className={`flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted/50 ${className}`}
         >
-            <CardContent className="p-3">
-                <div className="flex gap-2">
-                    <Avatar className="h-8 w-8">
-                        <AvatarImage src={avatar} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                            {title?.split(' ').map((n: string) => n[0]).join('') || "PT"}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="font-medium text-sm">{title}</p>
-                            </div>
-                            <Badge className={`${getStatusColor('appointment', status)} text-[8px] px-1.5 py-0.5`}>
-                                {status}
-                            </Badge>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-[10px] mt-1">
-                            <span className="flex items-center gap-1 text-muted-foreground">
-                                <Clock className="h-3 w-3" /> {time}
-                            </span>
-                            <Badge
-                                variant="outline"
-                                className={`text-[8px] px-1 flex items-center gap-0.5 ${typeColors[appointmentType || "Video"] || "border-gray-200"}`}
-                            >
-                                {typeIcons[appointmentType || "Video"]}
-                                {appointmentType}
-                            </Badge>
-                        </div>
-                    </div>
+            <Avatar className="h-10 w-10">
+                <AvatarImage src={avatar || undefined} />
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{title}</p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {time}</span>
+                    <span className="flex items-center gap-1">
+                        {isVideo ? <Video className="h-3 w-3" /> : appointmentType === "Phone" ? <Phone className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
+                        {appointmentType === "In-Person" ? "In-Clinic" : appointmentType}
+                    </span>
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+            <Badge className={`${getStatusColor('appointment', status)} shrink-0 text-[11px]`}>{status}</Badge>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </button>
     )
 }
 

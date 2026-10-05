@@ -1,67 +1,48 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Video, Edit, MapPin } from "lucide-react";
+import { Video, MapPin } from "lucide-react";
 import { OPDSlot } from "@/types/schedule";
-
+import { cn } from "@/lib/utils";
 
 interface OPDSlotCardProps {
     slot: OPDSlot;
     isSelected: boolean;
     onClick: () => void;
-    onBookedClick: () => void;
-    onEdit?: () => void;
 }
 
-export const OPDSlotCard = ({
-    slot,
-    isSelected,
-    onClick,
-    onBookedClick,
-    onEdit
-}: OPDSlotCardProps) => {
+export const OPDSlotCard = ({ slot, isSelected, onClick }: OPDSlotCardProps) => {
+    const isVideo = slot.consultation_type === "video";
+    const booked = slot.booked_count || 0;
+    const capacity = slot.slot_capacity || slot.capacity || 0;
+    const pct = capacity ? Math.min(100, Math.round((booked / capacity) * 100)) : 0;
+
     return (
-        <div
-            className={`border rounded-lg p-3 hover:shadow-md transition-all mb-2 cursor-pointer ${isSelected ? 'border-primary bg-primary/5' : 'border-border'
-                }`}
+        <button
+            type="button"
             onClick={onClick}
+            className={cn(
+                "w-full rounded-lg border p-3 text-left transition-colors",
+                isSelected ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted/50"
+            )}
         >
-
-            <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-sm">{slot.time_range}</span>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                {
-                    slot.consultation_type === "video" ? (
-                        <Video className="h-3 w-3" />
-                    ) : (
-                        <MapPin className="h-3 w-3" />
-                    )
-                }
-                <span>{slot.consultation_type_label}</span>
-            </div>
-
-            <div className="flex items-center justify-between mt-2">
-                <div
-                    className="cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onBookedClick();
-                    }}
+            <div className="flex items-start justify-between gap-2">
+                <span className="text-sm font-semibold">{slot.time_range}</span>
+                <span
+                    className={cn(
+                        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                        isVideo ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
+                    )}
                 >
-                    <Badge variant="outline" className="text-xs font-normal">
-                        {slot.booked_count || 0}/{slot.slot_capacity} booked
-                    </Badge>
-                </div>
-                {onEdit && (
-                    <Button variant="ghost" size="sm" className="h-6 px-2">
-                        <Edit className="h-3 w-3 mr-1" />
-                        <span className="text-xs">Edit</span>
-                    </Button>
-                )}
+                    {isVideo ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
+                    {isVideo ? "Video" : "In-Clinic"}
+                </span>
             </div>
-        </div>
+            <div className="mt-2.5 flex items-center gap-2">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                </div>
+                <span className="text-xs text-muted-foreground">
+                    {booked}{capacity ? `/${capacity}` : ""} booked
+                </span>
+            </div>
+        </button>
     );
 };

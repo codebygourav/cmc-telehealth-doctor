@@ -2,7 +2,8 @@
 
 import { useMyAppointments } from "@/queries/useAppointments";
 import { useMySchedules } from "@/queries/getMySchedules";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar"
 import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,7 @@ import { Appointment } from "@/types/appointment";
 import { ScheduleDay, OPDSlot } from "@/types/schedule";
 import DoctorOpdSchedule from "@/components/pages/my-schedules/DoctorOpdSchedule";
 import BookAppointments from "@/components/pages/my-schedules/BookAppointments";
-import { Stethoscope } from "lucide-react";
+import { Stethoscope, Users } from "lucide-react";
 import HeroSection from "@/components/ui/hero-section";
 
 const filterAppointmentsByDate = (
@@ -35,7 +36,12 @@ const MySchedulesPage = () => {
     const [selectedSlot, setSelectedSlot] = useState<OPDSlot | undefined>(undefined);
     const router = useRouter();
 
-    const { data, isLoading, error } = useMyAppointments("all");
+    // "all" now returns today onwards; past days on the calendar need the "past" list too.
+    const { data: upcomingData } = useMyAppointments("all");
+    const { data: pastData } = useMyAppointments("past");
+    const data = useMemo(() => ({
+        data: [...(pastData?.data || []), ...(upcomingData?.data || [])],
+    }), [pastData, upcomingData]);
 
     const monthParams = useMemo(() => ({
         month: currentDate.getMonth() + 1,
@@ -308,200 +314,179 @@ const MySchedulesPage = () => {
             date.getFullYear() === today.getFullYear();
     };
 
+    const daySlots = getOPDSlotsForDate(selectedDate);
+    const dayBooked = daySlots.reduce((n, s) => n + (s.booked_count || 0), 0);
+    const dayCapacity = daySlots.reduce((n, s) => n + (s.slot_capacity || s.capacity || 0), 0);
+
     return (
         <div className="container-max-width w-full mx-auto">
 
             <HeroSection title="My Schedules" description="Manage your OPD appointments and availability" />
 
-            <Card className="border-border mt-5">
+            <div className="mt-5 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
 
-                <CardHeader>
-                    <CardTitle>
-                        {format(currentDate, "MMMM yyyy")}
-                    </CardTitle>
-                    <CardDescription>
-                        <span className="font-semibold text-primary">OPD sessions</span> this month
-                    </CardDescription>
-                </CardHeader>
-
-                <CardContent>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-2">
-
-                        {/* Left Column - Calendar */}
-                        <div className="lg:col-span-1">
-                            <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={onDateClick}
-                                month={currentDate}
-                                onMonthChange={onMonthChange}
-                                className="rounded-lg border gap-1 w-full"
-                                components={{
-                                    DayButton: ({ day, ...props }) => {
-                                        const date = day.date;
-                                        const count = getOPDCount(date);
-                                        const isSelected = selectedDate?.toDateString() === date.toDateString();
-                                        const isTodayDate = isToday(date);
-                                        const hasAppt = count > 0 || hasAppointments(date);
-                                        return (
-                                            <button
-                                                {...props}
-                                                className={`
-                                                    relative flex flex-col items-center justify-center
-                                                    aspect-square w-full p-1 gap-0.5
-                                                    text-sm font-normal rounded-md transition-all duration-200
-                                                    h-auto mx-auto z-10
-                                                    ${isSelected
-                                                        ? 'bg-primary text-primary-foreground shadow-sm scale-105'
-                                                        : ''
-                                                    }
-                                                    ${isTodayDate && !isSelected
-                                                        ? 'bg-primary/5 text-primary hover:bg-primary/10 font-bold border border-primary'
-                                                        : ''
-                                                    }
-                                                    ${hasAppt && !isSelected && !isTodayDate
-                                                        ? 'bg-primary/5 text-primary hover:bg-primary/10 cursor-pointer'
-                                                        : ''
-                                                    }
-                                                    ${!hasAppt && !isTodayDate && !isSelected
-                                                        ? 'text-muted-foreground'
-                                                        : ''
-                                                    }
-                                                `}
-                                            >
-                                                <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full">
-                                                    <span className="text-xs sm:text-sm font-medium leading-none">{date.getDate()}</span>
-                                                    {count > 0 && (
-                                                        <Badge
-                                                            variant="outline"
-                                                            className={`h-3.5 md:px-1 px-0.5 text-[8px] font-normal leading-none bg-primary/10 border-primary/20 shrink-0 ${isSelected ? 'text-white border-white/30' : ''}`}
-                                                        >
-                                                            {count} {count === 1 ? 'OPD' : "OPD's"}
-                                                        </Badge>
-                                                    )}
-                                                    {isTodayDate && (
-                                                        <span className={`absolute md:top-1.5 top-1 md:right-1.5 right-1 h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-primary'}`} />
-                                                    )}
-                                                </div>
-                                            </button>
-                                        );
-                                    }
-                                }}
-                            />
+                {/* Calendar */}
+                <Card className="border-border lg:col-span-5 xl:col-span-4 py-0 gap-0 overflow-hidden lg:sticky lg:top-4">
+                    <div className="flex items-center justify-between border-b px-4 py-3">
+                        <div>
+                            <p className="text-sm font-semibold">{format(currentDate, "MMMM yyyy")}</p>
+                            <p className="text-xs text-muted-foreground">Pick a day to see its sessions</p>
                         </div>
+                        <button
+                            type="button"
+                            onClick={() => { const t = new Date(); setCurrentDate(new Date(t.getFullYear(), t.getMonth(), 1)); setSelectedDate(t); }}
+                            className="rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                        >
+                            Today
+                        </button>
+                    </div>
+                    <div className="p-3">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={onDateClick}
+                            month={currentDate}
+                            onMonthChange={onMonthChange}
+                            className="w-full p-0"
+                            components={{
+                                DayButton: ({ day, modifiers, ...props }) => {
+                                    const date = day.date;
+                                    const count = getOPDCount(date);
+                                    const isSelected = selectedDate?.toDateString() === date.toDateString();
+                                    const isTodayDate = isToday(date);
+                                    const booked = hasAppointments(date);
+                                    return (
+                                        <button
+                                            {...props}
+                                            className={cn(
+                                                "relative flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg text-sm transition-colors",
+                                                isSelected
+                                                    ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                                                    : isTodayDate
+                                                        ? "ring-1 ring-primary text-primary font-semibold hover:bg-primary/10"
+                                                        : count > 0
+                                                            ? "text-foreground font-medium hover:bg-muted"
+                                                            : "text-muted-foreground hover:bg-muted",
+                                                modifiers?.outside && !isSelected && "opacity-40",
+                                            )}
+                                        >
+                                            <span className="leading-none">{date.getDate()}</span>
+                                            <span className="flex h-1.5 items-center gap-0.5">
+                                                {count > 0 && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-white" : "bg-primary")} />}
+                                                {booked && <span className={cn("h-1.5 w-1.5 rounded-full", isSelected ? "bg-white/70" : "bg-emerald-500")} />}
+                                            </span>
+                                        </button>
+                                    );
+                                }
+                            }}
+                        />
+                    </div>
+                    <div className="flex items-center gap-4 border-t px-4 py-2.5 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-primary" /> OPD session</span>
+                        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Has bookings</span>
+                    </div>
+                </Card>
 
-                        {/* Middle Column - Doctor OPD Schedule */}
-                        <div className="lg:col-span-1">
+                {/* Selected day */}
+                <Card className="border-border lg:col-span-7 xl:col-span-8 py-0 gap-0 overflow-hidden">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <span className="text-[10px] font-semibold uppercase leading-none">{selectedDate ? format(selectedDate, "MMM") : "--"}</span>
+                                <span className="text-lg font-bold leading-tight">{selectedDate ? format(selectedDate, "d") : "--"}</span>
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold">{selectedDate ? format(selectedDate, "EEEE, d MMMM yyyy") : "Select a date"}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    {daySlots.length} {daySlots.length === 1 ? "session" : "sessions"} · {dayBooked}{dayCapacity ? `/${dayCapacity}` : ""} booked
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-5">
+                        <div className="md:col-span-2 border-b md:border-b-0 md:border-r p-3">
+                            <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">OPD sessions</p>
                             <DoctorOpdSchedule
-                                title="Doctor OPD Schedule"
-                                date={selectedDate
-                                    ? selectedDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
-                                    : 'Select a date'}
-                                count={selectedDate ? getOPDCount(selectedDate) : 0}
-                                countLabel="Slots"
                                 emptyIcon={<Stethoscope className="h-8 w-8 mx-auto mb-2 opacity-30" />}
-                                emptyMessage="No doctor OPD scheduled"
-                                emptySubMessage="Select a date with OPD sessions"
-                                OPDSlotsForSelectedDate={getOPDSlotsForDate(selectedDate)}
+                                emptyMessage="No OPD on this day"
+                                emptySubMessage="Days with a blue dot have sessions"
+                                OPDSlotsForSelectedDate={daySlots}
                                 selectedSlot={selectedSlot}
                                 onSlotClick={onSlotClick}
                             />
                         </div>
 
+                        <div className="md:col-span-3 p-3">
+                            <div className="mb-2 flex items-center justify-between px-1">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    Patients{selectedSlot ? ` · ${selectedSlot.time_range}` : ""}
+                                </p>
+                                <Badge variant="secondary" className="text-xs">{filteredAppointments.length}</Badge>
+                            </div>
+                            <div className="space-y-2 md:max-h-[520px] md:overflow-y-auto">
+                                {filteredAppointments.length ? (
+                                    filteredAppointments.map((appointment: any, idx: number) => {
+                                        const patientName =
+                                            appointment.patient?.name ||
+                                            appointment.patient_name ||
+                                            appointment.name ||
+                                            "Unknown Patient";
 
-                        {/* Right Column - Booked Appointments */}
-                        <div className="lg:col-span-1 space-y-3">
+                                        const patientAvatar =
+                                            appointment.patient?.avatar ||
+                                            appointment.patient_avatar ||
+                                            appointment.avatar ||
+                                            "";
 
-                            <Card className="border-border h-full py-0 flex flex-col">
+                                        const appointmentTime =
+                                            appointment.appointment_time_formatted ||
+                                            (appointment.start_time && appointment.end_time
+                                                ? `${appointment.start_time} - ${appointment.end_time}`
+                                                : appointment.start_time || appointment.appointment_time || appointment.appointmentTime || selectedSlot?.time_range || "");
 
-                                {/* Header */}
-                                <CardHeader className="bg-primary text-white rounded-t-lg py-2">
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <CardTitle className="text-sm">Booked Appointments</CardTitle>
-                                            {selectedSlot && (
-                                                <p className="text-xs opacity-80">
-                                                    {selectedSlot.time_range} • {filteredAppointments.length} Booked
-                                                </p>
-                                            )}
-                                        </div>
-                                        <Badge variant="secondary">
-                                            {filteredAppointments.length} Patients
-                                        </Badge>
+                                        const consultationType =
+                                            appointment.consultation_type === "video" || appointment.type === "Telehealth"
+                                                ? "Video"
+                                                : (selectedSlot?.consultation_type === "video" ? "Video" : "In-Person");
+
+                                        const statusLabel =
+                                            appointment.status_label ||
+                                            appointment.status ||
+                                            "Confirmed";
+
+                                        const apptId = appointment.appointment_id || appointment.id;
+
+                                        return (
+                                            <BookAppointments
+                                                key={apptId || idx}
+                                                type="patient"
+                                                title={patientName}
+                                                avatar={patientAvatar}
+                                                time={appointmentTime}
+                                                appointmentType={consultationType}
+                                                status={statusLabel as any}
+                                                onClick={() => {
+                                                    if (apptId) {
+                                                        router.push(`/appointments/${apptId}`);
+                                                    }
+                                                }}
+                                            />
+                                        );
+                                    })
+                                ) : (
+                                    <div className="rounded-lg border border-dashed py-10 text-center text-muted-foreground">
+                                        <Users className="mx-auto mb-2 h-8 w-8 opacity-30" />
+                                        <p className="text-sm">
+                                            {selectedSlot ? "No patients booked in this session" : "Select a session to see patients"}
+                                        </p>
                                     </div>
-                                </CardHeader>
-
-                                <CardContent className="pt-4 flex-1 overflow-y-auto max-h-[500px]">
-                                    <div className="space-y-3">
-                                        {filteredAppointments.length ? (
-                                            filteredAppointments.map((appointment: any, idx: number) => {
-                                                const patientName =
-                                                    appointment.patient?.name ||
-                                                    appointment.patient_name ||
-                                                    appointment.name ||
-                                                    "Unknown Patient";
-
-                                                const patientAvatar =
-                                                    appointment.patient?.avatar ||
-                                                    appointment.patient_avatar ||
-                                                    appointment.avatar ||
-                                                    "";
-
-                                                const appointmentTime =
-                                                    appointment.appointment_time_formatted ||
-                                                    (appointment.start_time && appointment.end_time
-                                                        ? `${appointment.start_time} - ${appointment.end_time}`
-                                                        : appointment.start_time || appointment.appointment_time || appointment.appointmentTime || selectedSlot?.time_range || "");
-
-                                                const consultationType =
-                                                    appointment.consultation_type === "video" || appointment.type === "Telehealth"
-                                                        ? "Video"
-                                                        : (selectedSlot?.consultation_type === "video" ? "Video" : "In-Person");
-
-                                                const statusLabel =
-                                                    appointment.status_label ||
-                                                    appointment.status ||
-                                                    "Confirmed";
-
-                                                const apptId = appointment.appointment_id || appointment.id;
-
-                                                return (
-                                                    <BookAppointments
-                                                        key={apptId || idx}
-                                                        type="patient"
-                                                        title={patientName}
-                                                        avatar={patientAvatar}
-                                                        time={appointmentTime}
-                                                        appointmentType={consultationType}
-                                                        status={statusLabel as any}
-                                                        onClick={() => {
-                                                            if (apptId) {
-                                                                router.push(`/appointments/${apptId}`);
-                                                            }
-                                                        }}
-                                                    />
-                                                );
-                                            })
-                                        ) : (
-                                            <div className="text-center py-10 border rounded-lg border-dashed text-muted-foreground">
-                                                <p className="text-sm">
-                                                    {selectedSlot
-                                                        ? "No appointments booked for this slot"
-                                                        : "Select an OPD slot to view appointments"}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </CardContent>
-
-                            </Card>
+                                )}
+                            </div>
                         </div>
-
                     </div>
-
-                </CardContent>
-
-            </Card>
+                </Card>
+            </div>
         </div>
     );
 };

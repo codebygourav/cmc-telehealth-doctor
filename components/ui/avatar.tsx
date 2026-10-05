@@ -29,6 +29,9 @@ function AvatarImage({
   className,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+  // No picture: render nothing so the fallback (initials) shows; an empty src makes the
+  // browser request the page again.
+  if (!props.src) return null
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
