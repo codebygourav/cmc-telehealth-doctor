@@ -134,3 +134,10 @@ export const getApiErrorMessage = (err: any, fallback = "Something went wrong") 
 
     return err?.response?.data?.message || err?.message || fallback;
 };
+
+// Mark a consultation completed (leaving the video call never does this). The doctor can still
+// rejoin until the appointment's end time; the patient only after the doctor rejoins.
+export const completeAppointment = async (appointmentId: string) => {
+    const { data } = await api.post(`/appointments/${appointmentId}/complete`);
+    return data;
+};

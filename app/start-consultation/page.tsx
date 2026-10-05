@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
+import { useAuth } from "@/context/userContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Pill, FileUser, Loader2 } from "lucide-react";
 import AddPrescriptionDialog from "@/components/pages/appoitment/AddPrescriptionDialog";
+import CompleteConsultationDialog from "@/components/pages/appoitment/CompleteConsultationDialog";
 import { usePrescriptionByAppointmentId } from "@/queries/usePrescriptionByAppointmentId";
 
 import { cleanAndDeduplicateText, parseClinicalInstructions } from "@/src/utils/cleanClinicalText";
@@ -12,12 +14,31 @@ const ConsultationContent = () => {
 
     const searchParams = useSearchParams();
     const router = useRouter();
-    const roomUrl = searchParams.get("room_url");
+    const { user } = useAuth();
+    // Always join under the signed-in doctor's own name. Whereby remembers the last typed name in
+    // this browser, so a link without displayName would reuse another doctor's name.
+    const roomUrl = useMemo(() => {
+        const raw = searchParams.get("room_url");
+        if (!raw) return raw;
+        const name = [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim();
+        if (!name) return raw;
+        try {
+            const url = new URL(raw);
+            url.searchParams.set("displayName", /^dr\.?\s/i.test(name) ? name : `Dr. ${name}`);
+            return url.toString();
+        } catch {
+            return raw;
+        }
+    }, [searchParams, user?.first_name, user?.last_name]);
     const appointmentId = searchParams.get("appointment_id");
 
     const [joined, setJoined] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const [isPrescribeDialogOpen, setIsPrescribeDialogOpen] = useState(false);
+    // Leaving the call asks "complete this appointment?"; it is never completed automatically.
+    const [askComplete, setAskComplete] = useState(false);
+    const [callKey, setCallKey] = useState(0);
+    const rejoin = () => setCallKey((k) => k + 1);
 
     const { data: prescriptionData } = usePrescriptionByAppointmentId(appointmentId || "");
 
@@ -54,6 +75,7 @@ const ConsultationContent = () => {
             if (event.data?.type === "leave") {
                 setJoined(false);
                 setChatOpen(false);
+                if (appointmentId) setAskComplete(true);
             }
             // Fires when chat or people panel opens/closes
             if (event.data?.type === "chat_toggle" || event.data?.type === "people_toggle") {
@@ -63,7 +85,7 @@ const ConsultationContent = () => {
 
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, []);
+    }, [appointmentId]);
 
     if (!roomUrl) {
         return (
@@ -74,10 +96,12 @@ const ConsultationContent = () => {
     }
 
     return (
-        <div className="relative w-full h-screen">
+        // h-dvh: the visible screen height on phones (h-screen is taller than Safari's view and "sticks").
+        <div className="relative h-dvh w-full overflow-hidden bg-[#063a28]">
 
             {/* Whereby iframe — full default Whereby UI */}
             <iframe
+                key={callKey}
                 src={roomUrl}
                 allow="camera; microphone; fullscreen; speaker; display-capture"
                 className="w-full h-full border-none"
@@ -85,7 +109,8 @@ const ConsultationContent = () => {
 
             {/* Floating Action Buttons placed right before Cam */}
             {joined && (
-                <div className={`absolute bottom-1 left-5 flex items-center gap-2 z-50 sm:gap-3 transition-all duration-300`}>
+                // Phones: top-left corner (Whereby's control bar spans the whole bottom). Desktop: bottom-left.
+                <div className="absolute left-3 top-3 z-50 flex items-center gap-2 sm:left-5 sm:top-auto sm:bottom-1 sm:gap-3">
                     <button
                         type="button"
                         onClick={() => {
@@ -116,6 +141,16 @@ const ConsultationContent = () => {
                         </span>
                     </button>
                 </div>
+            )}
+
+            {appointmentId && (
+                <CompleteConsultationDialog
+                    open={askComplete}
+                    onOpenChange={setAskComplete}
+                    appointmentId={appointmentId}
+                    onRejoin={rejoin}
+                    onCompleted={() => router.push(`/appointments/${appointmentId}`)}
+                />
             )}
 
             {appointmentId && (

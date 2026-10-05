@@ -11,11 +11,14 @@ import {
     MapPin,
     PhoneCall,
     PhoneCallIcon,
+    CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useParams, useRouter } from "next/navigation";
 import { getStatusColor } from "@/src/utils/getStatusColor";
 import AppointmentActions from "./AppointmentActions";
+import CompleteConsultationDialog from "./CompleteConsultationDialog";
+import { useState } from "react";
 
 interface AppointmentCardProps {
     appointment: any;
@@ -59,6 +62,9 @@ export default function AppointmentCard({
     const joinUrl = appointment?.video_consultation?.join_url || appointment?.join_url;
     const showCallNow = appointment.call_now === true;
     const router = useRouter();
+    const [askComplete, setAskComplete] = useState(false);
+    const isOpenVideo = String(appointment.consultation_type).toLowerCase() === "video" && ["confirmed", "rescheduled"].includes(String(appointment.status));
+    const canComplete = isOpenVideo && (appointment.awaiting_completion || appointment.call_is_rejoin);
 
     // button show hide in rescheduled", "failed", "completed base
     const shouldHideReschedule =
@@ -67,8 +73,9 @@ export default function AppointmentCard({
 
     return (
         <>
-            <Card className="group rounded-md !border-light-gray shadow-[0px_2px_4px_0px_#0000001A] h-full lg:p-5 p-3">
-                <CardContent className="p-0">
+            <Card className="group flex h-full flex-col rounded-md !border-light-gray shadow-[0px_2px_4px_0px_#0000001A] lg:p-5 p-3">
+                {/* Column layout: the date/time block sits at the bottom so cards in a row line up. */}
+                <CardContent className="flex flex-1 flex-col p-0">
 
                     {/* 🔹 Header */}
                     <div className="flex gap-2">
@@ -126,8 +133,8 @@ export default function AppointmentCard({
                                         }}
                                     >
                                         <PhoneCall className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                                        <span className="hidden xs:inline">Join Now</span>
-                                        <span className="xs:hidden">Join</span>
+                                        <span className="hidden xs:inline">{appointment.call_is_rejoin ? "Rejoin" : "Join Now"}</span>
+                                        <span className="xs:hidden">{appointment.call_is_rejoin ? "Rejoin" : "Join"}</span>
                                     </Badge>
                                 ) :
                                     (
@@ -144,8 +151,9 @@ export default function AppointmentCard({
                         </div>
                     </div>
 
-                    {/* Date & Time */}
-                    <div className="bg-[#F5F6F8] rounded-lg p-5 mt-5">
+                    <div className="h-5 shrink-0" aria-hidden="true" />
+                    {/* Date & Time (pushed to the bottom: same position on every card in a row) */}
+                    <div className="bg-[#F5F6F8] rounded-lg p-5 mt-auto">
 
                         <div className="flex lg:flex-row flex-col gap-5 lg:items-center items-start justify-between relative">
 
@@ -214,10 +222,21 @@ export default function AppointmentCard({
                                     }}
                                 >
                                     <PhoneCallIcon className="h-3.5 w-3.5" />
-                                    <span className="hidden xs:inline">Join Now</span>
-                                    <span className="xs:hidden">Join</span>
+                                    <span className="hidden xs:inline">{appointment.call_is_rejoin ? "Rejoin Call" : "Join Now"}</span>
+                                    <span className="xs:hidden">{appointment.call_is_rejoin ? "Rejoin" : "Join"}</span>
                                 </Button>
                             ) : null}
+
+                            {/* The call was used (or everyone left): the doctor completes it when done. */}
+                            {canComplete && (
+                                <Button
+                                    variant="outline"
+                                    className={`flex-1 cursor-pointer h-10 py-2.5 px-3.5 text-xs sm:text-sm font-semibold rounded-md gap-1.5 ${appointment.awaiting_completion ? "border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100" : "border-primary text-primary hover:bg-primary/5"}`}
+                                    onClick={(e) => { e.stopPropagation(); setAskComplete(true); }}
+                                >
+                                    <CheckCircle2 className="h-3.5 w-3.5" /> Complete
+                                </Button>
+                            )}
 
                             <AppointmentActions
                                 appointment={appointment}
@@ -230,6 +249,13 @@ export default function AppointmentCard({
 
                 </CardContent>
             </Card>
+
+            <CompleteConsultationDialog
+                open={askComplete}
+                onOpenChange={setAskComplete}
+                appointmentId={appointment.appointment_id || appointment.id}
+                patientName={appointment.patient_name || appointment.patient?.name}
+            />
 
         </>
     );

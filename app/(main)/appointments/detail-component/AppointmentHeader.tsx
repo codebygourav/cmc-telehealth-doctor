@@ -7,7 +7,8 @@ import {
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle, Dot, Mail, Phone, Video } from "lucide-react";
+import { Calendar, CheckCircle, CheckCircle2, Dot, Mail, Phone, Video } from "lucide-react";
+import CompleteConsultationDialog from "@/components/pages/appoitment/CompleteConsultationDialog";
 import { getStatusColor } from "@/src/utils/getStatusColor";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,13 @@ export default function AppointmentHeader({ appointment }: { appointment: any })
 
     const joinUrl = appointment?.join_url || "";
     const callNow = appointment?.call_now || "";
+    const callLabel = appointment?.call_is_rejoin ? "Rejoin Call" : "Join Now";
+    const consultationUrl = `/start-consultation?room_url=${encodeURIComponent(joinUrl)}&appointment_id=${appointment?.appointment_id || appointment?.id}`;
+    // Video visit still open: the doctor completes it (leaving the call never does).
+    const isOpenVideo = String(appointment?.consultation_type || "").toLowerCase() === "video"
+        && ["confirmed", "rescheduled"].includes(String(appointment?.status));
+    const canComplete = isOpenVideo && (appointment?.awaiting_completion || appointment?.call_is_rejoin);
+    const [askComplete, setAskComplete] = useState(false);
 
     return (
         <Card className="rounded-md !border-light-gray shadow-[0px_2px_4px_0px_#0000001A] p-3 lg:p-5">
@@ -139,12 +147,19 @@ export default function AppointmentHeader({ appointment }: { appointment: any })
                             {callNow && joinUrl && (
                                 <Button
                                     variant="default"
-                                    onClick={() => window.open(`/start-consultation?room_url=${encodeURIComponent(joinUrl)}&appointment_id=${appointment.appointment_id || appointment.id}`, "_blank")}
+                                    onClick={() => window.open(consultationUrl, "_blank")}
                                     disabled={!joinUrl}
                                     className="h-10 py-2.5 px-4 font-semibold rounded-md gap-1.5 cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
                                 >
                                     <Phone className="h-4 w-4" />
-                                    Join Now
+                                    {callLabel}
+                                </Button>
+                            )}
+
+                            {canComplete && (
+                                <Button variant="outline" onClick={() => setAskComplete(true)}
+                                    className="h-10 gap-1.5 rounded-md border-primary px-4 font-semibold text-primary hover:bg-primary/5">
+                                    <CheckCircle2 className="h-4 w-4" /> Mark as completed
                                 </Button>
                             )}
 
@@ -225,13 +240,29 @@ export default function AppointmentHeader({ appointment }: { appointment: any })
                                 <Button
                                     variant="default"
                                     className="w-full h-8 text-xs mt-1"
-                                    onClick={() => window.open(joinUrl, "_blank")}
+                                    onClick={() => window.open(consultationUrl, "_blank")}
                                 >
-                                    Join Now
+                                    {callLabel}
                                 </Button>
                             )}
                     </div>
                 </div>
+
+                {/* Everyone left the call and it is not completed yet */}
+                {appointment?.awaiting_completion && isOpenVideo && (
+                    <div className="mt-4 flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+                        <p><strong>The call has ended.</strong> Mark the appointment as completed when the consultation is done, or rejoin until the end time.</p>
+                        <Button size="sm" onClick={() => setAskComplete(true)} className="shrink-0">Complete appointment</Button>
+                    </div>
+                )}
+
+                <CompleteConsultationDialog
+                    open={askComplete}
+                    onOpenChange={setAskComplete}
+                    appointmentId={appointment?.appointment_id || appointment?.id}
+                    patientName={appointment?.patient?.name}
+                    onRejoin={callNow && joinUrl ? () => window.open(consultationUrl, "_blank") : undefined}
+                />
 
                 {/* Dialogs */}
                 <CustomDialog
