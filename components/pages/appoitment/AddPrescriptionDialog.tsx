@@ -2110,7 +2110,7 @@ export default function AddPrescriptionDialog({
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
                     <div
-                      className={mode !== "full" || (showRecordTab && activeTab === "medical_record") ? "md:col-span-12" : `md:col-span-7  p-0 sm:p-0  ${mobileTab === "form" ? "block" : "hidden md:block"}`}
+                      className={mode !== "full" || (showRecordTab && (activeTab === "medical_record" || activeTab === "reports")) ? "md:col-span-12" : `md:col-span-7  p-0 sm:p-0  ${mobileTab === "form" ? "block" : "hidden md:block"}`}
                     >
 
 
@@ -2814,7 +2814,8 @@ export default function AddPrescriptionDialog({
                       )}
                     </div>
 
-                    {mode === "full" && !(showRecordTab && activeTab === "medical_record") && <PrescriptionListPanel
+                    {/* Call screen: the notes sidebar only on the Prescription tab. */}
+                    {mode === "full" && !(showRecordTab && (activeTab === "medical_record" || activeTab === "reports")) && <PrescriptionListPanel
                       addedMedicines={addedMedicines}
                       onEditMedicine={handleEditMedicine}
                       onDeleteMedicine={handleDeleteMedicine}
