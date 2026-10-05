@@ -160,11 +160,7 @@ const LoginPage = () => {
                 buttonText={isPending ? "Signing In..." : "Sign In"}
                 onSubmit={handleLogin}
                 showForgotPassword={true}
-                alternateLink={{
-                    text: "Don't have an account?",
-                    href: "/register",
-                    linkText: "Sign up",
-                }}
+                // No sign up: doctor accounts are created by the clinic (admin panel).
             />
         </AuthLayout>
     )
