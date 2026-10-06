@@ -3,9 +3,19 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useAppointmentById } from "@/queries/useAppointmentId";
+import { usePatientMedicalRecord } from "@/queries/usePatientMedicalRecord";
 import { PatientHistoryItem, PatientHistoryMedicine } from "@/types/appointment";
 import {
+  Activity,
+  AlertCircle,
   Calendar,
   CalendarCheck,
   ChevronDown,
@@ -13,36 +23,81 @@ import {
   Clock,
   Download,
   ExternalLink,
+  FileImage,
   FileText,
+  FlaskConical,
+  HeartPulse,
   History,
   Lock,
+  Paperclip,
   Pill,
   Search,
   Stethoscope,
-  TestTube,
   User,
-  Utensils,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 interface PatientHistoryTabProps {
-  appointment: any;
+  appointment?: any;
+  appointmentId?: string;
+  patientHistory?: PatientHistoryItem[];
 }
 
-const formatMealText = (meal?: string | null) => {
-  if (!meal) return "";
-  switch (meal.toLowerCase()) {
-    case "after_meal":
-      return "After Meal";
-    case "before_meal":
-      return "Before Meal";
-    case "with_meal":
-      return "With Meal";
-    case "empty_stomach":
-      return "Empty Stomach";
-    default:
-      return meal.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const PREVIEW_CHAR_LIMIT = 220;
+
+function ReadMoreText({ text, className = "" }: { text: string; className?: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const needsTrunc = text.length > PREVIEW_CHAR_LIMIT;
+  return (
+    <span className={className}>
+      {needsTrunc && !expanded ? `${text.slice(0, PREVIEW_CHAR_LIMIT)}…` : text}
+      {needsTrunc && (
+        <button
+          type="button"
+          onClick={() => setExpanded((p) => !p)}
+          className="ml-1.5 text-primary text-xs font-semibold hover:underline"
+        >
+          {expanded ? "Read less" : "Read more"}
+        </button>
+      )}
+    </span>
+  );
+}
+
+const getFileUrl = (file: any): string => {
+  if (!file) return "#";
+  const rawUrl = typeof file === "string" ? file : file.file_url || file.url || "";
+  if (!rawUrl) return "#";
+  if (
+    rawUrl.startsWith("http://") ||
+    rawUrl.startsWith("https://") ||
+    rawUrl.startsWith("blob:") ||
+    rawUrl.startsWith("data:")
+  ) {
+    return rawUrl;
   }
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const rootDomain = apiBase
+    .replace(/\/api\/v2\/?$/, "")
+    .replace(/\/api\/?$/, "");
+  const baseUrl = rootDomain || "https://telehealthwebapplive.cmcludhiana.in";
+
+  const cleanPath = rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+  return `${baseUrl}${cleanPath}`;
+};
+
+const isImageFile = (filenameOrUrl: string | undefined | null): boolean => {
+  if (!filenameOrUrl) return false;
+  const clean = filenameOrUrl.split("?")[0].toLowerCase();
+  return (
+    clean.endsWith(".jpg") ||
+    clean.endsWith(".jpeg") ||
+    clean.endsWith(".png") ||
+    clean.endsWith(".gif") ||
+    clean.endsWith(".webp") ||
+    clean.endsWith(".svg") ||
+    clean.endsWith(".bmp")
+  );
 };
 
 const formatDate = (dateStr?: string | null, formatted?: string | null) => {
@@ -59,22 +114,184 @@ const formatDate = (dateStr?: string | null, formatted?: string | null) => {
       });
     }
   } catch {
-    // fallback to original string
+    // fallback
   }
   return dateStr;
 };
 
-export default function PatientHistoryTab({ appointment }: PatientHistoryTabProps) {
+// Format duration from start_date -> end_date
+function formatDuration(start?: string | null, end?: string | null, isOngoing?: boolean): string {
+  if (isOngoing && !end) return "Ongoing";
+  if (end) {
+    const endDate = new Date(end);
+    if (!isNaN(endDate.getTime())) {
+      return endDate.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    }
+  }
+  if (start) {
+    const startDate = new Date(start);
+    if (!isNaN(startDate.getTime())) {
+      return startDate.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    }
+  }
+  return "—";
+}
+
+function ViewUploadedFilesModal({
+  appointmentId,
+  open,
+  onOpenChange,
+}: {
+  appointmentId: string | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { data, isLoading } = usePatientMedicalRecord(appointmentId || "");
+  const record = data?.data;
+  const filesList =
+    record?.attached_docs ||
+    record?.files ||
+    record?.medical_record_files ||
+    record?.attached_files ||
+    [];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl p-5 sm:p-6 rounded-2xl">
+        <DialogHeader className="pb-3 border-b">
+          <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-foreground">
+            <Paperclip className="h-5 w-5 text-primary" />
+            Attached Media &amp; Reports
+          </DialogTitle>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="py-10 text-center space-y-2">
+            <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs text-muted-foreground">Loading uploaded files...</p>
+          </div>
+        ) : filesList.length === 0 ? (
+          <div className="py-10 text-center space-y-2">
+            <Paperclip className="h-8 w-8 text-muted-foreground mx-auto opacity-40" />
+            <p className="text-sm font-medium text-foreground">No uploaded files found</p>
+            <p className="text-xs text-muted-foreground">No media or report files were attached to this medical record.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-1 gap-3 py-3 max-h-[60vh] overflow-y-auto">
+            {filesList.map((file: any, idx: number) => {
+              const fullUrl = getFileUrl(file);
+              const fileName = file.name || file.file_name || `Attachment #${idx + 1}`;
+              const isImg = isImageFile(file.file_url || file.url || file.name || file.file_name);
+              return (
+                <div
+                  key={file.id || idx}
+                  className="flex items-center justify-between p-3 rounded-xl border border-border bg-card hover:bg-accent/50 transition-colors gap-3"
+                >
+                  <a
+                    href={fullUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 min-w-0 flex-1 group"
+                  >
+                    {isImg ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={fullUrl} alt={fileName} className="h-10 w-10 rounded-lg object-cover border shrink-0" />
+                    ) : (
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-foreground group-hover:text-primary truncate" title={fileName}>
+                        {fileName}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Click to view file</p>
+                    </div>
+                  </a>
+                  <a
+                    href={fullUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors shrink-0"
+                    title="Open file"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ClinicalInfoCard({
+  icon: Icon,
+  iconColor,
+  label,
+  value,
+  fullWidth = false,
+  variant = "default",
+}: {
+  icon: any;
+  iconColor: string;
+  label: string;
+  value: string;
+  fullWidth?: boolean;
+  variant?: "default" | "amber" | "green";
+}) {
+  const borderCls =
+    variant === "amber"
+      ? "border-amber-200 bg-amber-50/60 dark:border-amber-700/30 dark:bg-amber-900/10"
+      : variant === "green"
+        ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-700/30 dark:bg-emerald-900/10"
+        : "border-border bg-muted/10";
+  return (
+    <div
+      className={`p-3.5 rounded-xl border space-y-1.5 ${borderCls}${fullWidth ? " col-span-1 md:col-span-2" : ""}`}
+    >
+      <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wide">
+        <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
+        {label}
+      </p>
+      <p className="text-xs sm:text-[13px] font-medium text-foreground whitespace-pre-line leading-relaxed">
+        <ReadMoreText text={value} />
+      </p>
+    </div>
+  );
+}
+
+export default function PatientHistoryTab({
+  appointment: propAppointment,
+  appointmentId,
+  patientHistory: customHistory,
+}: PatientHistoryTabProps) {
+  const targetId = appointmentId || propAppointment?.appointment_id || propAppointment?.id;
+  const { data: fetchedData, isLoading } = useAppointmentById(targetId ? String(targetId) : "");
+
+  const appointment = fetchedData?.data || propAppointment;
+
   const patientHistory: PatientHistoryItem[] = useMemo(() => {
-    const history = appointment?.patient_history;
+    if (customHistory && Array.isArray(customHistory)) {
+      return customHistory;
+    }
+    const history = fetchedData?.data?.patient_history || appointment?.patient_history || propAppointment?.patient_history;
     if (Array.isArray(history)) {
       return history;
     }
     return [];
-  }, [appointment]);
+  }, [appointment, fetchedData, propAppointment, customHistory]);
 
-  // Keep track of which appointment card toggles are open
-  // Default to expanding the first history item if available
   const [openIds, setOpenIds] = useState<Record<string, boolean>>(() => {
     if (patientHistory.length > 0 && patientHistory[0].appointment_id) {
       return { [patientHistory[0].appointment_id]: true };
@@ -83,11 +300,24 @@ export default function PatientHistoryTab({ appointment }: PatientHistoryTabProp
   });
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"all" | "prescriptions" | "notes" | "tests">("all");
+  const [isMobileFilterDrawerOpen, setIsMobileFilterDrawerOpen] = useState(false);
+  const [selectedApptForFiles, setSelectedApptForFiles] = useState<string | null>(null);
 
-  const toggleItem = (appointmentId: string) => {
+  const getFilterLabel = (key: string) => {
+    switch (key) {
+      case "all": return "All Records";
+      case "prescriptions": return "Prescriptions";
+      case "notes": return "Clinical Notes";
+      case "tests": return "Tests & Reports";
+      default: return "All Records";
+    }
+  };
+
+  const toggleItem = (apptId: string) => {
     setOpenIds((prev) => ({
       ...prev,
-      [appointmentId]: !prev[appointmentId],
+      [apptId]: !prev[apptId],
     }));
   };
 
@@ -106,47 +336,64 @@ export default function PatientHistoryTab({ appointment }: PatientHistoryTabProp
   };
 
   const filteredHistory = useMemo(() => {
-    if (!searchQuery.trim()) return patientHistory;
-    const q = searchQuery.toLowerCase().trim();
-
     return patientHistory.filter((item) => {
-      const matchDate =
+      const q = searchQuery.toLowerCase().trim();
+      const matchSearch =
+        !q ||
         item.date?.toLowerCase().includes(q) ||
-        item.date_formatted?.toLowerCase().includes(q);
-      const matchDoctor = item.doctor_name?.toLowerCase().includes(q);
-      const matchDiagnosis = item.diagnosis?.toLowerCase().includes(q);
-      const matchNotes = item.notes?.toLowerCase().includes(q);
-      const matchInstructions = item.instructions_by_doctor?.toLowerCase().includes(q);
-      const matchInvestigation = item.order_investigation?.toLowerCase().includes(q);
-      const matchMedicine = item.prescribed_medicines?.some((med) =>
-        med.medicine_name?.toLowerCase().includes(q)
-      );
+        item.date_formatted?.toLowerCase().includes(q) ||
+        item.doctor_name?.toLowerCase().includes(q) ||
+        item.diagnosis?.toLowerCase().includes(q) ||
+        item.chief_complaint?.toLowerCase().includes(q) ||
+        item.history_of_present_illness?.toLowerCase().includes(q) ||
+        item.present_medical_history?.toLowerCase().includes(q) ||
+        item.family_history?.toLowerCase().includes(q) ||
+        item.personal_history?.toLowerCase().includes(q) ||
+        item.examination?.toLowerCase().includes(q) ||
+        item.treatment?.toLowerCase().includes(q) ||
+        item.notes?.toLowerCase().includes(q) ||
+        item.clinical_notes?.toLowerCase().includes(q) ||
+        item.instructions_by_doctor?.toLowerCase().includes(q) ||
+        item.order_investigation?.toLowerCase().includes(q) ||
+        item.prescribed_medicines?.some((med) => med.medicine_name?.toLowerCase().includes(q));
 
-      return (
-        matchDate ||
-        matchDoctor ||
-        matchDiagnosis ||
-        matchNotes ||
-        matchInstructions ||
-        matchInvestigation ||
-        matchMedicine
-      );
+      let matchCategory = true;
+      if (activeFilter === "prescriptions") {
+        matchCategory = (item.prescribed_medicines?.length ?? 0) > 0;
+      } else if (activeFilter === "tests") {
+        matchCategory = Boolean(item.order_investigation);
+      } else if (activeFilter === "notes") {
+        matchCategory = Boolean(
+          item.diagnosis || item.chief_complaint || item.treatment || item.notes || item.clinical_notes
+        );
+      }
+
+      return matchSearch && matchCategory;
     });
-  }, [patientHistory, searchQuery]);
+  }, [patientHistory, searchQuery, activeFilter]);
 
-  // Empty state when no history is present
+  if (isLoading && appointmentId && !propAppointment) {
+    return (
+      <Card className="rounded-2xl border shadow-xs bg-card">
+        <CardContent className="py-10 text-center">
+          <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-sm font-medium text-muted-foreground">Loading patient history...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!patientHistory.length) {
     return (
-      <Card className="rounded-2xl border shadow-xs">
+      <Card className="rounded-2xl border shadow-xs bg-card">
         <CardContent className="py-14 px-4 text-center">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
             <History className="h-7 w-7" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground">
-            No Patient History Available
-          </h3>
+          <h3 className="text-lg font-semibold text-foreground">No Patient History Available</h3>
           <p className="text-sm text-muted-foreground mt-1.5 max-w-md mx-auto">
-            Previous consultation records, prescribed medicines, clinical notes, and investigations for this patient will appear here once recorded.
+            Previous consultation records, prescribed medicines, clinical notes, and investigations for this patient will
+            appear here once recorded.
           </p>
         </CardContent>
       </Card>
@@ -155,382 +402,607 @@ export default function PatientHistoryTab({ appointment }: PatientHistoryTabProp
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* Top Header & Search Bar */}
+      {/* Uploaded Files Modal */}
+      <ViewUploadedFilesModal
+        appointmentId={selectedApptForFiles}
+        open={Boolean(selectedApptForFiles)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedApptForFiles(null);
+        }}
+      />
+
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-primary/10 text-primary">
+          <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
             <History className="h-5 w-5" />
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
               Patient Consultation History
-              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary font-semibold hover:bg-primary/10">
+              <Badge
+                variant="secondary"
+                className="text-xs bg-primary/10 text-primary font-semibold hover:bg-primary/10"
+              >
                 {patientHistory.length} {patientHistory.length === 1 ? "Record" : "Records"}
               </Badge>
             </h3>
             <p className="text-xs text-muted-foreground">
-              Date-wise consultation details, prescriptions, diagnosis, and medical records
+              All appointments — prescriptions, diagnosis, notes, and investigations
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {patientHistory.length > 1 && (
-            <div className="flex items-center gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={expandAll}
-                className="text-xs h-8 px-2.5"
-              >
-                Expand All
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={collapseAll}
-                className="text-xs h-8 px-2.5"
-              >
-                Collapse All
-              </Button>
-            </div>
+        {patientHistory.length > 1 && (
+          <div className="flex items-center gap-1.5 justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={expandAll}
+              className="text-xs h-8 px-2.5 rounded-lg border-border"
+            >
+              Expand All
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={collapseAll}
+              className="text-xs h-8 px-2.5 rounded-lg border-border"
+            >
+              Collapse All
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Search & Filter */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by date, medicine, diagnosis, doctor..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 text-xs sm:text-sm h-9.5 bg-card rounded-xl border-border"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground font-medium"
+            >
+              Clear
+            </button>
           )}
+        </div>
+
+        {/* Desktop Filter Pills */}
+        <div className="hidden md:flex items-center gap-1.5 shrink-0">
+          {(
+            [
+              ["all", "All Records"],
+              ["prescriptions", "Prescriptions"],
+              ["notes", "Clinical Notes"],
+              ["tests", "Tests"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveFilter(key)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                activeFilter === key
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Mobile Filter Drawer Trigger */}
+        <div className="block md:hidden shrink-0 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setIsMobileFilterDrawerOpen(true)}
+            className="w-full flex items-center justify-between gap-2 p-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-800">
+              <History className="h-3.5 w-3.5 text-primary" />
+              <span>Filter: <strong className="text-primary font-bold">{getFilterLabel(activeFilter)}</strong></span>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg">
+              Change
+              <ChevronDown className="h-3 w-3" />
+            </div>
+          </button>
         </div>
       </div>
 
-      {/* Optional Search if more than 1 entry */}
-      {patientHistory.length > 1 && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by date, medicine name, diagnosis, doctor..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 text-xs sm:text-sm h-9 bg-card"
-          />
-        </div>
-      )}
+      {/* Mobile Category Filter Bottom Sheet Drawer */}
+      <Dialog open={isMobileFilterDrawerOpen} onOpenChange={setIsMobileFilterDrawerOpen}>
+        <DialogContent className="max-w-md w-full p-4 rounded-t-2xl sm:rounded-2xl fixed bottom-0 md:bottom-auto translate-y-0 sm:translate-y-0 max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="pb-2 border-b border-slate-100">
+            <DialogTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" />
+              Select Record Filter
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-1">
+            {(
+              [
+                ["all", "All Records"],
+                ["prescriptions", "Prescriptions"],
+                ["notes", "Clinical Notes"],
+                ["tests", "Tests & Reports"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  setActiveFilter(key);
+                  setIsMobileFilterDrawerOpen(false);
+                }}
+                className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all ${
+                  activeFilter === key
+                    ? "bg-primary text-white shadow-xs font-bold"
+                    : "text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* Filtered empty state */}
+      {/* Filtered empty */}
       {filteredHistory.length === 0 && (
-        <Card className="rounded-xl border shadow-xs">
+        <Card className="rounded-xl border shadow-xs bg-card">
           <CardContent className="py-10 text-center">
             <Search className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-            <p className="text-sm font-medium text-foreground">No matching history found</p>
-            <p className="text-xs text-muted-foreground mt-1">Try modifying your search term</p>
+            <p className="text-sm font-medium text-foreground">No matching records found</p>
+            <p className="text-xs text-muted-foreground mt-1">Try modifying your search query or filter category</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Date-wise Appointments Accordion/Toggle List */}
-      <div className="space-y-4">
+      {/* Accordion List */}
+      <div className="space-y-3.5">
         {filteredHistory.map((item, index) => {
           const itemKey = item.appointment_id || `history-${index}`;
           const isOpen = !!openIds[itemKey];
           const medicines = item.prescribed_medicines || [];
+          const filesCount = (item.attached_docs?.length || item.files?.length || 0);
+          const timeFormatted = item.time_formatted || item.time;
+
+          const hasConsultationData =
+            item.diagnosis ||
+            item.chief_complaint ||
+            item.history_of_present_illness ||
+            item.present_medical_history ||
+            item.family_history ||
+            item.personal_history ||
+            item.examination ||
+            item.treatment ||
+            item.order_investigation ||
+            item.instructions_by_doctor ||
+            item.notes ||
+            item.clinical_notes ||
+            item.confidential_notes ||
+            item.next_visit_date;
 
           return (
             <div
               key={itemKey}
-              className="border border-border/80 rounded-2xl overflow-hidden bg-card shadow-xs transition-all hover:border-border"
+              className={`rounded-2xl overflow-hidden bg-card shadow-xs transition-all border-2 ${isOpen
+                  ? "border-primary/50 shadow-md shadow-primary/10"
+                  : "border-border/70 hover:border-border"
+                }`}
             >
-              {/* Accordion / Toggle Header */}
+              {/* Toggle Header */}
               <button
                 type="button"
                 onClick={() => toggleItem(itemKey)}
                 aria-expanded={isOpen}
-                className="w-full text-left p-4 sm:p-5 bg-muted/30 hover:bg-muted/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60"
+                className={`w-full text-left p-4 sm:p-5 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer ${isOpen ? "bg-primary/5 border-b-2 border-primary/20" : "bg-muted/20 hover:bg-muted/40"
+                  }`}
               >
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0 mt-0.5 sm:mt-0">
-                    <Calendar className="h-5 w-5" />
+                {/* Left: Date + Meta info */}
+                <div className="flex items-center gap-3">
+                  {/* Date bubble */}
+                  <div
+                    className={`flex flex-col items-center justify-center rounded-xl p-2 min-w-[52px] shrink-0 ${isOpen ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+                      }`}
+                  >
+                    {item.date ? (
+                      <>
+                        <span className="text-[10px] font-bold uppercase leading-none">
+                          {new Date(item.date).toLocaleDateString("en-US", { month: "short" })}
+                        </span>
+                        <span className="text-xl font-extrabold leading-tight">
+                          {new Date(item.date).getDate()}
+                        </span>
+                      </>
+                    ) : (
+                      <Calendar className="h-5 w-5" />
+                    )}
                   </div>
-                  <div className="space-y-0.5">
+
+                  <div className="space-y-0.5 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm sm:text-base font-bold text-foreground">
                         {formatDate(item.date, item.date_formatted)}
                       </span>
-                      {item.date && item.date_formatted && item.date !== item.date_formatted && (
-                        <span className="text-[11px] text-muted-foreground font-normal">
-                          ({item.date})
+                      {timeFormatted && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60">
+                          <Clock className={`h-3 w-3 ${isOpen ? "text-primary" : "text-muted-foreground"}`} />
+                          {timeFormatted}
                         </span>
                       )}
                     </div>
                     {item.doctor_name && (
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                        <User className="h-3.5 w-3.5 text-primary" />
-                        <span>Consulted with {item.doctor_name}</span>
+                        <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="truncate">Consulted with {item.doctor_name}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-                  <div className="flex items-center gap-2">
+                {/* Right: Badges + View Details */}
+                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {medicines.length > 0 && (
-                      <Badge variant="outline" className="text-xs bg-card border-border font-medium flex items-center gap-1">
+                      <Badge
+                        variant="outline"
+                        className={`text-[11px] font-semibold flex items-center gap-1 border ${isOpen ? "border-primary/30 bg-primary/5 text-primary" : "border-border bg-card"
+                          }`}
+                      >
                         <Pill className="h-3 w-3 text-primary" />
                         {medicines.length} {medicines.length === 1 ? "Medicine" : "Medicines"}
                       </Badge>
                     )}
+                    {filesCount > 0 && (
+                      <Badge
+                        variant="outline"
+                        className="text-[11px] font-semibold flex items-center gap-1 border border-primary/30 bg-primary/5 text-primary"
+                      >
+                        <Paperclip className="h-3 w-3 text-primary" />
+                        {filesCount} {filesCount === 1 ? "File" : "Files"}
+                      </Badge>
+                    )}
                     {item.next_visit_date && (
-                      <Badge variant="secondary" className="text-[11px] font-medium hidden md:inline-flex items-center gap-1">
+                      <Badge
+                        variant="secondary"
+                        className="text-[11px] font-medium hidden md:inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      >
                         <CalendarCheck className="h-3 w-3 text-emerald-600" />
-                        Next: {item.next_visit_date}
+                        Next: {formatDate(item.next_visit_date)}
                       </Badge>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 text-xs font-semibold text-primary pl-2">
+                  <div className="flex items-center gap-1 text-xs font-semibold text-primary">
                     <span>{isOpen ? "Hide Details" : "View Details"}</span>
-                    {isOpen ? (
-                      <ChevronUp className="h-4 w-4 transition-transform" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 transition-transform" />
-                    )}
+                    {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </div>
                 </div>
               </button>
 
-              {/* Accordion / Toggle Body (Dropdown Details) */}
+              {/* Accordion Body */}
               {isOpen && (
-                <div className="p-4 sm:p-6 space-y-6 bg-card divide-y divide-border/60">
-                  {/* Top Bar inside Dropdown: Download Prescription Button */}
-                  <div className="flex items-center justify-end pb-3">
-                    {item.pdf_url ? (
-                      <a
-                        href={item.pdf_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs sm:text-sm font-semibold rounded-xl hover:bg-primary/90 transition shadow-2xs cursor-pointer"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download Prescription
-                        <ExternalLink className="h-3.5 w-3.5 opacity-80" />
-                      </a>
-                    ) : (
+                <div className="bg-card divide-y divide-border/50">
+                  {/* Appointment Action Bar */}
+                  <div className="px-3 sm:px-6 py-2.5 flex items-center justify-end bg-muted/20">
+                    <div className="flex flex-row items-center gap-1.5 sm:gap-2 justify-end w-full sm:w-auto">
+                      {/* Button to view all uploaded files */}
                       <Button
-                        disabled
+                        type="button"
                         variant="outline"
                         size="sm"
-                        className="text-xs text-muted-foreground gap-1.5 opacity-60 rounded-xl"
+                        title="View Uploaded Files"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedApptForFiles(item.appointment_id);
+                        }}
+                        className="text-xs h-8 px-2.5 sm:px-3 rounded-lg border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 gap-1.5 font-semibold shrink-0"
                       >
-                        <Download className="h-4 w-4" />
-                        Download Prescription
+                        <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                        <span className="hidden sm:inline">View Uploaded Files</span>
                       </Button>
-                    )}
+
+                      {/* Link to view appointment */}
+                      <a
+                        href={`/appointments/${item.appointment_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="View Appointment"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition px-2.5 sm:px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 h-8 shrink-0"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                        <span className="hidden sm:inline">View Appointment</span>
+                      </a>
+
+                      {item.pdf_url ? (
+                        <a
+                          href={item.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Download PDF"
+                          className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:bg-primary/90 transition shadow-xs cursor-pointer h-8 shrink-0"
+                        >
+                          <Download className="h-3.5 w-3.5 shrink-0" />
+                          <span className="hidden sm:inline">Download PDF</span>
+                        </a>
+                      ) : (
+                        <Button
+                          disabled
+                          variant="outline"
+                          size="sm"
+                          title="Download PDF"
+                          className="text-xs text-muted-foreground gap-1.5 opacity-50 rounded-lg h-8 px-2.5 sm:px-3 shrink-0"
+                        >
+                          <Download className="h-3.5 w-3.5 shrink-0" />
+                          <span className="hidden sm:inline">Download PDF</span>
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {/* SECTION 1: Prescribed Medicines */}
-                  <div className="pt-5 space-y-3.5">
+                  <div className="px-4 sm:px-6 py-5 space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <div className="p-1 rounded-md bg-primary/10 text-primary">
+                        <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
                           <Pill className="h-4 w-4" />
                         </div>
                         Prescribed Medicines
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs bg-primary/10 text-primary font-semibold">
                           {medicines.length}
                         </Badge>
                       </h4>
+                      {medicines.length > 0 && (
+                        <span className="text-[10px] text-muted-foreground italic">All items digitally verified</span>
+                      )}
                     </div>
 
                     {medicines.length === 0 ? (
                       <div className="p-4 rounded-xl border border-dashed border-border bg-muted/20 text-center text-xs text-muted-foreground">
-                        No medicines prescribed for this appointment.
+                        No medicines prescribed for this consultation.
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                        {medicines.map((med: PatientHistoryMedicine, medIdx: number) => (
-                          <div
-                            key={med.prescription_id || medIdx}
-                            className="p-3.5 sm:p-4 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-colors space-y-2.5 flex flex-col justify-between"
-                          >
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold text-foreground">
-                                    {med.medicine_name}
-                                  </span>
-                                  {med.is_ongoing && (
-                                    <Badge className="bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 border-emerald-200 text-[10px] font-semibold px-2 py-0.5">
-                                      Ongoing
-                                    </Badge>
-                                  )}
-                                </div>
-                                {med.dosage && (
-                                  <p className="text-xs font-semibold text-primary mt-0.5">
-                                    Dosage: {med.dosage}
-                                  </p>
-                                )}
-                              </div>
+                      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-2xs">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-muted/60 border-b border-border text-muted-foreground font-semibold text-[11px] uppercase tracking-wide">
+                              <th className="py-2.5 px-3 w-10 text-center">#</th>
+                              <th className="py-2.5 px-3 min-w-[220px]">Medicine &amp; Type</th>
+                              <th className="py-2.5 px-3 min-w-[150px]">Duration</th>
+                              <th className="py-2.5 px-3 min-w-[260px]">Instructions &amp; Remarks</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/50">
+                            {medicines.map((med: PatientHistoryMedicine, medIdx: number) => {
+                              const durationStr = formatDuration(med.start_date, med.end_date, med.is_ongoing);
 
-                              {/* Frequency & Meal Badges */}
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                {(med.frequency || med.frequency_label) && (
-                                  <Badge
-                                    variant="secondary"
-                                    className="bg-primary/10 text-primary border-primary/20 text-[11px] font-semibold"
-                                  >
-                                    {med.frequency_label || med.frequency}
-                                  </Badge>
-                                )}
-                                {med.meal && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[11px] text-muted-foreground border-border flex items-center gap-1"
-                                  >
-                                    <Utensils className="h-3 w-3 text-muted-foreground" />
-                                    {formatMealText(med.meal)}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
+                              return (
+                                <tr
+                                  key={med.prescription_id || medIdx}
+                                  className="hover:bg-muted/20 transition-colors"
+                                >
+                                  <td className="py-3 px-3 text-center font-medium text-muted-foreground">{medIdx + 1}</td>
 
-                            {/* Timings */}
-                            {med.timings && med.timings.length > 0 && (
-                              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                                <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  Timings:
-                                </span>
-                                {med.timings.map((timing, tIdx) => (
-                                  <span
-                                    key={tIdx}
-                                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted text-foreground border border-border/60"
-                                  >
-                                    {timing}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                                  <td className="py-3 px-3">
+                                    <div className="space-y-1">
+                                      <span className="font-bold text-foreground block">
+                                        {med.medicine_name}
+                                      </span>
+                                      {med.dosage && (
+                                        <span className="text-[11px] text-muted-foreground block">
+                                          {med.dosage}
+                                        </span>
+                                      )}
+                                      {med.is_ongoing && (
+                                        <Badge className="bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 border-emerald-200 text-[10px] font-semibold px-1.5">
+                                          Ongoing
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </td>
 
-                            {/* Dates / Duration */}
-                            {(med.start_date || med.end_date) && (
-                              <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium pt-0.5">
-                                <Calendar className="h-3 w-3" />
-                                <span>
-                                  Duration: {formatDate(med.start_date)}
-                                  {med.end_date ? ` to ${formatDate(med.end_date)}` : ""}
-                                </span>
-                              </div>
-                            )}
+                                  <td className="py-3 px-3">
+                                    <div className="text-xs font-medium text-muted-foreground">
+                                      {durationStr}
+                                    </div>
+                                    {med.end_date && !med.is_ongoing && (
+                                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                                        {med.end_date
+                                          ? (() => {
+                                            const start = med.start_date ? new Date(med.start_date) : null;
+                                            const end = new Date(med.end_date);
+                                            if (start && !isNaN(end.getTime())) {
+                                              const diffMs = end.getTime() - start.getTime();
+                                              const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                                              return days > 0 ? `${days} Days Course` : "";
+                                            }
+                                            return "";
+                                          })()
+                                          : ""}
+                                      </div>
+                                    )}
+                                  </td>
 
-                            {/* Specific Medicine Instructions */}
-                            {med.instructions && (
-                              <div className="mt-1 p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-900 dark:text-amber-200 font-medium flex items-start gap-2">
-                                <FileText className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                                <span>{med.instructions}</span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                                  <td className="py-3 px-3">
+                                    {med.instructions ? (
+                                      <span className="text-xs text-amber-900 dark:text-amber-200 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 inline-block leading-snug">
+                                        <ReadMoreText text={med.instructions} />
+                                      </span>
+                                    ) : (
+                                      <span className="text-muted-foreground">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     )}
                   </div>
 
-                  {/* SECTION 2: Clinical Details (Diagnosis, Investigations, Notes, etc.) */}
-                  <div className="pt-5 space-y-4">
-                    <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-                      <div className="p-1 rounded-md bg-primary/10 text-primary">
-                        <Stethoscope className="h-4 w-4" />
+                  {/* SECTION 2: Clinical Examination & Diagnostics */}
+                  {hasConsultationData && (
+                    <div className="px-4 sm:px-6 py-5 space-y-3">
+                      <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                          <Stethoscope className="h-4 w-4" />
+                        </div>
+                        Clinical Examination &amp; Diagnostics
+                      </h4>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {item.diagnosis && (
+                          <ClinicalInfoCard
+                            icon={Stethoscope}
+                            iconColor="text-primary"
+                            label="Diagnosis"
+                            value={item.diagnosis}
+                          />
+                        )}
+                        {item.order_investigation && (
+                          <div className="p-3.5 rounded-xl border border-border bg-muted/10 space-y-1.5">
+                            <p className="text-[11px] font-semibold text-muted-foreground flex items-center justify-between gap-1.5 uppercase tracking-wide">
+                              <span className="flex items-center gap-1.5">
+                                <FlaskConical className="h-3.5 w-3.5 text-primary" />
+                                Order Investigation / Tests
+                              </span>
+                              <Badge className="text-[10px] px-1.5 py-0 bg-sky-50 text-sky-700 border-sky-200 font-semibold border">
+                                Ordered
+                              </Badge>
+                            </p>
+                            <p className="text-xs sm:text-[13px] font-medium text-foreground whitespace-pre-line leading-relaxed">
+                              <ReadMoreText text={item.order_investigation} />
+                            </p>
+                          </div>
+                        )}
+
+                        {item.instructions_by_doctor && (
+                          <ClinicalInfoCard
+                            icon={FileText}
+                            iconColor="text-primary"
+                            label="Instructions by Doctor"
+                            value={item.instructions_by_doctor}
+                          />
+                        )}
+                        {(item.notes || item.clinical_notes) && (
+                          <ClinicalInfoCard
+                            icon={FileText}
+                            iconColor="text-muted-foreground"
+                            label="Patient Reported Clinical Notes"
+                            value={item.clinical_notes || item.notes || ""}
+                          />
+                        )}
+
+                        {item.chief_complaint && (
+                          <ClinicalInfoCard
+                            icon={AlertCircle}
+                            iconColor="text-amber-600"
+                            label="Chief Complaint"
+                            value={item.chief_complaint}
+                          />
+                        )}
+                        {item.history_of_present_illness && (
+                          <ClinicalInfoCard
+                            icon={FileText}
+                            iconColor="text-primary"
+                            label="History of Present Illness"
+                            value={item.history_of_present_illness}
+                          />
+                        )}
+                        {item.present_medical_history && (
+                          <ClinicalInfoCard
+                            icon={HeartPulse}
+                            iconColor="text-rose-600"
+                            label="Present Medical History"
+                            value={item.present_medical_history}
+                          />
+                        )}
+                        {item.family_history && (
+                          <ClinicalInfoCard
+                            icon={User}
+                            iconColor="text-primary"
+                            label="Family History"
+                            value={item.family_history}
+                          />
+                        )}
+                        {item.personal_history && (
+                          <ClinicalInfoCard
+                            icon={User}
+                            iconColor="text-muted-foreground"
+                            label="Personal History"
+                            value={item.personal_history}
+                          />
+                        )}
+                        {item.examination && (
+                          <ClinicalInfoCard
+                            icon={Activity}
+                            iconColor="text-emerald-600"
+                            label="Clinical Examination Findings"
+                            value={item.examination}
+                          />
+                        )}
+                        {item.treatment && (
+                          <ClinicalInfoCard
+                            icon={Pill}
+                            iconColor="text-primary"
+                            label="Treatment Plan"
+                            value={item.treatment}
+                            fullWidth
+                          />
+                        )}
                       </div>
-                      Consultation Information & Records
-                    </h4>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 pt-1">
-                      {/* Diagnosis */}
-                      {item.diagnosis && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                            <Stethoscope className="h-3.5 w-3.5 text-primary" />
-                            Diagnosis
-                          </p>
-                          <p className="text-xs sm:text-sm font-medium text-foreground whitespace-pre-line leading-relaxed">
-                            {item.diagnosis}
-                          </p>
-                        </div>
-                      )}
+                      {/* Bottom row: Next Visit + Confidential side by side */}
+                      {(item.next_visit_date || item.confidential_notes) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                          {item.next_visit_date && (
+                            <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/60 dark:border-emerald-700/30 dark:bg-emerald-900/10 space-y-1.5">
+                              <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wide">
+                                <CalendarCheck className="h-3.5 w-3.5 text-emerald-600" />
+                                Next Scheduled Visit
+                              </p>
+                              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                                {formatDate(item.next_visit_date)}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">Slot confirmed</p>
+                            </div>
+                          )}
 
-                      {/* Order Investigation */}
-                      {item.order_investigation && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                            <TestTube className="h-3.5 w-3.5 text-primary" />
-                            Order Investigation
-                          </p>
-                          <p className="text-xs sm:text-sm font-medium text-foreground whitespace-pre-line leading-relaxed">
-                            {item.order_investigation}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Instructions by Doctor */}
-                      {item.instructions_by_doctor && (
-                        <div className="space-y-1 md:col-span-2">
-                          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                            <FileText className="h-3.5 w-3.5 text-primary" />
-                            Instructions by Doctor
-                          </p>
-                          <p className="text-xs sm:text-sm font-medium text-foreground whitespace-pre-line leading-relaxed">
-                            {item.instructions_by_doctor}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Notes */}
-                      {item.notes && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                            Notes
-                          </p>
-                          <p className="text-xs sm:text-sm font-medium text-foreground whitespace-pre-line leading-relaxed">
-                            {item.notes}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Next Visit Date */}
-                      {item.next_visit_date && (
-                        <div className="space-y-1">
-                          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                            <CalendarCheck className="h-3.5 w-3.5 text-emerald-600" />
-                            Next Visit Date
-                          </p>
-                          <p className="text-xs sm:text-sm font-medium text-foreground">
-                            {formatDate(item.next_visit_date)}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Confidential Notes */}
-                      {item.confidential_notes && (
-                        <div className="space-y-1 md:col-span-2">
-                          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                            <Lock className="h-3.5 w-3.5 text-amber-600" />
-                            Confidential Notes (Doctor Only)
-                          </p>
-                          <p className="text-xs sm:text-sm font-medium text-foreground whitespace-pre-line leading-relaxed">
-                            {item.confidential_notes}
-                          </p>
+                          {item.confidential_notes && (
+                            <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/60 dark:border-amber-700/30 dark:bg-amber-900/10 space-y-1.5">
+                              <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 flex items-center justify-between gap-1.5 uppercase tracking-wide">
+                                <span className="flex items-center gap-1.5">
+                                  <Lock className="h-3.5 w-3.5 text-amber-600" />
+                                  Confidential Notes (Doctor Only)
+                                </span>
+                                <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 border border-amber-300 font-semibold">
+                                  Restricted Access
+                                </Badge>
+                              </p>
+                              <p className="text-xs sm:text-[13px] font-mono text-foreground whitespace-pre-line leading-relaxed">
+                                <ReadMoreText text={item.confidential_notes} />
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-
-                    {!item.diagnosis &&
-                      !item.order_investigation &&
-                      !item.instructions_by_doctor &&
-                      !item.notes &&
-                      !item.confidential_notes &&
-                      !item.next_visit_date && (
-                        <p className="text-xs text-muted-foreground italic">
-                          No additional clinical notes recorded for this consultation.
-                        </p>
-                      )}
-                  </div>
+                  )}
                 </div>
               )}
             </div>

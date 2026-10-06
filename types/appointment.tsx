@@ -35,19 +35,39 @@ export interface PatientHistoryMedicine {
   instructions?: string;
 }
 
+export interface PatientHistoryFile {
+  id?: string;
+  name?: string;
+  file_url?: string;
+  url?: string;
+  file_type?: string;
+}
+
 export interface PatientHistoryItem {
   date?: string | null;
   date_formatted?: string | null;
+  time?: string | null;
+  time_formatted?: string | null;
   appointment_id: string;
   doctor_name?: string | null;
   prescribed_medicines?: PatientHistoryMedicine[];
+  chief_complaint?: string | null;
+  history_of_present_illness?: string | null;
+  present_medical_history?: string | null;
+  family_history?: string | null;
+  personal_history?: string | null;
+  examination?: string | null;
+  treatment?: string | null;
   order_investigation?: string | null;
   diagnosis?: string | null;
   notes?: string | null;
+  clinical_notes?: string | null;
   confidential_notes?: string | null;
   instructions_by_doctor?: string | null;
   next_visit_date?: string | null;
   pdf_url?: string | null;
+  attached_docs?: PatientHistoryFile[];
+  files?: PatientHistoryFile[];
 }
 
 export interface Appointment {

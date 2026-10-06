@@ -134,37 +134,36 @@ export function Header() {
           />
         </Link>
 
-        {/* Desktop Navigation */}
-        {isDesktop && (
-          <nav className="flex items-center gap-2 lg:gap-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "relative flex items-center gap-2 rounded-md px-2 lg:px-3 py-2 text-xs lg:text-sm font-medium transition-colors",
-                  pathname === item.href
-                    ? "border border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/85"
-                    : "border border-primary bg-white text-primary hover:bg-primary hover:text-primary-foreground",
-                )}
-              >
-                {item.icon}
-                <span className="hidden sm:inline">{item.title}</span>
-                {item.badge ? (
-                  <Badge
-                    variant={pathname === item.href ? "secondary" : "default"}
-                    className="ml-auto flex h-5 w-5 items-center justify-center text-[10px] bg-primary/10! rounded-full p-4"
-                  >
-                    {Number(item.badge) > 99 ? "99+" : item.badge}
-                  </Badge>
-                ) : null}
-              </Link>
-            ))}
-          </nav>
-        )}
+        {/* Navigation Bar (Icons on Mobile, Icon + Text on Desktop) */}
+        <nav className="flex items-center gap-1 sm:gap-2 lg:gap-4">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              title={item.title}
+              className={cn(
+                "relative flex items-center justify-center gap-2 rounded-xl p-2 lg:px-3 lg:py-2 text-xs lg:text-sm font-semibold transition-all shadow-2xs",
+                pathname === item.href
+                  ? "border border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/85"
+                  : "border border-primary/25 bg-white text-primary hover:bg-primary hover:text-primary-foreground",
+              )}
+            >
+              <span className="shrink-0">{item.icon}</span>
+              <span className="hidden lg:inline">{item.title}</span>
+              {item.badge ? (
+                <Badge
+                  variant={pathname === item.href ? "secondary" : "default"}
+                  className="ml-auto flex h-4 w-4 items-center justify-center text-[10px] bg-primary/10 rounded-full p-1"
+                >
+                  {Number(item.badge) > 99 ? "99+" : item.badge}
+                </Badge>
+              ) : null}
+            </Link>
+          ))}
+        </nav>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <NotificationDropdown />
 
           {user || initializing ? (
@@ -228,15 +227,15 @@ export function Header() {
                 </DropdownMenu>
               </div>
 
-              {/* Mobile Menu Button - Only visible on mobile */}
-              {!isDesktop && (
+              {/* Mobile Menu Hamburger Button - Always visible on mobile screens */}
+              <div className="block lg:hidden">
                 <Sheet
                   open={isMobileMenuOpen}
                   onOpenChange={setIsMobileMenuOpen}
                 >
                   <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-10 w-10">
-                      <Menu className="h-6! w-6!" />
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl border border-border">
+                      <Menu className="h-5 w-5" />
                     </Button>
                   </SheetTrigger>
 
@@ -360,7 +359,7 @@ export function Header() {
                     </nav>
                   </SheetContent>
                 </Sheet>
-              )}
+              </div>
             </div>
           ) : (
             !initializing && (

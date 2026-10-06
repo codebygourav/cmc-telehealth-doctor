@@ -73,7 +73,7 @@ export default function AppointmentDetail() {
         {
             key: "patient_history",
             label: "Patient History",
-            content: <PatientHistoryTab appointment={appointment} />,
+            content: <PatientHistoryTab appointment={appointment} appointmentId={id} />,
         },
         {
             key: "previous",

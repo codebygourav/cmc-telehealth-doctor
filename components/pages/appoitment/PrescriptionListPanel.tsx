@@ -257,16 +257,29 @@ export default function PrescriptionListPanel({
 
             </>)}
 
-            {(findingsText.trim() || nextVisitDate) && (
+            {(diagnosis.trim() || findingsText.trim() || orderInvestigation.trim() || notes.trim() || nextVisitDate) && (
                 <div className="p-3 border border-primary/20 rounded-lg bg-primary/5 text-xs space-y-2 animate-in fade-in duration-200 shadow-sm">
                     <div className="font-bold text-primary flex items-center gap-1.5">
                         <ClipboardList className="h-3.5 w-3.5" />
-                        <span>Findings & Notes Preview</span>
+                        <span>Findings &amp; Notes Preview</span>
                     </div>
-                    <div className="space-y-1 text-[11px] text-muted-foreground">
-                        {findingsText.trim() && (
-                            <p className="line-clamp-3 italic">
-                                &ldquo;{findingsText.trim()}&rdquo;
+                    <div className="space-y-1.5 text-[11px] text-muted-foreground">
+                        {(diagnosis.trim() || findingsText.trim()) && (
+                            <p>
+                                <span className="font-semibold text-foreground">Diagnosis:</span>{" "}
+                                <span className="italic">&ldquo;{diagnosis.trim() || findingsText.trim()}&rdquo;</span>
+                            </p>
+                        )}
+                        {orderInvestigation.trim() && (
+                            <p>
+                                <span className="font-semibold text-foreground">Investigation:</span>{" "}
+                                <span>{orderInvestigation.trim()}</span>
+                            </p>
+                        )}
+                        {notes.trim() && (
+                            <p>
+                                <span className="font-semibold text-foreground">Notes:</span>{" "}
+                                <span>{notes.trim()}</span>
                             </p>
                         )}
                         {nextVisitDate && (
@@ -302,55 +315,8 @@ export default function PrescriptionListPanel({
 
             <div className={`space-y-4 ${hideMedicineList ? "" : "pt-4 border-t border-slate-200"}`}>
                 <div>
-                    <h3 className="text-sm font-semibold text-slate-900">Consultation notes</h3>
-                    <p className="text-xs text-slate-500">Printed on the prescription.</p>
-                </div>
-                {/* Order Investigation Field */}
-                <div className="space-y-1.5">
-                    <Label className="text-sm font-semibold text-slate-800">Order Investigation</Label>
-                    <Textarea
-                        rows={2}
-                        value={orderInvestigation}
-                        onChange={(e) => onOrderInvestigationChange?.(e.target.value)}
-                        placeholder="Write or edit order investigations..."
-                        className="min-h-20 text-sm rounded-lg resize-y bg-white border-slate-300 focus-visible:border-primary"
-                    />
-                </div>
-
-                {/* Diagnosis Field */}
-                <div className="space-y-1.5">
-                    <Label className="text-sm font-semibold text-slate-800">Diagnosis</Label>
-                    <Textarea
-                        rows={2}
-                        value={diagnosis}
-                        onChange={(e) => onDiagnosisChange?.(e.target.value)}
-                        placeholder="Write or edit diagnosis..."
-                        className="min-h-20 text-sm rounded-lg resize-y bg-white border-slate-300 focus-visible:border-primary"
-                    />
-                </div>
-
-                {/* Notes Field */}
-                <div className="space-y-1.5">
-                    <Label className="text-sm font-semibold text-slate-800">Notes</Label>
-                    <Textarea
-                        rows={2}
-                        value={notes}
-                        onChange={(e) => onNotesChange?.(e.target.value)}
-                        placeholder="Write or edit notes / patient instructions..."
-                        className="min-h-20 text-sm rounded-lg resize-y bg-white border-slate-300 focus-visible:border-primary"
-                    />
-                </div>
-
-                {/* Confidential Notes Field */}
-                <div className="space-y-1.5">
-                    <Label className="text-sm font-semibold text-slate-800">Confidential Notes</Label>
-                    <Textarea
-                        rows={2}
-                        value={confidentialNotes}
-                        onChange={(e) => onConfidentialNotesChange?.(e.target.value)}
-                        placeholder="Write or edit confidential notes..."
-                        className="min-h-20 text-sm rounded-lg resize-y bg-white border-slate-300 focus-visible:border-primary"
-                    />
+                    <h3 className="text-sm font-semibold text-slate-900">Prescription Details</h3>
+                    <p className="text-xs text-slate-500">Printed on the prescription output.</p>
                 </div>
 
                 {/* Instructions by Doctor Field */}
@@ -360,7 +326,7 @@ export default function PrescriptionListPanel({
                         rows={2}
                         value={instructionsByDoctor}
                         onChange={(e) => onInstructionsByDoctorChange?.(e.target.value)}
-                        placeholder="Write or edit instructions by doctor..."
+                        placeholder="Write or edit instructions by doctor (e.g. dosage advice, dietary restrictions)..."
                         className="min-h-20 text-sm rounded-lg resize-y bg-white border-slate-300 focus-visible:border-primary"
                     />
                 </div>

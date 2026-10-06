@@ -220,7 +220,7 @@ export default function AppointmentCard({
                         {/* Actions */}
                         {/* View, Join, Confirm / Reschedule / Attendance on one row (wraps on small screens) */}
                         {/* Two buttons per row (one per row on phones); the shared actions join the same grid. */}
-                        <div className="mt-4 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:mt-5 [&>*]:w-full [&_button]:w-full">
+                        <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 [&>*:last-child:nth-child(odd)]:col-span-2 [&>:only-child]:col-span-2 [&>*]:w-full [&_button]:w-full">
 
                             {/* Always show View button */}
                             <Button

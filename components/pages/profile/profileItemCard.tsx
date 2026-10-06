@@ -1,51 +1,3 @@
-// import { Card, CardContent } from "@/components/ui/card";
-// import { ReactNode } from "react";
-
-// interface ProfileItemCardProps {
-//   icon: ReactNode;
-//   title: string;
-//   subtitle?: string;
-//   meta?: string;
-//   badge?: ReactNode;
-//   description?: string;
-//   actions?: ReactNode;
-// }
-
-// export function ProfileItemCard({
-//   icon,
-//   title,
-//   subtitle,
-//   meta,
-//   badge,
-//   description,
-//   actions,
-// }: ProfileItemCardProps) {
-//   return (
-//     <Card className="border-border">
-//       <CardContent className="pt-6">
-//         <div className="flex gap-4">
-//           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-//             {icon}
-//           </div>
-
-//           <div className="flex-1">
-//             <div className="flex items-start justify-between mb-2">
-//               <div>
-//                 <h4 className="font-semibold">{title}</h4>
-//                 {subtitle && (
-//                   <p className="text-sm text-muted-foreground">{subtitle}</p>
-//                 )}
-//               </div>
-//               {badge}
-//             </div>
-
-//             {meta && <p className="text-sm text-muted-foreground mb-2">{meta}</p>}
-//             {description && <p className="text-sm">{description}</p>}
-//             {actions}
-//           </div>
-//         </div>
-//       </CardContent>
-//     </Card>
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReactNode } from "react";
@@ -55,16 +7,35 @@ interface ProfileItemCardProps {
   icon?: ReactNode;
   imageSrc?: string | null;
   imageAlt?: string;
-  title: string;
-  subtitle?: string;
-  meta?: string;
+  title?: string | null;
+  subtitle?: string | null;
+  meta?: string | null;
   badge?: ReactNode;
-  description?: string;
+  description?: string | null;
   actions?: ReactNode;
   iconClassName?: string;
   isView?: boolean;
   viewUrl?: string | null;
 }
+
+const isBlankOrNA = (val?: string | null): boolean => {
+  if (!val) return true;
+  const norm = val.trim().toLowerCase();
+  return (
+    norm === "" ||
+    norm === "n/a" ||
+    norm === "null" ||
+    norm === "undefined" ||
+    norm === "unknown" ||
+    norm === "no description available" ||
+    norm === "organization not provided" ||
+    norm === "issuer not provided" ||
+    norm === "untitled award" ||
+    norm === "untitled certificate" ||
+    norm === "n/a - n/a" ||
+    norm === "—"
+  );
+};
 
 export function ProfileItemCard({
   icon,
@@ -85,19 +56,25 @@ export function ProfileItemCard({
       window.open(viewUrl, "_blank", "noopener,noreferrer");
     }
   };
+
+  const cleanTitle = isBlankOrNA(title) ? "" : title?.trim();
+  const cleanSubtitle = isBlankOrNA(subtitle) ? null : subtitle?.trim();
+  const cleanMeta = isBlankOrNA(meta) ? null : meta?.trim();
+  const cleanDescription = isBlankOrNA(description) ? null : description?.trim();
+
   return (
-    <Card className="inline-flex border-border">
-      <CardContent className="">
-        <div className="flex gap-4">
+    <Card className="w-full border-border rounded-2xl shadow-2xs">
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start gap-4">
           <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg ${iconClassName}`}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl ${iconClassName}`}
           >
             {imageSrc ? (
               <Image
                 src={imageSrc}
                 alt={imageAlt}
-                width={48}
-                height={48}
+                width={44}
+                height={44}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -106,36 +83,49 @@ export function ProfileItemCard({
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="mb-2 flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="flex items-center gap-4">
-                  <h4 className="font-semibold wrap-break-word">{title}</h4>
-                  {badge}
-                </div>
+                {cleanTitle && (
+                  <h4 className="font-bold text-sm sm:text-base text-slate-800 break-words">
+                    {cleanTitle}
+                  </h4>
+                )}
 
-                {subtitle && (
-                  <p className="text-sm text-muted-foreground wrap-break-word">
-                    {subtitle}
+                {cleanSubtitle && (
+                  <p className="text-xs sm:text-sm font-medium text-slate-500 break-words mt-0.5">
+                    {cleanSubtitle}
                   </p>
                 )}
               </div>
+
+              {badge}
             </div>
 
-            {meta && (
-              <p className="mb-2 text-sm text-muted-foreground wrap-break-word">
-                {meta}
+            {cleanMeta && (
+              <p className="mt-1 text-xs font-semibold text-primary/80 break-words">
+                {cleanMeta}
               </p>
             )}
 
-            {description && (
-              <p className="text-sm wrap-break-word">{description}</p>
+            {cleanDescription && (
+              <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed break-words">
+                {cleanDescription}
+              </p>
             )}
 
             {actions && <div className="mt-3">{actions}</div>}
           </div>
+
           {isView && viewUrl && (
-            <div className="mt-3">
-              <Button onClick={handleView}>View</Button>
+            <div className="shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleView}
+                className="text-xs h-8 px-3 rounded-xl border-primary/30 text-primary hover:bg-primary/10"
+              >
+                View
+              </Button>
             </div>
           )}
         </div>

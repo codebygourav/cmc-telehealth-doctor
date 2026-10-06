@@ -7,6 +7,7 @@ import CertificatesSection from "@/components/pages/profile/certificatesSection"
 import EducationSection from "@/components/pages/profile/educationSection";
 import ExperienceSection from "@/components/pages/profile/experienceSection";
 import PersonalInfoSection from "@/components/pages/profile/personalInfoSection";
+import PasswordSection from "@/components/pages/profile/passwordSection";
 import ProfileHeader from "@/components/pages/profile/profileHeader";
 import ReviewsSection from "@/components/pages/profile/reviewsSection";
 import SocialLinksSection from "@/components/pages/profile/socialLinksSection";
@@ -16,20 +17,29 @@ import HeroSection from "@/components/ui/hero-section";
 import { useAuth } from "@/context/userContext";
 import { cn, stripHtml } from "@/lib/utils";
 import { useDoctorHome } from "@/queries/useHome";
-import { useDoctorProfile } from "@/queries/useProfile";
-import { Award, BrainCircuit, FileBadge, GraduationCap, Link, MapPinPen, Trophy, User, UserStar, Volume2 } from "lucide-react";
+import { useDoctorProfile, useUpdateDoctorProfile } from "@/queries/useProfile";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Award, BrainCircuit, ChevronDown, FileBadge, GraduationCap, KeyRound, Link, MapPinPen, Trophy, User, UserStar, Volume2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
-type TabKey = "personal" | "address" | "experience" | "education" | "awards" | "certificates" | "social" | "reviews" | "voice" | "ai-training";
+type TabKey = "personal" | "address" | "experience" | "education" | "awards" | "certificates" | "social" | "reviews" | "password";
 
 const ProfilePage = () => {
 
     const [activeTab, setActiveTab] = useState<TabKey>("personal");
     const [isEditingPersonal, setIsEditingPersonal] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isMobileProfileDrawerOpen, setIsMobileProfileDrawerOpen] = useState(false);
 
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const { data, isLoading, isError, error } = useDoctorProfile();
+    const updateProfileMutation = useUpdateDoctorProfile();
     const { data: homeData } = useDoctorHome();
 
     const profile = data?.data;
@@ -84,7 +94,17 @@ const ProfilePage = () => {
             label: "Reviews",
             icon: UserStar,
         },
+        {
+            key: "password" as TabKey,
+            label: "Change Password",
+            icon: KeyRound,
+        },
     ];
+
+    const activeSidebarItem = useMemo(
+        () => sidebarItems.find((i) => i.key === activeTab),
+        [activeTab, sidebarItems]
+    );
 
     const [formData, setFormData] = useState({
         first_name: "",
@@ -199,13 +219,27 @@ const ProfilePage = () => {
     };
 
     const handleSavePersonalInfo = async () => {
+        if (!user?.id) return;
         setIsSaving(true);
         try {
-            // later connect update profile API here
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await updateProfileMutation.mutateAsync({
+                userId: user.id,
+                group: "personal_information",
+                data: {
+                    first_name: formData.first_name,
+                    last_name: formData.last_name,
+                    bio: formData.bio,
+                },
+            });
+            await updateUser({
+                first_name: formData.first_name,
+                last_name: formData.last_name,
+            });
             setIsEditingPersonal(false);
+            toast.success("Profile updated successfully!");
         } catch (error) {
             console.error("Error saving personal info:", error);
+            toast.error("Failed to update profile");
         } finally {
             setIsSaving(false);
         }
@@ -259,10 +293,65 @@ const ProfilePage = () => {
                 reviewSummary={reviewSummary}
             />
 
+            {/* Mobile Profile Section Selector Trigger */}
+            <div className="block md:hidden mb-4 mt-4">
+                <button
+                    type="button"
+                    onClick={() => setIsMobileProfileDrawerOpen(true)}
+                    className="w-full flex items-center justify-between gap-2 p-3 bg-white border border-slate-200 rounded-xl shadow-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                    <div className="flex items-center gap-2.5 font-medium text-sm text-slate-800">
+                        {activeSidebarItem && <activeSidebarItem.icon className="h-4 w-4 text-primary shrink-0" />}
+                        <span>Section: <strong className="text-primary font-bold">{activeSidebarItem?.label}</strong></span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-xl">
+                        Change
+                        <ChevronDown className="h-3.5 w-3.5" />
+                    </div>
+                </button>
+            </div>
+
+            {/* Mobile Bottom Sheet Drawer for Profile Sections */}
+            <Dialog open={isMobileProfileDrawerOpen} onOpenChange={setIsMobileProfileDrawerOpen}>
+                <DialogContent className="max-w-md w-full p-4 rounded-t-2xl sm:rounded-2xl fixed bottom-0 md:bottom-auto translate-y-0 sm:translate-y-0 max-h-[85vh] overflow-y-auto">
+                    <DialogHeader className="pb-2 border-b border-slate-100">
+                        <DialogTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <User className="h-4 w-4 text-primary" />
+                            Select Profile Section
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-2 space-y-1">
+                        {sidebarItems.map((item) => {
+                            const Icon = item.icon;
+                            const isActive = activeTab === item.key;
+                            return (
+                                <button
+                                    key={item.key}
+                                    type="button"
+                                    onClick={() => {
+                                        setActiveTab(item.key);
+                                        setIsMobileProfileDrawerOpen(false);
+                                    }}
+                                    className={`w-full flex items-center justify-between p-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${isActive
+                                        ? "bg-primary text-white shadow-xs font-bold"
+                                        : "text-slate-700 hover:bg-slate-100"
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <Icon className="h-4 w-4 shrink-0" />
+                                        <span>{item.label}</span>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             <div className="flex flex-col md:flex-row gap-x-5 container-max-width w-full mx-auto my-7">
 
-                {/* Sidebar */}
-                <aside className="w-full md:w-72 lg:w-96 space-y-2">
+                {/* Sidebar (Desktop Only) */}
+                <aside className="hidden md:block md:w-72 lg:w-96 space-y-2 shrink-0">
                     <div className="bg-white p-3 lg:p-5 rounded-lg border-light-gray h-full">
                         {sidebarItems.map((item) => {
                             const Icon = item.icon;
@@ -343,6 +432,9 @@ const ProfilePage = () => {
                     )}
                     {activeTab === "reviews" && (
                         <ReviewsSection reviews={reviews} averageRating={reviewSummary?.average_rating?.toString() || "0"} />
+                    )}
+                    {activeTab === "password" && (
+                        <PasswordSection />
                     )}
                 </main>
             </div>

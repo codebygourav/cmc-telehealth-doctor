@@ -61,8 +61,20 @@ export default function PersonalInfoSection({
 }: PersonalInfoSectionProps) {
     return (
         <div>
-            <h2 className="text-[#1F1E1E] font-semibold text-lg mb-1.5">Personal Info</h2>
-            <p className="text-[#4D4D4D] text-sm">Don't bother typing lorem ipsum into Google translate. If you already tried, you may have gottendepending on how you capitalized the letters. The bizarre translation was fodder for conspiracy theories boringly enough. </p>
+            <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                <h2 className="text-[#1F1E1E] font-semibold text-lg">Personal Info</h2>
+                {!isEditing && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                        className="text-xs h-8 px-3 rounded-xl gap-1.5 font-semibold text-primary border-primary/30 bg-primary/5 hover:bg-primary/10"
+                    >
+                        <Edit className="h-3.5 w-3.5" /> Edit Profile Info
+                    </Button>
+                )}
+            </div>
             <div className="space-y-4 mt-7">
                 {isEditing ? (
                     <>

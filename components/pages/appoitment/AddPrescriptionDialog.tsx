@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, Save, Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill, Download, Loader2 } from "lucide-react";
+import { Eye, Save, Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill, Download, Loader2, History, UserCheck } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -38,6 +39,7 @@ import {
 } from "@/queries/usePatientMedicalRecord";
 import { PatientMedicalRecordFile } from "@/api/patient-medical-record";
 import { cleanAndDeduplicateText, escapeRegExp, formatClinicalValue } from "@/src/utils/cleanClinicalText";
+import PatientHistoryTab from "@/app/(main)/appointments/detail-component/PatientHistoryTab";
 
 import PrescriptionEntryModeSelector from "./PrescriptionEntryModeSelector";
 import PrescriptionListPanel from "./PrescriptionListPanel";
@@ -135,7 +137,7 @@ interface AddPrescriptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   appointmentId?: string;
-  initialTab?: "findings" | "medicines" | "reports" | "medical_record" | "prescribe";
+  initialTab?: "findings" | "medicines" | "reports" | "medical_record" | "prescribe" | "patient_history";
   // Open straight into editing this medicine (index in initialMedicines).
   initialEditIndex?: number | null;
   // "medicines": only the medicine search + list (Edit Medicines); "full": the whole builder.
@@ -298,7 +300,7 @@ export default function AddPrescriptionDialog({
   initialTab,
   initialEditIndex = null,
   mode = "full",
-  showRecordTab = false,
+  showRecordTab = true,
   assistantConfig,
   initialMedicines = [],
   initialFindings = "",
@@ -401,18 +403,21 @@ export default function AddPrescriptionDialog({
     setAddedMedicines(newMeds);
   };
 
-  const [activeTab, setActiveTab] = useState<"prescribe" | "reports" | "medical_record">(
+  const [activeTab, setActiveTab] = useState<"prescribe" | "reports" | "medical_record" | "patient_history">(
     initialTab === "reports"
       ? "reports"
       : initialTab === "medical_record"
         ? "medical_record"
-        : "prescribe"
+        : initialTab === "patient_history"
+          ? "patient_history"
+          : "prescribe"
   );
 
   useEffect(() => {
     if (open && initialTab) {
       if (initialTab === "reports") setActiveTab("reports");
       else if (initialTab === "medical_record") setActiveTab("medical_record");
+      else if (initialTab === "patient_history") setActiveTab("patient_history");
       else setActiveTab("prescribe");
     }
   }, [open, initialTab]);
@@ -423,6 +428,7 @@ export default function AddPrescriptionDialog({
   // Patient Medical Record States
 
   const [showPreviousPrescriptions, setShowPreviousPrescriptions] = useState(false);
+  const [showMedicalRecordPreview, setShowMedicalRecordPreview] = useState(false);
   const { data: medicalRecordResponse } = usePatientMedicalRecord(appointmentId || "");
   const saveMedicalRecordMutation = useSavePatientMedicalRecord();
   const deleteMedicalRecordFilesMutation = useDeletePatientMedicalRecordFiles();
@@ -534,6 +540,7 @@ export default function AddPrescriptionDialog({
         type: "patient_medical_record",
       });
       setMedicalRecordFiles([]);
+      setShowMedicalRecordPreview(true);
       setToastMessage({
         text: "Patient Medical Record saved successfully",
         type: "success",
@@ -542,6 +549,38 @@ export default function AddPrescriptionDialog({
       console.error("Failed to save patient medical record:", err);
       setToastMessage({
         text: err?.response?.data?.message || err?.message || "Failed to save patient medical record",
+        type: "error",
+      });
+    }
+  };
+
+  const handleSaveTestsAndReportsOnly = async () => {
+    if (!appointmentId) {
+      setToastMessage({
+        text: "Appointment ID is missing.",
+        type: "error",
+      });
+      return;
+    }
+
+    try {
+      const formattedInstructions = sanitizeClinicalText(instructionsByDoctor);
+      await submitConclusionMutation.mutateAsync({
+        appointmentId,
+        instructions_by_doctor: formattedInstructions || "Recommended tests & reports updated.",
+        next_visit_date: nextVisitDate || getTodayDate(),
+        type: reportType || "medical-report",
+        files: reportFiles,
+      });
+      setReportFiles([]);
+      setToastMessage({
+        text: "Tests & Reports saved successfully",
+        type: "success",
+      });
+    } catch (err: any) {
+      console.error("Failed to save tests & reports:", err);
+      setToastMessage({
+        text: err?.response?.data?.message || err?.message || "Failed to save tests & reports",
         type: "error",
       });
     }
@@ -2085,9 +2124,10 @@ export default function AddPrescriptionDialog({
                 <div className="space-y-5">
                   {/* Video call screen: full-width tabs above both columns. */}
                   {showRecordTab && mode === "full" && (
-                    <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
                       {([
                         ["prescribe", "Prescription", Stethoscope],
+                        ["patient_history", "Patient History", History],
                         ["medical_record", "Patient medical record", ClipboardList],
                         ["reports", "Tests & reports", FileText],
                       ] as const).map(([key, label, Icon]) => (
@@ -2096,7 +2136,7 @@ export default function AddPrescriptionDialog({
                           type="button"
                           role="tab"
                           aria-selected={activeTab === key}
-                          onClick={() => { setActiveTab(key); if (key === "reports") setIncludeReports(true); }}
+                          onClick={() => { setActiveTab(key as any); if (key === "reports") setIncludeReports(true); }}
                           className={`flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-xs font-semibold transition-colors sm:text-sm ${activeTab === key
                             ? "bg-primary text-white shadow-sm"
                             : "text-slate-600 hover:bg-slate-50 hover:text-primary"
@@ -2110,7 +2150,7 @@ export default function AddPrescriptionDialog({
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
                     <div
-                      className={mode !== "full" || (showRecordTab && (activeTab === "medical_record" || activeTab === "reports")) ? "md:col-span-12" : `md:col-span-7  p-0 sm:p-0  ${mobileTab === "form" ? "block" : "hidden md:block"}`}
+                      className={mode !== "full" || (showRecordTab && (activeTab === "medical_record" || activeTab === "reports" || activeTab === "patient_history")) ? "md:col-span-12" : `md:col-span-7  p-0 sm:p-0  ${mobileTab === "form" ? "block" : "hidden md:block"}`}
                     >
 
 
@@ -2537,6 +2577,8 @@ export default function AddPrescriptionDialog({
                                   </div>
                                 )}
                               </div>
+
+
                             </div>
                           )}
                         </div>
@@ -2789,33 +2831,19 @@ export default function AddPrescriptionDialog({
                             </div>
                           </div>
 
-                          {/* Save button: pinned to the bottom of the sheet on phones, end of the form from sm up. */}
-                          <div className="sticky -bottom-3 z-10 -mx-3 -mb-3 flex justify-end border-t border-slate-200 bg-white/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:mb-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none">
-                            <Button
-                              type="button"
-                              onClick={handleSaveMedicalRecordOnly}
-                              disabled={saveMedicalRecordMutation.isPending}
-                              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary bg-primary px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
-                            >
-                              {saveMedicalRecordMutation.isPending ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 animate-spin text-white" />
-                                  Saving Patient Medical Record...
-                                </>
-                              ) : (
-                                <>
-                                  <FileText className="h-4 w-4 text-white" />
-                                  Save Patient Medical Record
-                                </>
-                              )}
-                            </Button>
-                          </div>
+
+                        </div>
+                      )}
+
+                      {activeTab === "patient_history" && (
+                        <div className="space-y-5 animate-in fade-in duration-200">
+                          <PatientHistoryTab appointmentId={appointmentId} />
                         </div>
                       )}
                     </div>
 
                     {/* Call screen: the notes sidebar only on the Prescription tab. */}
-                    {mode === "full" && !(showRecordTab && (activeTab === "medical_record" || activeTab === "reports")) && <PrescriptionListPanel
+                    {mode === "full" && !(showRecordTab && (activeTab === "medical_record" || activeTab === "reports" || activeTab === "patient_history")) && <PrescriptionListPanel
                       addedMedicines={addedMedicines}
                       onEditMedicine={handleEditMedicine}
                       onDeleteMedicine={handleDeleteMedicine}
@@ -2865,25 +2893,134 @@ export default function AddPrescriptionDialog({
           </div>
 
           {/* Fixed footer: always visible, never scrolls away */}
-          {entryMode !== null && mode !== "medical_record" && !(showRecordTab && activeTab === "medical_record") && (
+          {entryMode !== null && (
             <div className="flex shrink-0 flex-col gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <p className="text-xs text-slate-500">
-                <span className="font-semibold text-slate-900">{addedMedicines.length}</span> {addedMedicines.length === 1 ? "medicine" : "medicines"} in this prescription
-              </p>
-              <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                {mode !== "reports" && <Button type="button" variant="outline" onClick={openPreview} disabled={previewing || addedMedicines.length === 0} className="sm:min-w-36">
-                  {previewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
-                  Preview PDF
-                </Button>}
-                <Button
-                  type="button"
-                  onClick={handleFinalSubmit}
-                  disabled={submittingUnified || (addedMedicines.length === 0 && !findingsText.trim() && !nextVisitDate && !recommendedTests.trim() && reportFiles.length === 0)}
-                  className="sm:min-w-52"
-                >
-                  {submittingUnified ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save & Submit</>}
-                </Button>
-              </div>
+              {activeTab === "prescribe" && (
+                <>
+                  <p className="text-xs text-slate-500">
+                    <span className="font-semibold text-slate-900">{addedMedicines.length}</span>{" "}
+                    {addedMedicines.length === 1 ? "medicine" : "medicines"} in this prescription
+                  </p>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                    {mode !== "reports" && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={openPreview}
+                        disabled={previewing || addedMedicines.length === 0}
+                        className="sm:min-w-36"
+                      >
+                        {previewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
+                        Preview PDF
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      onClick={handleFinalSubmit}
+                      disabled={
+                        submittingUnified ||
+                        (addedMedicines.length === 0 &&
+                          !findingsText.trim() &&
+                          !nextVisitDate &&
+                          !recommendedTests.trim() &&
+                          reportFiles.length === 0)
+                      }
+                      className="sm:min-w-52 font-semibold"
+                    >
+                      {submittingUnified ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" /> Save &amp; Submit
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {activeTab === "medical_record" && (
+                <>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Patient Medical Record — Save changes or preview medical record
+                  </p>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowMedicalRecordPreview(true)}
+                      className="font-semibold border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                    >
+                      <Eye className="mr-1.5 h-4 w-4 text-emerald-700" /> Preview Record
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleSaveMedicalRecordOnly}
+                      disabled={saveMedicalRecordMutation.isPending}
+                      className="sm:min-w-52 font-semibold bg-emerald-700 hover:bg-emerald-800 text-white"
+                    >
+                      {saveMedicalRecordMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="mr-2 h-4 w-4" /> Save Patient Medical Record
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {activeTab === "reports" && (
+                <>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Tests &amp; Reports — Save recommended investigations or uploaded files
+                  </p>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                    <Button
+                      type="button"
+                      onClick={handleSaveTestsAndReportsOnly}
+                      disabled={
+                        submitConclusionMutation.isPending ||
+                        (!recommendedTests.trim() && reportFiles.length === 0)
+                      }
+                      className="sm:min-w-52 font-semibold"
+                    >
+                      {submitConclusionMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" /> Save Tests &amp; Reports
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {activeTab === "patient_history" && (
+                <>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Viewing Patient Consultation History
+                  </p>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                      className="sm:min-w-28 text-xs font-semibold"
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </DialogContent>
@@ -2916,6 +3053,104 @@ export default function AddPrescriptionDialog({
         onOpenChange={setShowPreviousPrescriptions}
         appointmentId={appointmentId}
       />
+
+      {/* Patient Medical Record Preview Dialog */}
+      {showMedicalRecordPreview && (
+        <Dialog open={showMedicalRecordPreview} onOpenChange={setShowMedicalRecordPreview}>
+          <DialogContent className="max-w-3xl w-[95vw] p-4 sm:p-6 rounded-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="border-b pb-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-emerald-950">
+                    <UserCheck className="h-5 w-5 text-emerald-600" />
+                    Patient Medical Record Preview
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Live summary view of current patient medical history and clinical details
+                  </p>
+                </div>
+                <span className="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs px-2.5 py-1 font-semibold">
+                  Medical Record Active
+                </span>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-4 py-3 text-xs sm:text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  ["Chief Complaint", medicalRecordForm.chief_complaint],
+                  ["Final Diagnosis", medicalRecordForm.final_diagnosis],
+                  ["History of Present Illness", medicalRecordForm.history_of_present_illness],
+                  ["Present Medical History", medicalRecordForm.present_medical_history],
+                  ["Family History", medicalRecordForm.family_history],
+                  ["Personal History", medicalRecordForm.personal_history],
+                  ["Examination", medicalRecordForm.examination],
+                  ["Treatment", medicalRecordForm.treatment],
+                  ["Investigation / Order", medicalRecordForm.investigation],
+                  ["Clinical Notes", medicalRecordForm.notes],
+                ].map(([label, value]) => (
+                  <div key={label} className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1">
+                    <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">{label}</p>
+                    <p className="font-medium text-slate-900 leading-relaxed whitespace-pre-line">
+                      {value && value.trim() ? value : <span className="text-slate-400 italic">Not specified</span>}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Uploaded Files Preview */}
+              {(existingMedicalRecordFiles.length > 0 || medicalRecordFiles.length > 0) && (
+                <div className="p-3 rounded-xl border border-emerald-200/80 bg-emerald-50/30 space-y-2">
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-800">Attached Medical Documents</p>
+                  <div className="flex flex-wrap gap-2">
+                    {existingMedicalRecordFiles.map((file, idx) => (
+                      <div key={file.id || idx} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800">
+                        <FileText className="h-3.5 w-3.5 text-emerald-600" />
+                        <span className="truncate max-w-[200px]">{file.name || file.file_name || `File ${idx + 1}`}</span>
+                      </div>
+                    ))}
+                    {medicalRecordFiles.map((file, idx) => (
+                      <div key={`new-file-${idx}`} className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-emerald-900">
+                        <FileText className="h-3.5 w-3.5 text-emerald-600" />
+                        <span className="truncate max-w-[200px]">{file.name}</span>
+                        <span className="rounded bg-emerald-50 text-emerald-700 px-1 py-0.2 text-[9px] font-bold">New</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="flex flex-row items-center justify-between gap-2 pt-3 border-t mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMedicalRecordPreview(false)}
+              >
+                Close Preview
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                disabled={downloadMedicalRecordMutation.isPending || !appointmentId}
+                onClick={async () => {
+                  await handleMedicalRecordDownload();
+                }}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold flex items-center gap-1.5"
+              >
+                {downloadMedicalRecordMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                Download PDF
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

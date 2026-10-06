@@ -81,13 +81,7 @@ export default function ProfileHeader({
                     </div>
 
                     {/* Actions Desktop */}
-                    <div className="flex flex-col gap-4 min-w-[140px]">
-                        <Button variant="outline" size="sm" className="w-full text-xs" asChild>
-                            <Link href="/profile/change-password">
-                                <Key className="mr-2 h-3 w-3" />
-                                Change Password
-                            </Link>
-                        </Button>
+                    <div className="flex flex-col gap-4 min-w-[140px] items-center justify-center">
                         <div className="text-center">
                             <div className="text-[#1F1E1E] font-bold text-2xl">
                                 {averageRatingValue}
@@ -153,21 +147,9 @@ export default function ProfileHeader({
                         </div>
                     </div>
 
-                    {/* Bottom Row: Change Password + Ratings */}
-                    <div className="flex flex-row items-center gap-3 mt-4 pt-3 border-t border-border/50">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 text-[11px] h-8 order-2"
-                            asChild
-                        >
-                            <Link href="/profile/change-password">
-                                <Key className="mr-1.5 h-3 w-3" />
-                                Change Password
-                            </Link>
-                        </Button>
-
-                        <div className="flex-1 text-center order-1">
+                    {/* Bottom Row: Ratings */}
+                    <div className="flex flex-row items-center justify-center gap-3 mt-4 pt-3 border-t border-border/50">
+                        <div className="flex-1 text-center">
                             <div className="text-[#1F1E1E] font-bold text-2xl">
                                 {averageRatingValue}
                             </div>

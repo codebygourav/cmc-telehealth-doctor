@@ -11,6 +11,11 @@ import {
   Trash2,
   Paperclip,
   Stethoscope,
+  Activity,
+  HeartPulse,
+  User,
+  FlaskConical,
+  Pill,
 } from "lucide-react";
 import {
   usePatientMedicalRecord,
@@ -20,6 +25,7 @@ import { PatientMedicalRecordFile } from "@/api/patient-medical-record";
 
 interface PatientMedicalRecordTabProps {
   appointmentId: string;
+  viewSection?: "all" | "summary" | "files";
 }
 
 const getFileUrl = (file: PatientMedicalRecordFile | string): string => {
@@ -69,11 +75,11 @@ const renderFormattedContent = (text: string | undefined | null) => {
   if (rawLines.length === 0) return null;
 
   if (rawLines.length === 1) {
-    return <p className="text-sm leading-relaxed text-slate-800">{rawLines[0].replace(/^[\d+[\.\)]|\-|\*]\s*/, "")}</p>;
+    return <p className="text-xs sm:text-sm font-medium leading-relaxed text-foreground">{rawLines[0].replace(/^[\d+[\.\)]|\-|\*]\s*/, "")}</p>;
   }
 
   return (
-    <ol className="list-decimal list-inside space-y-1 text-sm text-slate-800">
+    <ol className="list-decimal list-inside space-y-1 text-xs sm:text-sm font-medium text-foreground">
       {rawLines.map((line, idx) => (
         <li key={idx} className="leading-relaxed">
           {line.replace(/^[\d+[\.\)]|\-\|\*]\s*/, "")}
@@ -85,6 +91,7 @@ const renderFormattedContent = (text: string | undefined | null) => {
 
 export default function PatientMedicalRecordTab({
   appointmentId,
+  viewSection = "all",
 }: PatientMedicalRecordTabProps) {
   const { data, isLoading, error } = usePatientMedicalRecord(appointmentId);
   const deleteFilesMutation = useDeletePatientMedicalRecordFiles();
@@ -93,20 +100,20 @@ export default function PatientMedicalRecordTab({
 
   if (isLoading) {
     return (
-      <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-4" aria-busy="true">
-        <div className="h-4 w-56 animate-pulse rounded bg-slate-100" />
-        <div className="h-3 w-full animate-pulse rounded bg-slate-100" />
-        <div className="h-3 w-2/3 animate-pulse rounded bg-slate-100" />
+      <div className="space-y-3 rounded-2xl border border-border bg-card p-6 shadow-xs" aria-busy="true">
+        <div className="h-5 w-48 animate-pulse rounded-lg bg-muted" />
+        <div className="h-4 w-full animate-pulse rounded-lg bg-muted/60" />
+        <div className="h-4 w-3/4 animate-pulse rounded-lg bg-muted/60" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 text-center">
-        <div className="flex items-center justify-center gap-2 text-red-500">
+      <div className="p-6 text-center rounded-2xl border border-destructive/20 bg-destructive/5">
+        <div className="flex items-center justify-center gap-2 text-destructive">
           <AlertCircle className="h-5 w-5" />
-          <p className="text-sm">Error loading Patient Medical Record</p>
+          <p className="text-sm font-semibold">Error loading Patient Medical Record</p>
         </div>
       </div>
     );
@@ -119,6 +126,19 @@ export default function PatientMedicalRecordTab({
     record?.medical_record_files ||
     record?.attached_files ||
     [];
+
+  const fieldIconMap: Record<string, { icon: any; color: string }> = {
+    "Final Diagnosis": { icon: Stethoscope, color: "text-primary" },
+    "Chief Complaint": { icon: AlertCircle, color: "text-amber-600" },
+    "History of Present Illness": { icon: FileText, color: "text-primary" },
+    "Present Medical History": { icon: HeartPulse, color: "text-rose-600" },
+    "Family History": { icon: User, color: "text-primary" },
+    "Personal History": { icon: User, color: "text-muted-foreground" },
+    Examination: { icon: Activity, color: "text-emerald-600" },
+    "Clinical Notes": { icon: FileText, color: "text-muted-foreground" },
+    Investigation: { icon: FlaskConical, color: "text-primary" },
+    Treatment: { icon: Pill, color: "text-primary" },
+  };
 
   const medicalFields = [
     { label: "Final Diagnosis", value: record?.final_diagnosis },
@@ -148,79 +168,135 @@ export default function PatientMedicalRecordTab({
     }
   };
 
-  if (filesList.length === 0 && medicalFields.length === 0) {
+  const showSummary = (viewSection === "all" || viewSection === "summary") && medicalFields.length > 0;
+  const showFiles = (viewSection === "all" || viewSection === "files") && filesList.length > 0;
+
+  if (!showSummary && !showFiles) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-dashed border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-        <FileText className="h-4 w-4 shrink-0 text-slate-400" />
-        No patient medical record for this appointment yet.
+      <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-card px-5 py-4 text-sm text-muted-foreground">
+        <FileText className="h-5 w-5 shrink-0 text-muted-foreground opacity-60" />
+        No record data or attachments recorded for this consultation section yet.
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
-      {/* Patient Medical Record summary: compact tiles, two columns on wider screens */}
-      {medicalFields.length > 0 && (
-        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <header className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10"><Stethoscope className="h-4 w-4 text-primary" /></span>
-              <h3 className="text-sm font-semibold text-slate-900 sm:text-base">Patient Medical Record Summary</h3>
+      {/* Patient Medical Record Summary */}
+      {showSummary && (
+        <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
+          <header className="flex items-center justify-between gap-2 border-b border-border/70 px-4 sm:px-6 py-3.5 bg-muted/20">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Stethoscope className="h-4.5 w-4.5" />
+              </span>
+              <h3 className="text-sm sm:text-base font-bold text-foreground">
+                Patient Medical Record Summary
+              </h3>
             </div>
-            <Badge variant="secondary" className="text-[10px] sm:text-xs">{medicalFields.length} fields</Badge>
+            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary font-semibold">
+              {medicalFields.length} {medicalFields.length === 1 ? "field" : "fields"}
+            </Badge>
           </header>
-          <dl className="grid grid-cols-1 gap-3 p-3 sm:p-4 md:grid-cols-2">
-            {medicalFields.map((field) => (
-              <div key={field.label} className={`min-w-0 rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2.5 ${field.label === "Final Diagnosis" ? "md:col-span-2 border-primary/20 bg-primary/5" : ""}`}>
-                <dt className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{field.label}</dt>
-                <dd className="min-w-0 break-words">{renderFormattedContent(field.value)}</dd>
-              </div>
-            ))}
+
+          <dl className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 sm:p-5">
+            {medicalFields.map((field) => {
+              const meta = fieldIconMap[field.label] || { icon: FileText, color: "text-primary" };
+              const IconComp = meta.icon;
+              const isHero = field.label === "Final Diagnosis";
+              return (
+                <div
+                  key={field.label}
+                  className={`min-w-0 rounded-xl border p-3.5 space-y-1.5 transition-colors ${
+                    isHero
+                      ? "md:col-span-2 border-primary/30 bg-primary/5 shadow-2xs"
+                      : "border-border/70 bg-muted/10 hover:bg-muted/30"
+                  }`}
+                >
+                  <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <IconComp className={`h-3.5 w-3.5 ${meta.color}`} />
+                    {field.label}
+                  </dt>
+                  <dd className="min-w-0 break-words">{renderFormattedContent(field.value)}</dd>
+                </div>
+              );
+            })}
           </dl>
         </section>
       )}
 
       {/* Media & Report Files */}
-      {filesList.length > 0 && (
-        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <header className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10"><Paperclip className="h-4 w-4 text-primary" /></span>
-              <h3 className="text-sm font-semibold text-slate-900 sm:text-base">Attached Media & Reports</h3>
+      {showFiles && (
+        <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
+          <header className="flex items-center justify-between gap-2 border-b border-border/70 px-4 sm:px-6 py-3.5 bg-muted/20">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Paperclip className="h-4.5 w-4.5" />
+              </span>
+              <h3 className="text-sm sm:text-base font-bold text-foreground">
+                Attached Media &amp; Reports
+              </h3>
             </div>
-            <Badge variant="secondary" className="text-[10px] sm:text-xs">{filesList.length} file{filesList.length === 1 ? "" : "s"}</Badge>
+            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary font-semibold">
+              {filesList.length} {filesList.length === 1 ? "file" : "files"}
+            </Badge>
           </header>
-          <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2 sm:p-4 lg:grid-cols-3">
-            {filesList.map((file, idx) => {
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4 sm:p-5">
+            {filesList.map((file: any, idx: number) => {
               const fullUrl = getFileUrl(file);
               const isImg = isImageFile(file.file_url || file.url || file.name || file.file_name);
               const fileName = file.name || file.file_name || `Attachment #${idx + 1}`;
               const ext = (fileName.split("?")[0].split(".").pop() || "file").slice(0, 4).toUpperCase();
 
               return (
-                <div key={file.id || idx} className="group flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 p-2.5 transition-colors hover:border-primary/40 hover:bg-primary/5">
-                  <a href={fullUrl} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-center gap-3">
+                <div
+                  key={file.id || idx}
+                  className="group flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-2xs"
+                >
+                  <a
+                    href={fullUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-w-0 flex-1 items-center gap-3"
+                  >
                     {isImg ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={fullUrl} alt="" className="h-11 w-11 shrink-0 rounded-md border object-cover" />
+                      <img src={fullUrl} alt={fileName} className="h-11 w-11 shrink-0 rounded-lg border object-cover" />
                     ) : (
-                      <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-md bg-slate-100 text-slate-500">
-                        {isImg ? <FileImage className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                      <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <FileText className="h-4 w-4" />
                         <span className="text-[9px] font-bold">{ext}</span>
                       </span>
                     )}
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-slate-800 group-hover:text-primary" title={fileName}>{fileName}</span>
-                      <span className="text-xs text-slate-500">Open in new tab</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-bold text-foreground group-hover:text-primary transition-colors" title={fileName}>
+                        {fileName}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">Click to view</span>
                     </span>
                   </a>
+
                   <div className="flex shrink-0 items-center gap-1">
-                    <a href={fullUrl} target="_blank" rel="noopener noreferrer" title="Open file"
-                      className="rounded-md p-1.5 text-slate-500 hover:bg-primary/10 hover:text-primary"><ExternalLink className="h-4 w-4" /></a>
+                    <a
+                      href={fullUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open file in new tab"
+                      className="rounded-lg p-1.5 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
                     {file.id && (
-                      <Button type="button" variant="ghost" size="icon" title="Delete file"
-                        className="h-8 w-8 rounded-md text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDeleteFile(file.id)} disabled={deletingFileId === file.id}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        title="Delete file"
+                        className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteFile(file.id)}
+                        disabled={deletingFileId === file.id}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}

@@ -42,9 +42,12 @@ export const updateDoctorProfile = async (
   group: string,
   data: Record<string, any>
 ): Promise<any> => {
+  const payloadData = { ...data };
+  delete payloadData.email;
+
   const response = await axiosInstance.post(`/doctor/${userId}`, {
     group,
-    ...data,
+    ...payloadData,
   });
   return response.data;
 };
