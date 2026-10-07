@@ -97,7 +97,7 @@ export default function ChangePasswordPage() {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-xl shadow-sm p-6 overflow-hidden">
+      <div className="bg-card border border-border rounded-md shadow-sm p-6 overflow-hidden">
         <FormProvider {...methods}>
           <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
             <div className="relative">

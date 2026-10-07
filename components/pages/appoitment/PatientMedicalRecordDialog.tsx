@@ -87,7 +87,7 @@ const renderLiveListPreview = (value: string | undefined | null) => {
   if (lines.length === 0) return null;
 
   return (
-    <div className="p-2.5 bg-muted/30 border rounded-xl text-xs space-y-1 mt-1.5 animate-in fade-in duration-150">
+    <div className="p-2.5 bg-muted/30 border rounded-md text-xs space-y-1 mt-1.5 animate-in fade-in duration-150">
       <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
         Preview
       </div>
@@ -240,9 +240,9 @@ export default function PatientMedicalRecordDialog({
 
         {toastMessage && (
           <div
-            className={`p-3 rounded-xl flex items-center gap-2 text-xs font-semibold ${toastMessage.type === "success"
-                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                : "bg-red-50 text-red-800 border border-red-200"
+            className={`p-3 rounded-md flex items-center gap-2 text-xs font-semibold ${toastMessage.type === "success"
+              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+              : "bg-red-50 text-red-800 border border-red-200"
               }`}
           >
             {toastMessage.type === "success" ? (
@@ -285,7 +285,7 @@ export default function PatientMedicalRecordDialog({
                 rows={3}
                 value={formData.final_diagnosis}
                 onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
+                className="text-xs rounded-md resize-none focus:border-primary"
               />
             </div>
 
@@ -301,7 +301,7 @@ export default function PatientMedicalRecordDialog({
                 rows={3}
                 value={formData.chief_complaint}
                 onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
+                className="text-xs rounded-md resize-none focus:border-primary"
               />
             </div>
 
@@ -317,7 +317,7 @@ export default function PatientMedicalRecordDialog({
                 rows={3}
                 value={formData.history_of_present_illness}
                 onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
+                className="text-xs rounded-md resize-none focus:border-primary"
               />
             </div>
 
@@ -333,7 +333,7 @@ export default function PatientMedicalRecordDialog({
                 rows={3}
                 value={formData.present_medical_history}
                 onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
+                className="text-xs rounded-md resize-none focus:border-primary"
               />
             </div>
 
@@ -349,7 +349,7 @@ export default function PatientMedicalRecordDialog({
                 rows={3}
                 value={formData.family_history}
                 onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
+                className="text-xs rounded-md resize-none focus:border-primary"
               />
             </div>
 
@@ -365,7 +365,7 @@ export default function PatientMedicalRecordDialog({
                 rows={3}
                 value={formData.personal_history}
                 onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
+                className="text-xs rounded-md resize-none focus:border-primary"
               />
             </div>
 
@@ -381,7 +381,7 @@ export default function PatientMedicalRecordDialog({
                 rows={3}
                 value={formData.examination}
                 onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
+                className="text-xs rounded-md resize-none focus:border-primary"
               />
             </div>
 
@@ -397,7 +397,7 @@ export default function PatientMedicalRecordDialog({
                 rows={3}
                 value={formData.notes}
                 onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
+                className="text-xs rounded-md resize-none focus:border-primary"
               />
             </div>
 
@@ -413,7 +413,7 @@ export default function PatientMedicalRecordDialog({
                 rows={3}
                 value={formData.investigation}
                 onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
+                className="text-xs rounded-md resize-none focus:border-primary"
               />
             </div>
 
@@ -429,7 +429,7 @@ export default function PatientMedicalRecordDialog({
                 rows={3}
                 value={formData.treatment}
                 onChange={handleInputChange}
-                className="text-xs rounded-xl resize-none focus:border-primary"
+                className="text-xs rounded-md resize-none focus:border-primary"
               />
             </div>
           </div>
@@ -460,7 +460,7 @@ export default function PatientMedicalRecordDialog({
                     return (
                       <div
                         key={file.id || idx}
-                        className="flex items-center justify-between p-2.5 bg-muted/20 border rounded-xl text-xs gap-2"
+                        className="flex items-center justify-between p-2.5 bg-muted/20 border rounded-md text-xs gap-2"
                       >
                         <a
                           href={fullUrl}
@@ -514,7 +514,7 @@ export default function PatientMedicalRecordDialog({
                   {selectedFiles.map((file, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-2.5 bg-primary/5 border border-primary/20 rounded-xl text-xs gap-2"
+                      className="flex items-center justify-between p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs gap-2"
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <Upload className="h-4 w-4 text-primary shrink-0" />
@@ -541,7 +541,7 @@ export default function PatientMedicalRecordDialog({
             )}
 
             {/* File Upload Input Drop Area */}
-            <div className="relative border-2 border-dashed border-muted hover:border-primary/50 transition-colors rounded-xl p-4 text-center cursor-pointer bg-background">
+            <div className="relative border-2 border-dashed border-muted hover:border-primary/50 transition-colors rounded-md p-4 text-center cursor-pointer bg-background">
               <input
                 type="file"
                 multiple
@@ -566,14 +566,14 @@ export default function PatientMedicalRecordDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="text-xs h-9 rounded-xl"
+              className="text-xs h-9 rounded-md"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={saveMutation.isPending}
-              className="text-xs h-9 rounded-xl flex items-center gap-1.5"
+              className="text-xs h-9 rounded-md flex items-center gap-1.5"
             >
               {saveMutation.isPending ? (
                 <>

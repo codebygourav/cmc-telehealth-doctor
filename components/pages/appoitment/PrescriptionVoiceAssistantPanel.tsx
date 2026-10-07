@@ -329,7 +329,7 @@ export default function PrescriptionVoiceAssistantPanel({
             <div
               key={step.id}
               className={`transition-all duration-200 ${isActive
-                ? "border border-primary/20 bg-primary/5 rounded-xl p-3 sm:p-4 shadow-sm"
+                ? "border border-primary/20 bg-primary/5 rounded-md p-3 sm:p-4 shadow-sm"
                 : "border-b border-border/40 hover:bg-muted/10 p-1"
                 }`}
             >
@@ -473,7 +473,7 @@ export default function PrescriptionVoiceAssistantPanel({
                   )}
 
                   {showCustomConfirm && step.id === 1 && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 space-y-3 mt-2 text-xs text-amber-950 shadow-sm">
+                    <div className="rounded-md border border-amber-200 bg-amber-50/70 p-3.5 space-y-3 mt-2 text-xs text-amber-950 shadow-sm">
                       <p className="font-bold flex items-center gap-1.5 text-amber-800">
                         <svg
                           className="w-4 h-4 text-amber-600"

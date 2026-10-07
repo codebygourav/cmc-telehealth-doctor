@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAllPatients } from "@/api/patients";
+import { getAllPatients, getPatientDetailByAppointmentId } from "@/api/patients";
 
 interface UsePatientsParams {
   page: number;
@@ -23,5 +23,14 @@ export const usePatients = ({
     placeholderData: (previousData) => previousData,
     staleTime: 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const usePatientDetailByAppointmentId = (appointmentId: string) => {
+  return useQuery({
+    queryKey: ["patient-detail", appointmentId],
+    queryFn: () => getPatientDetailByAppointmentId(appointmentId),
+    enabled: Boolean(appointmentId),
+    staleTime: 60 * 1000,
   });
 };

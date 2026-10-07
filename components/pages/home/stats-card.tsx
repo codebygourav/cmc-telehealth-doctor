@@ -1,10 +1,4 @@
-import { TrendingUp, Users } from "lucide-react";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import React from "react";
 
 interface StatsCardProps {
     title: string;
@@ -20,45 +14,27 @@ interface StatsCardProps {
 export default function StatsCard({
     title,
     value,
-    badgeText = "Patient base",
     icon,
-    subTitle,
     iconBgColor,
-    progress,
-    progressBgColor,
 }: StatsCardProps) {
     return (
-        <div className="border-light-gray p-5 rounded-lg shadow-[0px_2px_4px_0px_#0000001A] overflow-hidden h-full">
-            <div className="flex flex-row items-center justify-between space-y-0">
-                <div className="text-[#373737] text-sm">
+        <div className="bg-white border border-border/80 rounded-xl p-3.5 sm:p-4 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+                <p className="text-muted-foreground text-xs sm:text-sm font-medium truncate">
                     {title}
-                </div>
-                {icon &&
-                    <div className="h-10 w-10 rounded-md flex items-center justify-center"
-                        style={{ backgroundColor: iconBgColor || "" }}
-                    >
-                        {icon}
-                    </div>
-                }
-            </div>
-            <div className="text-[#1F1E1E] font-semibold text-lg mt-4">
-                {value}
-            </div>
-            <div className="mt-5">
-
-                {/* progress bar */}
-                <div className="w-full h-1 bg-[#E7E8EB]">
-
-                    <div className="h-[3px]"
-                        style={{ width: progress, backgroundColor: progressBgColor }}
-                    ></div>
-                </div>
-
-                <p className="mt-3 text-[#373737] text-xs">
-                    <span>{subTitle}</span>
+                </p>
+                <p className="text-foreground font-bold text-xl sm:text-2xl leading-none">
+                    {value}
                 </p>
             </div>
-
+            {icon && (
+                <div
+                    className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs"
+                    style={{ backgroundColor: iconBgColor || "rgba(var(--primary), 0.08)" }}
+                >
+                    {icon}
+                </div>
+            )}
         </div>
     );
 }

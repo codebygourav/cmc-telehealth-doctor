@@ -142,7 +142,7 @@ export function Header() {
               href={item.href}
               title={item.title}
               className={cn(
-                "relative flex items-center justify-center gap-2 rounded-xl p-2 lg:px-3 lg:py-2 text-xs lg:text-sm font-semibold transition-all shadow-2xs",
+                "relative flex items-center justify-center gap-2 rounded-md p-2 lg:px-3 lg:py-2 text-xs lg:text-sm font-semibold transition-all shadow-2xs",
                 pathname === item.href
                   ? "border border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/85"
                   : "border border-primary/25 bg-white text-primary hover:bg-primary hover:text-primary-foreground",
@@ -234,7 +234,7 @@ export function Header() {
                   onOpenChange={setIsMobileMenuOpen}
                 >
                   <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl border border-border">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md border border-border">
                       <Menu className="h-5 w-5" />
                     </Button>
                   </SheetTrigger>
@@ -285,7 +285,7 @@ export function Header() {
                           href={item.href}
                           onClick={() => setIsMobileMenuOpen(false)}
                           className={cn(
-                            "flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition-all duration-200 shadow-2xs",
+                            "flex items-center gap-3 rounded-md border px-4 py-3 text-sm font-semibold transition-all duration-200 shadow-2xs",
                             pathname === item.href
                               ? "border-primary bg-primary text-primary-foreground shadow-sm"
                               : "border-border/70 bg-background text-foreground/85 hover:border-primary/50 hover:bg-primary/5 hover:text-primary",
@@ -316,7 +316,7 @@ export function Header() {
                         <Button
                           type="button"
                           variant={subscription ? "outline" : "default"}
-                          className="w-full justify-center rounded-xl font-semibold text-xs"
+                          className="w-full justify-center rounded-md font-semibold text-xs"
                           disabled={!isSupported || notificationsLoading || permission === "denied"}
                           onClick={async () => {
                             try {
@@ -351,7 +351,7 @@ export function Header() {
                           await logout();
                           window.location.href = "/auth/login";
                         }}
-                        className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm font-semibold text-destructive transition-all duration-200 hover:bg-destructive/10 cursor-pointer w-full"
+                        className="flex items-center gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm font-semibold text-destructive transition-all duration-200 hover:bg-destructive/10 cursor-pointer w-full"
                       >
                         <LogOut className="h-4 w-4 shrink-0 text-destructive" />
                         <span>Log out</span>

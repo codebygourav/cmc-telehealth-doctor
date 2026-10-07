@@ -20,6 +20,8 @@ interface AppointmentActionsProps {
     // Hide the reschedule button (e.g. past tab)
     hideReschedule?: boolean;
     className?: string;
+    renderOnly?: "confirm" | "reschedule" | "attendance";
+    initialAttendanceOpen?: boolean;
 }
 
 const ACTIVE_STATUSES = ["awaiting_confirmation", "confirmed", "rescheduled"];
@@ -30,7 +32,7 @@ const ACTIVE_STATUSES = ["awaiting_confirmation", "confirmed", "rescheduled"];
  * - Reschedule (reschedule & confirm when awaiting)
  * - Mark Attendance (confirmed / rescheduled visit on or after the visit date)
  */
-export default function AppointmentActions({ appointment, hideReschedule = false, className = "" }: AppointmentActionsProps) {
+export default function AppointmentActions({ appointment, hideReschedule = false, className = "", renderOnly, initialAttendanceOpen = false }: AppointmentActionsProps) {
     const queryClient = useQueryClient();
     const appointmentId: string = appointment?.appointment_id || appointment?.id;
     const status: string = appointment?.status;
@@ -49,8 +51,7 @@ export default function AppointmentActions({ appointment, hideReschedule = false
             d.getDate() === today.getDate()
         );
     })();
-    // Today's and upcoming open appointments only (never a past date). The server decides
-    // (can_reschedule); the date check is the fallback for older responses.
+
     const isPastDate = (() => {
         const dStr = appointment?.appointment_date || appointment?.schedule?.date || appointment?.date;
         if (!dStr) return false;
@@ -60,6 +61,7 @@ export default function AppointmentActions({ appointment, hideReschedule = false
         today.setHours(0, 0, 0, 0);
         return d < today;
     })();
+
     const canReschedule = !hideReschedule && (typeof appointment?.can_reschedule === "boolean"
         ? appointment.can_reschedule
         : (isToday || !isPastDate) && ACTIVE_STATUSES.includes(status));
@@ -69,19 +71,20 @@ export default function AppointmentActions({ appointment, hideReschedule = false
     const voucherNumber: string | null = appointment?.attendance?.voucher_number || null;
 
     const [confirmOpen, setConfirmOpen] = useState(false);
-    const [attendanceOpen, setAttendanceOpen] = useState(false);
+    const [attendanceOpen, setAttendanceOpen] = useState(initialAttendanceOpen);
     const [rescheduleOpen, setRescheduleOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [choice, setChoice] = useState<Attendance | null>(null);
-    const [voucher, setVoucher] = useState("");
-    // Video consultations: the doctor picks the call time (any time that day) when confirming.
-    // In-person visits are confirmed at the booked slot time (no time to choose).
+    const [choice, setChoice] = useState<Attendance | null>(markedAttendance || "present");
+    const [voucher, setVoucher] = useState(voucherNumber || "");
+
     const consultationType: string = String(appointment?.consultation_type || appointment?.schedule?.consultation_type || "").toLowerCase();
     const isVideo = consultationType.includes("video") || appointment?.slot_window?.mode === "any";
     const appointmentDate: string = appointment?.appointment_date || appointment?.schedule?.date || appointment?.date || "";
     const rawTimeStr: string = appointment?.appointment_time || appointment?.schedule?.time || appointment?.time || "";
+    const rawEndTimeStr: string = appointment?.appointment_end_time || appointment?.schedule?.end_time || appointment?.end_time || "";
     const bookedTime: string = parseTo24HourTime(rawTimeStr);
     const [visitTime, setVisitTime] = useState(() => getDefaultFutureTime(appointmentDate, rawTimeStr));
+    const [visitEndTime, setVisitEndTime] = useState(() => parseTo24HourTime(rawEndTimeStr));
     const visitTimeValid = !isVideo || isFutureTimeOnDate(appointmentDate, visitTime);
     const [resultOpen, setResultOpen] = useState(false);
     const [result, setResult] = useState<{ title: string; description: string; type: "success" | "danger" } | null>(null);
@@ -100,11 +103,11 @@ export default function AppointmentActions({ appointment, hideReschedule = false
     const handleConfirm = async () => {
         try {
             setLoading(true);
-            await confirmAppointment(appointmentId, isVideo ? visitTime || null : null);
+            await confirmAppointment(appointmentId, isVideo ? visitTime || null : null, isVideo ? visitEndTime || null : null);
             setConfirmOpen(false);
             showResult(
                 "Appointment Confirmed",
-                `The patient has been emailed the confirmation${isVideo && visitTime ? ` for ${formatClock(visitTime)}` : ""}.`,
+                `The patient has been emailed the confirmation${isVideo && visitTime ? ` for ${formatClock(visitTime)}${visitEndTime ? ` - ${formatClock(visitEndTime)}` : ""}` : ""}.`,
             );
             refresh();
         } catch (err) {
@@ -116,7 +119,7 @@ export default function AppointmentActions({ appointment, hideReschedule = false
     };
 
     const openAttendance = () => {
-        setChoice(markedAttendance);
+        setChoice(markedAttendance || "present");
         setVoucher(voucherNumber || "");
         setAttendanceOpen(true);
     };
@@ -141,65 +144,64 @@ export default function AppointmentActions({ appointment, hideReschedule = false
         }
     };
 
-    const hasAnyAction = canConfirm || canReschedule || canMarkAttendance || markedAttendance;
+    const hasAnyAction = canConfirm || canReschedule || canMarkAttendance || markedAttendance || initialAttendanceOpen;
     if (!hasAnyAction) {
+        return null;
+    }
+
+    const showConfirm = canConfirm && (!renderOnly || renderOnly === "confirm");
+    const showReschedule = canReschedule && (!renderOnly || renderOnly === "reschedule");
+    const showAttendance = (canMarkAttendance || initialAttendanceOpen) && (!renderOnly || renderOnly === "attendance");
+
+    if (!showConfirm && !showReschedule && !showAttendance && !markedAttendance && !initialAttendanceOpen) {
         return null;
     }
 
     return (
         <>
-            <div className={cn("flex flex-wrap items-center gap-2", className)} onClick={(e) => e.stopPropagation()}>
-                {markedAttendance && (
-                    <span
-                        className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold border ${markedAttendance === "present"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-rose-50 text-rose-700 border-rose-200"
-                            }`}
+            <div className={cn("flex items-center gap-2 w-full", className)} onClick={(e) => e.stopPropagation()}>
+                {showConfirm && (
+                    <Button
+                        size="sm"
+                        className="h-8 sm:h-8.5 px-3 text-xs font-semibold rounded-md cursor-pointer gap-1.5 w-full bg-[#064e3b] hover:bg-[#022c22] text-white shadow-2xs justify-center"
+                        onClick={() => {
+                            const initTime = getDefaultFutureTime(appointmentDate, rawTimeStr);
+                            setVisitTime(initTime);
+                            setConfirmOpen(true);
+                        }}
                     >
-                        {markedAttendance === "present" ? <UserCheck className="h-3.5 w-3.5" /> : <UserX className="h-3.5 w-3.5" />}
-                        {markedAttendance === "present" ? "Present" : "Absent"}
-                        {markedAttendance === "present" && voucherNumber ? ` · Voucher ${voucherNumber}` : ""}
-                    </span>
-                )}
-
-                {canConfirm && (
-                    <Button size="sm" className="h-10 py-2.5 px-3.5 text-xs sm:text-sm font-semibold rounded-md cursor-pointer gap-1.5" onClick={() => {
-                        const initTime = getDefaultFutureTime(appointmentDate, rawTimeStr);
-                        setVisitTime(initTime);
-                        setConfirmOpen(true);
-                    }}>
-                        <CheckCircle2 className="h-4 w-4" />
+                        <CheckCircle2 className="h-3.5 w-3.5" />
                         Confirm
                     </Button>
                 )}
 
-                {canReschedule && (
+                {showReschedule && (
                     <Button
                         size="sm"
                         variant="outline"
-                        className="h-10 py-2.5 px-3.5 text-xs sm:text-sm font-semibold rounded-md cursor-pointer border-[#4D4D4D] text-[#4D4D4D] gap-1.5"
+                        className="h-8 sm:h-8.5 px-3 text-xs font-medium rounded-md cursor-pointer border border-slate-300 text-slate-800 hover:bg-slate-50 gap-1.5 w-full shadow-none justify-center"
                         onClick={() => setRescheduleOpen(true)}
                     >
-                        <CalendarClock className="h-4 w-4" />
+                        <CalendarClock className="h-3.5 w-3.5 text-slate-500" />
                         Reschedule
                     </Button>
                 )}
 
-                {canMarkAttendance && (
+                {showAttendance && (
                     <Button
                         size="sm"
                         variant="outline"
-                        className="h-10 py-2.5 px-3.5 text-xs sm:text-sm font-semibold rounded-md cursor-pointer border-primary text-primary gap-1.5"
+                        className="h-8 sm:h-8.5 px-3 text-xs font-medium rounded-md cursor-pointer border border-slate-300 text-slate-800 hover:bg-slate-50 gap-1.5 w-full shadow-none justify-center"
                         onClick={openAttendance}
                     >
-                        <ClipboardCheck className="h-4 w-4" />
+                        <ClipboardCheck className="h-3.5 w-3.5" />
                         {markedAttendance ? "Update Attendance" : "Mark Attendance"}
                     </Button>
                 )}
             </div>
 
             <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-                <DialogContent className="max-w-[95vw] sm:max-w-lg rounded-xl p-5">
+                <DialogContent className="max-w-[95vw] sm:max-w-lg rounded-md p-5">
                     <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
                         <CheckCircle2 className="h-5 w-5 text-green-600" />
                         Confirm Appointment
@@ -215,8 +217,10 @@ export default function AppointmentActions({ appointment, hideReschedule = false
                         <VideoTimePicker
                             id={`visit-time-${appointmentId}`}
                             date={appointmentDate}
-                            value={visitTime}
-                            onChange={setVisitTime}
+                            startTime={visitTime}
+                            endTime={visitEndTime}
+                            onStartTimeChange={setVisitTime}
+                            onEndTimeChange={setVisitEndTime}
                         />
                     )}
 
@@ -230,7 +234,7 @@ export default function AppointmentActions({ appointment, hideReschedule = false
             </Dialog>
 
             <Dialog open={attendanceOpen} onOpenChange={setAttendanceOpen}>
-                <DialogContent className="max-w-[95vw] sm:max-w-md rounded-xl p-5">
+                <DialogContent className="max-w-[95vw] sm:max-w-md rounded-md p-5">
                     <DialogTitle className="text-lg font-semibold">Mark Attendance</DialogTitle>
                     <p className="text-sm text-muted-foreground -mt-2">
                         {appointment?.patient?.name || appointment?.patient_name || "Patient"}

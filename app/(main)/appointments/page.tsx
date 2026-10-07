@@ -16,7 +16,7 @@ const AppointmentsContent = () => {
     const defaultTab =
         tabParam && ["pending_confirmation", "today", "upcoming", "past", "all"].includes(tabParam)
             ? tabParam
-            : "today";
+            : "all";
     const [activeTab, setActiveTab] = useState(defaultTab);
     const [currentPage, setCurrentPage] = useState(1);
     const [isMounted, setIsMounted] = useState(false);
@@ -181,30 +181,78 @@ const AppointmentsContent = () => {
         );
     }
 
+    const urgentUnconfirmed = appointments.filter((apt: any) => {
+        const type = String(apt.consultation_type || "").toLowerCase();
+        if (type !== "video") return false;
+
+        const isUnconfirmed =
+            apt.awaiting_confirmation === true ||
+            apt.can_confirm === true ||
+            ["awaiting_confirmation", "pending_confirmation"].includes(String(apt.status).toLowerCase());
+        if (!isUnconfirmed) return false;
+
+        const now = new Date();
+        const dateStr = String(apt.appointment_date || apt.date || "").slice(0, 10);
+        const apptD = new Date(dateStr);
+        if (isNaN(apptD.getTime())) return false;
+
+        const isToday =
+            apptD.getFullYear() === now.getFullYear() &&
+            apptD.getMonth() === now.getMonth() &&
+            apptD.getDate() === now.getDate();
+        if (!isToday) return false;
+
+        const timeStr = String(apt.appointment_time || apt.time || "").trim();
+        if (!timeStr) return true;
+
+        let hours = 0;
+        let minutes = 0;
+        const match12 = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+        if (match12) {
+            hours = parseInt(match12[1], 10);
+            minutes = parseInt(match12[2], 10);
+            const ampm = match12[3]?.toUpperCase();
+            if (ampm === "PM" && hours < 12) hours += 12;
+            if (ampm === "AM" && hours === 12) hours = 0;
+        } else {
+            const parts = timeStr.split(":");
+            if (parts.length >= 2) {
+                hours = parseInt(parts[0], 10);
+                minutes = parseInt(parts[1], 10);
+            }
+        }
+
+        const apptStartTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+        const diffMs = apptStartTime.getTime() - now.getTime();
+        const diffHours = diffMs / (1000 * 60 * 60);
+
+        return diffHours <= 2.0;
+    });
+
     return (
         <div className="container-max-width w-full mx-auto space-y-6">
 
-            <HeroSection title="My Appointments" description="Connect with world-class specialists curated for your health journey. Expert clinical care delivered with a human touch." />
+                <HeroSection title="My Appointments" description="Connect with world-class specialists curated for your health journey. Expert clinical care delivered with a human touch." />
 
-            {/* Filters */}
-            <AppointmentFilters
-                searchQuery={searchQuery}
-                selectedFilter={selectedFilter}
-                selectedType={selectedType}
-                setSearchQuery={handleSearchQueryChange}
-                setSelectedFilter={handleSelectedFilterChange}
-                setSelectedType={handleSelectedTypeChange}
-                statusOptions={statusOptions}
-            />
+                {/* Filters */}
+                <AppointmentFilters
+                    searchQuery={searchQuery}
+                    selectedFilter={selectedFilter}
+                    selectedType={selectedType}
+                    setSearchQuery={handleSearchQueryChange}
+                    setSelectedFilter={handleSelectedFilterChange}
+                    setSelectedType={handleSelectedTypeChange}
+                    statusOptions={statusOptions}
+                />
 
-            {/* Tabs */}
-            <CustomTabs
-                tabs={appointmentTabs}
-                activeTab={activeTab}
-                onTabChange={handleTabChange}
-                tabsListClassName="w-full md:max-w-2xl overflow-x-auto overflow-y-hidden scrollbar-hide flex-nowrap justify-start sm:justify-start md:justify-start lg:justify-start [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-            />
-        </div>
+                {/* Tabs */}
+                <CustomTabs
+                    tabs={appointmentTabs}
+                    activeTab={activeTab}
+                    onTabChange={handleTabChange}
+                    tabsListClassName="w-full md:max-w-2xl overflow-x-auto overflow-y-hidden scrollbar-hide flex-nowrap justify-start sm:justify-start md:justify-start lg:justify-start [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                />
+            </div>
     );
 };
 

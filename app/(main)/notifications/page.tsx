@@ -297,15 +297,15 @@ export default function NotificationsPage() {
                                 {permission === "denied"
                                     ? "Push notifications are blocked in your browser settings."
                                     : subscription
-                                    ? "You are currently subscribed to instant web push notifications."
-                                    : "Enable push notifications to get instant alerts on appointments and updates."}
+                                        ? "You are currently subscribed to instant web push notifications."
+                                        : "Enable push notifications to get instant alerts on appointments and updates."}
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
                             <Button
                                 variant={subscription ? "outline" : "default"}
                                 size="sm"
-                                className="rounded-xl px-5 h-10 text-xs font-bold shrink-0 shadow-xs"
+                                className="rounded-md px-5 h-10 text-xs font-bold shrink-0 shadow-xs"
                                 disabled={!isSupported || pushLoading || permission === "denied"}
                                 onClick={async () => {
                                     if (subscription) {
@@ -318,10 +318,10 @@ export default function NotificationsPage() {
                                 {pushLoading
                                     ? "Processing..."
                                     : permission === "denied"
-                                    ? "Notifications Blocked"
-                                    : subscription
-                                    ? "Disable Push Alerts"
-                                    : "Enable Push Alerts"}
+                                        ? "Notifications Blocked"
+                                        : subscription
+                                            ? "Disable Push Alerts"
+                                            : "Enable Push Alerts"}
                             </Button>
                         </div>
                         <button

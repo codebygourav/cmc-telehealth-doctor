@@ -136,7 +136,7 @@ export default function AwardsSection({ awards }: AwardsSectionProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => setIsEditing(true)}
-                        className="text-xs h-8 px-3 rounded-xl gap-1.5 font-semibold text-primary border-primary/30 bg-primary/5 hover:bg-primary/10"
+                        className="text-xs h-8 px-3 rounded-md gap-1.5 font-semibold text-primary border-primary/30 bg-primary/5 hover:bg-primary/10"
                     >
                         <Edit className="h-3.5 w-3.5" /> Edit Awards
                     </Button>
@@ -151,7 +151,7 @@ export default function AwardsSection({ awards }: AwardsSectionProps) {
                         </p>
                     ) : (
                         items.map((item, index) => (
-                            <div key={index} className="p-4 border border-slate-200 rounded-xl space-y-3 bg-slate-50/50 relative">
+                            <div key={index} className="p-4 border border-slate-200 rounded-md space-y-3 bg-slate-50/50 relative">
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
                                         Award #{index + 1}
@@ -212,7 +212,7 @@ export default function AwardsSection({ awards }: AwardsSectionProps) {
                             variant="outline"
                             size="sm"
                             onClick={handleAddItem}
-                            className="gap-1.5 text-xs rounded-xl"
+                            className="gap-1.5 text-xs rounded-md"
                         >
                             <Plus className="h-3.5 w-3.5" /> Add Award
                         </Button>
@@ -224,7 +224,7 @@ export default function AwardsSection({ awards }: AwardsSectionProps) {
                                 size="sm"
                                 onClick={() => setIsEditing(false)}
                                 disabled={updateProfileMutation.isPending}
-                                className="rounded-xl text-xs"
+                                className="rounded-md text-xs"
                             >
                                 Cancel
                             </Button>
@@ -233,7 +233,7 @@ export default function AwardsSection({ awards }: AwardsSectionProps) {
                                 size="sm"
                                 onClick={handleSave}
                                 disabled={updateProfileMutation.isPending}
-                                className="gap-1.5 rounded-xl text-xs"
+                                className="gap-1.5 rounded-md text-xs"
                             >
                                 {updateProfileMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                                 {updateProfileMutation.isPending ? "Saving..." : "Save Awards"}

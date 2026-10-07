@@ -115,7 +115,7 @@ export default function PreviousPrescriptionsDialog({
         {/* Header */}
         <DialogHeader className="p-5 pb-4 border-b bg-gradient-to-r from-slate-50 to-indigo-50/40">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary/10 text-primary rounded-xl shrink-0">
+            <div className="p-2.5 bg-primary/10 text-primary rounded-md shrink-0">
               <Pill className="h-5 w-5" />
             </div>
             <div>
@@ -141,7 +141,7 @@ export default function PreviousPrescriptionsDialog({
                 placeholder="Search by medicine name, doctor, frequency, or date..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 text-xs h-9 bg-white/80 border-slate-200 focus-visible:bg-white rounded-xl"
+                className="pl-9 text-xs h-9 bg-white/80 border-slate-200 focus-visible:bg-white rounded-md"
               />
             </div>
           )}
@@ -314,7 +314,7 @@ export default function PreviousPrescriptionsDialog({
 
                       {/* Instructions / Remarks */}
                       {med.instructions && (
-                        <div className="mt-1 p-2 bg-amber-50/60 border border-amber-200/60 rounded-xl text-xs text-amber-900 font-medium flex items-start gap-2">
+                        <div className="mt-1 p-2 bg-amber-50/60 border border-amber-200/60 rounded-md text-xs text-amber-900 font-medium flex items-start gap-2">
                           <FileText className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
                           <span>{med.instructions}</span>
                         </div>

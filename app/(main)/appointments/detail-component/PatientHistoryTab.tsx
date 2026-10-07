@@ -193,7 +193,7 @@ function ViewUploadedFilesModal({
               return (
                 <div
                   key={file.id || idx}
-                  className="flex items-center justify-between p-3 rounded-xl border border-border bg-card hover:bg-accent/50 transition-colors gap-3"
+                  className="flex items-center justify-between p-3 rounded-md border border-border bg-card hover:bg-accent/50 transition-colors gap-3"
                 >
                   <a
                     href={fullUrl}
@@ -258,7 +258,7 @@ function ClinicalInfoCard({
         : "border-border bg-muted/10";
   return (
     <div
-      className={`p-3.5 rounded-xl border space-y-1.5 ${borderCls}${fullWidth ? " col-span-1 md:col-span-2" : ""}`}
+      className={`p-3.5 rounded-md border space-y-1.5 ${borderCls}${fullWidth ? " col-span-1 md:col-span-2" : ""}`}
     >
       <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wide">
         <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
@@ -401,7 +401,7 @@ export default function PatientHistoryTab({
   }
 
   return (
-    <div className="space-y-4 sm:space-y-5">
+    <div className="space-y-3">
       {/* Uploaded Files Modal */}
       <ViewUploadedFilesModal
         appointmentId={selectedApptForFiles}
@@ -412,13 +412,13 @@ export default function PatientHistoryTab({
       />
 
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-            <History className="h-5 w-5" />
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+            <History className="h-4.5 w-4.5" />
           </div>
           <div>
-            <h3 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
               Patient Consultation History
               <Badge
                 variant="secondary"
@@ -440,7 +440,7 @@ export default function PatientHistoryTab({
               variant="outline"
               size="sm"
               onClick={expandAll}
-              className="text-xs h-8 px-2.5 rounded-lg border-border"
+              className="text-xs h-7.5 px-2.5 rounded-lg border-border"
             >
               Expand All
             </Button>
@@ -449,7 +449,7 @@ export default function PatientHistoryTab({
               variant="outline"
               size="sm"
               onClick={collapseAll}
-              className="text-xs h-8 px-2.5 rounded-lg border-border"
+              className="text-xs h-7.5 px-2.5 rounded-lg border-border"
             >
               Collapse All
             </Button>
@@ -458,14 +458,14 @@ export default function PatientHistoryTab({
       </div>
 
       {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Search by date, medicine, diagnosis, doctor..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 text-xs sm:text-sm h-9.5 bg-card rounded-xl border-border"
+            className="pl-8.5 text-xs sm:text-sm h-8.5 bg-card rounded-md border-border"
           />
           {searchQuery && (
             <button
@@ -479,7 +479,7 @@ export default function PatientHistoryTab({
         </div>
 
         {/* Desktop Filter Pills */}
-        <div className="hidden md:flex items-center gap-1.5 shrink-0">
+        <div className="hidden md:flex items-center gap-1 shrink-0">
           {(
             [
               ["all", "All Records"],
@@ -492,11 +492,10 @@ export default function PatientHistoryTab({
               key={key}
               type="button"
               onClick={() => setActiveFilter(key)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                activeFilter === key
-                  ? "bg-primary text-primary-foreground shadow-xs"
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${activeFilter === key
+                  ? "bg-primary text-primary-foreground shadow-2xs"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
-              }`}
+                }`}
             >
               {label}
             </button>
@@ -508,7 +507,7 @@ export default function PatientHistoryTab({
           <button
             type="button"
             onClick={() => setIsMobileFilterDrawerOpen(true)}
-            className="w-full flex items-center justify-between gap-2 p-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+            className="w-full flex items-center justify-between gap-2 p-2 bg-white border border-slate-200 rounded-md text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
           >
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-800">
               <History className="h-3.5 w-3.5 text-primary" />
@@ -547,11 +546,10 @@ export default function PatientHistoryTab({
                   setActiveFilter(key);
                   setIsMobileFilterDrawerOpen(false);
                 }}
-                className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all ${
-                  activeFilter === key
+                className={`w-full flex items-center justify-between p-3 rounded-md text-xs font-semibold transition-all ${activeFilter === key
                     ? "bg-primary text-white shadow-xs font-bold"
                     : "text-slate-700 hover:bg-slate-100"
-                }`}
+                  }`}
               >
                 <span>{label}</span>
               </button>
@@ -562,9 +560,9 @@ export default function PatientHistoryTab({
 
       {/* Filtered empty */}
       {filteredHistory.length === 0 && (
-        <Card className="rounded-xl border shadow-xs bg-card">
-          <CardContent className="py-10 text-center">
-            <Search className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+        <Card className="rounded-md border shadow-xs bg-card">
+          <CardContent className="py-8 text-center">
+            <Search className="h-7 w-7 text-muted-foreground mx-auto mb-2 opacity-50" />
             <p className="text-sm font-medium text-foreground">No matching records found</p>
             <p className="text-xs text-muted-foreground mt-1">Try modifying your search query or filter category</p>
           </CardContent>
@@ -572,7 +570,7 @@ export default function PatientHistoryTab({
       )}
 
       {/* Accordion List */}
-      <div className="space-y-3.5">
+      <div className="space-y-2.5">
         {filteredHistory.map((item, index) => {
           const itemKey = item.appointment_id || `history-${index}`;
           const isOpen = !!openIds[itemKey];
@@ -599,9 +597,9 @@ export default function PatientHistoryTab({
           return (
             <div
               key={itemKey}
-              className={`rounded-2xl overflow-hidden bg-card shadow-xs transition-all border-2 ${isOpen
-                  ? "border-primary/50 shadow-md shadow-primary/10"
-                  : "border-border/70 hover:border-border"
+              className={`rounded-md overflow-hidden bg-card shadow-2xs transition-all border ${isOpen
+                  ? "border-primary/40 shadow-xs"
+                  : "border-border/80 hover:border-border"
                 }`}
             >
               {/* Toggle Header */}
@@ -609,33 +607,18 @@ export default function PatientHistoryTab({
                 type="button"
                 onClick={() => toggleItem(itemKey)}
                 aria-expanded={isOpen}
-                className={`w-full text-left p-4 sm:p-5 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer ${isOpen ? "bg-primary/5 border-b-2 border-primary/20" : "bg-muted/20 hover:bg-muted/40"
+                className={`w-full text-left p-3 sm:p-3.5 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 cursor-pointer ${isOpen ? "bg-primary/5 border-b border-primary/15" : "bg-muted/15 hover:bg-muted/30"
                   }`}
               >
-                {/* Left: Date + Meta info */}
-                <div className="flex items-center gap-3">
-                  {/* Date bubble */}
-                  <div
-                    className={`flex flex-col items-center justify-center rounded-xl p-2 min-w-[52px] shrink-0 ${isOpen ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
-                      }`}
-                  >
-                    {item.date ? (
-                      <>
-                        <span className="text-[10px] font-bold uppercase leading-none">
-                          {new Date(item.date).toLocaleDateString("en-US", { month: "short" })}
-                        </span>
-                        <span className="text-xl font-extrabold leading-tight">
-                          {new Date(item.date).getDate()}
-                        </span>
-                      </>
-                    ) : (
-                      <Calendar className="h-5 w-5" />
-                    )}
+                {/* Left: Date + Doctor info (NO redundant OCT date box!) */}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                    <Calendar className="h-4 w-4" />
                   </div>
 
                   <div className="space-y-0.5 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm sm:text-base font-bold text-foreground">
+                      <span className="text-sm font-bold text-foreground">
                         {formatDate(item.date, item.date_formatted)}
                       </span>
                       {timeFormatted && (
@@ -755,14 +738,14 @@ export default function PatientHistoryTab({
                   </div>
 
                   {/* SECTION 1: Prescribed Medicines */}
-                  <div className="px-4 sm:px-6 py-5 space-y-3">
+                  <div className="px-3 sm:px-4 py-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                          <Pill className="h-4 w-4" />
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                        <div className="p-1 rounded-md bg-primary/10 text-primary">
+                          <Pill className="h-3.5 w-3.5" />
                         </div>
                         Prescribed Medicines
-                        <Badge variant="secondary" className="text-xs bg-primary/10 text-primary font-semibold">
+                        <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary font-semibold px-1.5 py-0">
                           {medicines.length}
                         </Badge>
                       </h4>
@@ -772,11 +755,11 @@ export default function PatientHistoryTab({
                     </div>
 
                     {medicines.length === 0 ? (
-                      <div className="p-4 rounded-xl border border-dashed border-border bg-muted/20 text-center text-xs text-muted-foreground">
+                      <div className="p-2.5 rounded-lg border border-dashed border-border bg-muted/15 text-center text-xs text-muted-foreground">
                         No medicines prescribed for this consultation.
                       </div>
                     ) : (
-                      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-2xs">
+                      <div className="overflow-x-auto rounded-md border border-border bg-card shadow-2xs">
                         <table className="w-full text-left text-xs border-collapse">
                           <thead>
                             <tr className="bg-muted/60 border-b border-border text-muted-foreground font-semibold text-[11px] uppercase tracking-wide">
@@ -797,8 +780,8 @@ export default function PatientHistoryTab({
                                 >
                                   <td className="py-3 px-3 text-center font-medium text-muted-foreground">{medIdx + 1}</td>
 
-                                  <td className="py-3 px-3">
-                                    <div className="space-y-1">
+                                  <td className="py-2.5 px-3">
+                                    <div className="space-y-0.5">
                                       <span className="font-bold text-foreground block">
                                         {med.medicine_name}
                                       </span>
@@ -807,17 +790,18 @@ export default function PatientHistoryTab({
                                           {med.dosage}
                                         </span>
                                       )}
-                                      {med.is_ongoing && (
-                                        <Badge className="bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 border-emerald-200 text-[10px] font-semibold px-1.5">
-                                          Ongoing
-                                        </Badge>
-                                      )}
                                     </div>
                                   </td>
 
-                                  <td className="py-3 px-3">
-                                    <div className="text-xs font-medium text-muted-foreground">
-                                      {durationStr}
+                                  <td className="py-2.5 px-3">
+                                    <div className="text-xs font-semibold">
+                                      {med.is_ongoing ? (
+                                        <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-200 text-[10px] font-semibold px-2 py-0.5">
+                                          Ongoing
+                                        </Badge>
+                                      ) : (
+                                        <span className="text-muted-foreground">{durationStr}</span>
+                                      )}
                                     </div>
                                     {med.end_date && !med.is_ongoing && (
                                       <div className="text-[10px] text-muted-foreground mt-0.5">
@@ -875,7 +859,7 @@ export default function PatientHistoryTab({
                           />
                         )}
                         {item.order_investigation && (
-                          <div className="p-3.5 rounded-xl border border-border bg-muted/10 space-y-1.5">
+                          <div className="p-3.5 rounded-md border border-border bg-muted/10 space-y-1.5">
                             <p className="text-[11px] font-semibold text-muted-foreground flex items-center justify-between gap-1.5 uppercase tracking-wide">
                               <span className="flex items-center gap-1.5">
                                 <FlaskConical className="h-3.5 w-3.5 text-primary" />
@@ -971,7 +955,7 @@ export default function PatientHistoryTab({
                       {(item.next_visit_date || item.confidential_notes) && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                           {item.next_visit_date && (
-                            <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/60 dark:border-emerald-700/30 dark:bg-emerald-900/10 space-y-1.5">
+                            <div className="p-3.5 rounded-md border border-emerald-200 bg-emerald-50/60 dark:border-emerald-700/30 dark:bg-emerald-900/10 space-y-1.5">
                               <p className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wide">
                                 <CalendarCheck className="h-3.5 w-3.5 text-emerald-600" />
                                 Next Scheduled Visit
@@ -984,7 +968,7 @@ export default function PatientHistoryTab({
                           )}
 
                           {item.confidential_notes && (
-                            <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/60 dark:border-amber-700/30 dark:bg-amber-900/10 space-y-1.5">
+                            <div className="p-3.5 rounded-md border border-amber-200 bg-amber-50/60 dark:border-amber-700/30 dark:bg-amber-900/10 space-y-1.5">
                               <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 flex items-center justify-between gap-1.5 uppercase tracking-wide">
                                 <span className="flex items-center gap-1.5">
                                   <Lock className="h-3.5 w-3.5 text-amber-600" />

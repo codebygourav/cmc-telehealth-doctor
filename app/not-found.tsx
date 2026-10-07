@@ -8,9 +8,9 @@ import { ArrowLeft, Search, Calendar } from "lucide-react";
 
 export default function GlobalNotFound() {
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <div className="flex-1 min-h-[70vh] flex flex-col items-center justify-center text-center px-4 py-12">
+      <div className="flex-1 flex flex-col items-center justify-center text-center px-4 py-12">
         <div className="relative mb-6">
           <span className="text-8xl sm:text-9xl font-extrabold text-primary/10 tracking-widest select-none">
             404
@@ -46,6 +46,6 @@ export default function GlobalNotFound() {
         </div>
       </div>
       <Footer />
-    </>
+    </div>
   );
 }

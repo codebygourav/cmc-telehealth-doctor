@@ -47,7 +47,7 @@ export function PushNotificationBanner() {
   return (
     <div className="w-full bg-gradient-to-r from-primary/15 via-primary/10 to-accent border-b border-primary/20 px-4 py-3 sm:px-6 sm:py-4 shadow-sm transition-all duration-300 relative">
       <div className="container max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-6 pr-8 sm:pr-10">
-        
+
         {/* Left Info Section */}
         <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1">
           <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md">
@@ -72,7 +72,7 @@ export function PushNotificationBanner() {
             size="default"
             disabled={loading}
             onClick={handleEnable}
-            className="h-10 sm:h-11 px-5 sm:px-6 text-xs sm:text-sm font-bold shadow-md rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200"
+            className="h-10 sm:h-11 px-5 sm:px-6 text-xs sm:text-sm font-bold shadow-md rounded-md bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200"
           >
             {loading ? (
               "Enabling..."

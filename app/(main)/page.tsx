@@ -137,32 +137,39 @@ const Home = () => {
     ];
 
     return (
-        <div className="container-max-width w-full mx-auto">
+        <div className="container-max-width w-full mx-auto space-y-3.5 sm:space-y-4">
 
             {/* Welcome Section */}
-            <section className="border-light-gray p-5 rounded-lg shadow-[0px_2px_4px_0px_#0000001A] mb-5">
-                <h1 className="text-[#1F1E1E] font-bold text-2xl">
-                    Welcome back, {user?.first_name || dashboard?.first_name || "Doctor"} {user?.last_name || dashboard?.last_name || ""}
-                </h1>
-                <p className="text-[#4D4D4D] text-base mt-1">
-                    Manage your consultations, review patient records, and deliver quality care seamlessly from your dashboard.
-                </p>
+            <section className="bg-white border border-border/80 rounded-xl p-3.5 sm:p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div>
+                    <h1 className="text-foreground font-bold text-lg sm:text-xl flex items-center gap-2">
+                        Welcome back, {user?.first_name || dashboard?.first_name || "Doctor"} {user?.last_name || dashboard?.last_name || ""} 👋
+                    </h1>
+                    <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+                        Manage your consultations, review patient records, and deliver quality care.
+                    </p>
+                </div>
+                <div className="hidden md:flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-semibold px-3 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20">
+                        {new Date().toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" })}
+                    </span>
+                </div>
             </section>
 
             {/* Loading State */}
             {isLoading ? (
-                <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                     {[1, 2, 3, 4].map((item) => (
                         <div
                             key={item}
-                            className="flex h-32 sm:h-36 lg:h-42.5 items-center justify-center rounded-xl sm:rounded-2xl lg:rounded-3xl border bg-muted/30"
+                            className="flex h-20 items-center justify-center rounded-xl border bg-muted/30"
                         >
                             <Loader2 className="h-5 w-5 animate-spin" />
                         </div>
                     ))}
                 </section>
             ) : isError ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-600">
                     {(error as any)?.response?.data?.message ||
                         (error as any)?.message ||
                         "Failed to load dashboard data."}
@@ -170,7 +177,7 @@ const Home = () => {
             ) : (
                 <>
                     {/* Stats Cards Grid */}
-                    <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
+                    <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                         {stats.map((card, index) => (
                             <StatsCard
                                 key={index}
@@ -213,16 +220,16 @@ const Home = () => {
                     )}
 
                     {/* Today's Appointments & Notifications Section */}
-                    <section className="flex flex-col lg:flex-row gap-4 md:gap-6">
+                    <section className="flex flex-col lg:flex-row gap-3 sm:gap-4">
 
                         {/* Appointments Section */}
-                        <div className="flex-1 rounded-md shadow-[0px_2px_4px_0px_#0000001A] border-light-gray bg-white shadow-sm">
+                        <div className="flex-1 rounded-xl border border-border/80 bg-white shadow-2xs">
 
-                            <div className="flex items-center justify-between border-b border-[#E7E8EB] p-5">
+                            <div className="flex items-center justify-between border-b border-border/60 p-3.5 sm:p-4">
 
                                 <div>
-                                    <h2 className="text-[#1F1E1E] text-base font-bold">Today's Appointments</h2>
-                                    <span className="text-xs sm:text-sm text-muted-foreground">
+                                    <h2 className="text-foreground text-sm sm:text-base font-bold">Today's Appointments</h2>
+                                    <span className="text-xs text-muted-foreground">
                                         You have {dashboard?.todays_appointments?.length ?? 0} appointments scheduled
                                     </span>
                                 </div>
@@ -230,10 +237,10 @@ const Home = () => {
                                 <div>
                                     <Link
                                         href="/appointments"
-                                        className="text-[#1F1E1E] text-sm font-medium flex items-center gap-x-2"
+                                        className="text-primary text-xs font-semibold flex items-center gap-1 hover:underline"
                                     >
                                         View All
-                                        <ChevronRight size={15} color="#1F1E1E" strokeWidth={3} />
+                                        <ChevronRight size={14} />
                                     </Link>
                                 </div>
 
@@ -241,7 +248,7 @@ const Home = () => {
 
                             <div className="p-3 sm:p-4">
                                 {dashboard?.todays_appointments?.length ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {dashboard.todays_appointments.slice(0, 3).map((appointment) => (
                                             <AppointmentCard
                                                 key={appointment.id}
@@ -251,10 +258,10 @@ const Home = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-8 sm:py-12">
-                                        <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                                        <p className="text-sm text-muted-foreground">
-                                            No appointments for today.
+                                    <div className="text-center py-6 sm:py-8">
+                                        <Calendar className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                                        <p className="text-xs sm:text-sm text-muted-foreground">
+                                            No appointments scheduled for today.
                                         </p>
                                     </div>
                                 )}
@@ -262,11 +269,11 @@ const Home = () => {
                         </div>
 
                         {/* Notifications Section */}
-                        <div className="w-full lg:w-[30%] min-w-[280px] rounded-lg border bg-white shadow-sm">
-                            <div className="flex flex-col p-3 sm:p-4 border-b">
-                                <h2 className="text-[#1E1E1E] font-bold text-lg">Notifications</h2>
-                                <span className="text-xs sm:text-sm text-muted-foreground">
-                                    You have {notificationsData?.unread_count ?? 0} unread notifications
+                        <div className="w-full lg:w-[32%] min-w-[280px] rounded-xl border border-border/80 bg-white shadow-2xs">
+                            <div className="flex flex-col p-3.5 sm:p-4 border-b border-border/60">
+                                <h2 className="text-foreground font-bold text-sm sm:text-base">Notifications</h2>
+                                <span className="text-xs text-muted-foreground">
+                                    {notificationsData?.unread_count ?? 0} unread notifications
                                 </span>
                             </div>
                             <div className="max-h-[400px] overflow-y-auto">

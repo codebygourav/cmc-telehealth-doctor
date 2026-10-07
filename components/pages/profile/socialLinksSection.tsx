@@ -88,7 +88,7 @@ export default function SocialLinksSection({
                         variant="outline"
                         size="sm"
                         onClick={() => setIsEditing(true)}
-                        className="text-xs h-8 px-3 rounded-xl gap-1.5 font-semibold text-primary border-primary/30 bg-primary/5 hover:bg-primary/10"
+                        className="text-xs h-8 px-3 rounded-md gap-1.5 font-semibold text-primary border-primary/30 bg-primary/5 hover:bg-primary/10"
                     >
                         <Edit className="h-3.5 w-3.5" /> Edit Social Links
                     </Button>

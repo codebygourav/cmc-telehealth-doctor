@@ -25,3 +25,8 @@ export const getAllPatients = async ({
 
   return response.data;
 };
+
+export const getPatientDetailByAppointmentId = async (appointmentId: string): Promise<any> => {
+  const response = await axiosInstance.get(`/doctor/patient-detail/${appointmentId}`);
+  return response.data;
+};

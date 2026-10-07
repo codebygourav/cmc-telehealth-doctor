@@ -4,8 +4,10 @@ import { VaccinationManagement } from "@/app/(main)/appointments/detail-componen
 import CustomTabs, { TabItem } from "@/components/custom/CustomTabs";
 import HeroSection from "@/components/ui/hero-section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useAppointmentById } from "@/queries/useAppointmentId";
-import { useParams, useSearchParams } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import AppointmentHeader from "../detail-component/AppointmentHeader";
 import OverviewTab from "../detail-component/OverviewTab";
@@ -17,6 +19,7 @@ import ReviewTab from "../detail-component/ReviewTab";
 
 export default function AppointmentDetail() {
     const params = useParams();
+    const router = useRouter();
     const id = params?.id as string;
     const searchParams = useSearchParams();
     const initialTab = searchParams.get("tab") || "overview";
@@ -29,9 +32,9 @@ export default function AppointmentDetail() {
             <div className="space-y-4 sm:space-y-6 px-3 sm:px-4 md:px-6 py-4 sm:py-6">
                 <div className="flex flex-col gap-2">
                     <Skeleton className="h-8 w-48 sm:h-9 sm:w-56" />
-                    <Skeleton className="h-32 w-full rounded-xl" />
+                    <Skeleton className="h-32 w-full rounded-md" />
                     <Skeleton className="h-12 w-full rounded-lg" />
-                    <Skeleton className="h-64 w-full rounded-xl" />
+                    <Skeleton className="h-64 w-full rounded-md" />
                 </div>
             </div>
         );
@@ -44,9 +47,18 @@ export default function AppointmentDetail() {
                     <div className="text-red-500 text-base sm:text-lg font-semibold mb-2">
                         Error Loading Appointment
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground mb-4">
                         Failed to load appointment details. Please try again.
                     </p>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push("/appointments")}
+                        className="gap-2 text-xs font-semibold rounded-md"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                        Back to Appointments
+                    </Button>
                 </div>
             </div>
         );
@@ -92,10 +104,21 @@ export default function AppointmentDetail() {
         },
     ];
 
-
-
     return (
-        <div className="container-max-width w-full mx-auto">
+        <div className="container-max-width w-full mx-auto space-y-4">
+            {/* Top Back Navigation Bar */}
+            <div className="flex items-center justify-between pt-1">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push("/appointments")}
+                    className="gap-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 border-slate-300 hover:bg-slate-50 rounded-md cursor-pointer px-3 py-2 shadow-2xs transition-all"
+                >
+                    <ChevronLeft className="h-4 w-4 text-slate-600" />
+                    Back to Appointments
+                </Button>
+            </div>
+
             {/* Page Title */}
             <HeroSection
                 title="Appointment Detail"
@@ -106,12 +129,12 @@ export default function AppointmentDetail() {
             <AppointmentHeader appointment={appointment} />
 
             {/* Custom Tabs with Horizontal Scroll on Mobile */}
-            <div className="w-full mt-5">
+            <div className="w-full mt-3">
                 <CustomTabs
                     tabs={tabs}
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
-                    tabsListClassName="w-full overflow-x-auto overflow-y-hidden  flex-nowrap justify-start sm:justify-start md:justify-start lg:justify-start [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                    tabsListClassName="w-full overflow-x-auto overflow-y-hidden flex-nowrap justify-start sm:justify-start md:justify-start lg:justify-start [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                 />
             </div>
         </div>

@@ -3,23 +3,23 @@ export const STATUS_STYLES = {
 
   appointment: {
     confirmed:
-      "bg-blue-100 text-blue-700 border border-blue-200",
+      "bg-blue-50 text-blue-600 border border-blue-200/80",
     failed:
-      "bg-red-100 text-red-700 border border-red-200",
+      "bg-rose-50 text-rose-700 border border-rose-200/80",
     completed:
-      "bg-[#E1F9DF] text-[#18CE1E]",
+      "bg-emerald-50 text-emerald-700 border border-emerald-200/80",
     rescheduled:
-      "bg-yellow-100 text-gray-700 border border-gray-200",
+      "bg-amber-50 text-amber-700 border border-amber-200/80",
     pending:
-      "bg-amber-100 text-amber-700 border border-amber-200",
+      "bg-amber-50 text-amber-700 border border-amber-200/80",
     awaiting_confirmation:
-      "bg-orange-100 text-orange-700 border border-orange-200",
+      "bg-amber-50 text-amber-700 border border-amber-200/80",
     no_show:
-      "bg-gray-100 text-gray-600 border border-gray-200",
+      "bg-gray-50 text-gray-600 border border-gray-200/80",
     cancelled:
-      "bg-red-100 text-red-700 border border-red-200",
+      "bg-rose-50 text-rose-700 border border-rose-200/80",
     default:
-      "bg-gray-100 text-gray-700 border border-gray-200",
+      "bg-gray-50 text-gray-700 border border-gray-200/80",
   },
 
   session: {

@@ -1,14 +1,16 @@
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { PushNotificationBanner } from "@/components/ui/PushNotificationBanner";
+import { UnconfirmedVideoAlertBanner } from "@/components/ui/UnconfirmedVideoAlertBanner";
 import { Toaster } from "sonner";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     return (
-        <>
+        <div className="min-h-screen flex flex-col bg-background">
             <Header />
+            <UnconfirmedVideoAlertBanner />
             <PushNotificationBanner />
-            <main className="flex-1 min-h-screen px-5 sm:px-5 py-5 sm:py-5 mx-auto w-full">{children}</main>
+            <main className="flex-1 px-3 sm:px-4 md:px-6 py-4 sm:py-5 mx-auto w-full">{children}</main>
             <Toaster
                 richColors
                 closeButton
@@ -22,6 +24,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 }}
             />
             <Footer />
-        </>
+        </div>
     );
 }

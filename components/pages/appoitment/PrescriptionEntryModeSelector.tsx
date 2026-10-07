@@ -26,12 +26,12 @@ export default function PrescriptionEntryModeSelector({
                     onClick={onSelectVoice}
                     disabled={!dictationEnabled}
                     className={`rounded-2xl border p-5 text-left transition-all ${dictationEnabled
-                            ? "border-border bg-background hover:border-primary hover:bg-primary/5 shadow-sm hover:shadow"
-                            : "cursor-not-allowed border-dashed bg-muted/30 opacity-60"
+                        ? "border-border bg-background hover:border-primary hover:bg-primary/5 shadow-sm hover:shadow"
+                        : "cursor-not-allowed border-dashed bg-muted/30 opacity-60"
                         }`}
                 >
                     <div className="flex items-start gap-4">
-                        <div className="rounded-xl bg-primary/10 p-3 text-primary shrink-0">
+                        <div className="rounded-md bg-primary/10 p-3 text-primary shrink-0">
                             <Mic className="h-6 w-6" />
                         </div>
                         <div className="space-y-1">
@@ -54,7 +54,7 @@ export default function PrescriptionEntryModeSelector({
                     className="rounded-2xl border border-border bg-background p-5 text-left transition-all hover:border-primary hover:bg-primary/5 shadow-sm hover:shadow"
                 >
                     <div className="flex items-start gap-4">
-                        <div className="rounded-xl bg-primary/10 p-3 text-primary shrink-0">
+                        <div className="rounded-md bg-primary/10 p-3 text-primary shrink-0">
                             <Stethoscope className="h-6 w-6" />
                         </div>
                         <div className="space-y-1">

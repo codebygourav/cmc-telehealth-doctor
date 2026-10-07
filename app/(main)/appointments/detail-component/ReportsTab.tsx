@@ -18,7 +18,7 @@ export default function Reports({ appointment }: { appointment: any }) {
     // ✅ EMPTY STATE
     if (!reports.length) {
         return (
-            <Card className="rounded-xl sm:rounded-2xl border shadow-sm">
+            <Card className="rounded-md sm:rounded-2xl border shadow-sm">
                 <CardContent className="py-8 sm:py-12 text-center px-4">
                     <FileText className="mx-auto h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground mb-3 sm:mb-4" />
                     <h3 className="text-base sm:text-lg font-semibold">
@@ -38,7 +38,7 @@ export default function Reports({ appointment }: { appointment: any }) {
             {reports.map((report: any) => (
                 <Card
                     key={report.id}
-                    className="flex flex-col h-full overflow-hidden rounded-xl sm:rounded-2xl p-0"
+                    className="flex flex-col h-full overflow-hidden rounded-md sm:rounded-2xl p-0"
                 >
                     {/* Desktop Layout - Hidden on mobile */}
                     <div className="hidden sm:block">

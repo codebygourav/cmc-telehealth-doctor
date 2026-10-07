@@ -182,7 +182,7 @@ export default function AssignMedicineTemplateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-4xl! p-0 overflow-hidden rounded-xl sm:rounded-2xl">
+      <DialogContent className="w-[95vw] max-w-4xl! p-0 overflow-hidden rounded-md sm:rounded-2xl">
         <DialogHeader className="border-b px-4 sm:px-6 py-3 sm:py-4">
           <DialogTitle className="text-base sm:text-lg md:text-xl">
             Use Medicine Template
@@ -320,7 +320,7 @@ export default function AssignMedicineTemplateDialog({
                             </button>
                           ))}
                         </div>
-                        
+
                         <Button
                           type="button"
                           onClick={playAll}
@@ -401,9 +401,8 @@ function TemplateButton({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-lg border p-3 text-left transition-colors ${
-        selected ? "border-primary bg-primary/5" : "hover:bg-muted/40"
-      }`}
+      className={`w-full rounded-lg border p-3 text-left transition-colors ${selected ? "border-primary bg-primary/5" : "hover:bg-muted/40"
+        }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -471,7 +470,7 @@ function TemplateMedicinePreview({
     } else {
       stopSpeaking();
       setIsSpeakingSelf(true);
-      
+
       const text = generateMedicineSpeechText(item, language);
       speakText(
         text,
@@ -506,8 +505,8 @@ function TemplateMedicinePreview({
               onClick={toggleSpeak}
               className={cn(
                 "p-1 rounded-full border border-muted-foreground/10 transition-all cursor-pointer flex items-center justify-center outline-none",
-                isSpeaking 
-                  ? "bg-[#013220] text-white hover:bg-emerald-800" 
+                isSpeaking
+                  ? "bg-[#013220] text-white hover:bg-emerald-800"
                   : "bg-white text-muted-foreground hover:bg-muted"
               )}
               title={isSpeaking ? "Stop voice guidance" : "Listen to voice guidance"}

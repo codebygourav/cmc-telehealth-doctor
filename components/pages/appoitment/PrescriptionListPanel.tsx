@@ -162,98 +162,98 @@ export default function PrescriptionListPanel({
     return (
         <div className={`md:col-span-5 rounded-lg border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4 self-start md:sticky md:top-0 md:max-h-[calc(92vh-13rem)] md:overflow-y-auto ${mobileTab === "list" ? "block" : "hidden md:block"}`}>
             {!hideMedicineList && (<>
-            <div className="rounded-lg border border-slate-200 bg-white/90 px-3 py-2.5 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                    <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Add Prescription</p>
-                        <h3 className="text-sm font-bold text-slate-900">Current Session Summary</h3>
+                <div className="rounded-lg border border-slate-200 bg-white/90 px-3 py-2.5 shadow-sm">
+                    <div className="flex items-center justify-between gap-2">
+                        <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Add Prescription</p>
+                            <h3 className="text-sm font-bold text-slate-900">Current Session Summary</h3>
+                        </div>
+                        <span className="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20 shadow-sm">
+                            {addedMedicines.length} {addedMedicines.length === 1 ? "Medicine" : "Medicines"}
+                        </span>
                     </div>
-                    <span className="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20 shadow-sm">
-                        {addedMedicines.length} {addedMedicines.length === 1 ? "Medicine" : "Medicines"}
-                    </span>
                 </div>
-            </div>
 
-            {addedMedicines.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-14 text-center border-2 border-dashed border-slate-200 rounded-lg p-4 bg-white">
-                    <ClipboardList className="h-9 w-9 text-slate-400 mb-2 stroke-[1.6]" />
-                    <p className="text-xs font-semibold text-slate-700">No medicines added yet</p>
-                    <p className="text-[10px] text-slate-500 mt-1 max-w-45 leading-relaxed">
-                        Add medicines from the form to include them in this submission.
-                    </p>
-                </div>
-            ) : (
-                <div className="space-y-2">
-                    <div className="text-[11px] font-semibold text-primary">Medicines to Be Submitted</div>
-                    <div className="max-h-95 overflow-y-auto space-y-3 pr-1 min-h-0">
-                        {addedMedicines.map((med, index) => {
-                            const timingsList = [
-                                med.timing_morning ? "Morning" : null,
-                                med.timing_afternoon ? "Afternoon" : null,
-                                med.timing_evening ? "Evening" : null,
-                                med.timing_night ? "Night" : null,
-                            ].filter(Boolean);
+                {addedMedicines.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-14 text-center border-2 border-dashed border-slate-200 rounded-lg p-4 bg-white">
+                        <ClipboardList className="h-9 w-9 text-slate-400 mb-2 stroke-[1.6]" />
+                        <p className="text-xs font-semibold text-slate-700">No medicines added yet</p>
+                        <p className="text-[10px] text-slate-500 mt-1 max-w-45 leading-relaxed">
+                            Add medicines from the form to include them in this submission.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        <div className="text-[11px] font-semibold text-primary">Medicines to Be Submitted</div>
+                        <div className="max-h-95 overflow-y-auto space-y-3 pr-1 min-h-0">
+                            {addedMedicines.map((med, index) => {
+                                const timingsList = [
+                                    med.timing_morning ? "Morning" : null,
+                                    med.timing_afternoon ? "Afternoon" : null,
+                                    med.timing_evening ? "Evening" : null,
+                                    med.timing_night ? "Night" : null,
+                                ].filter(Boolean);
 
-                            return (
-                                <div key={index} className="p-3 border border-slate-200 rounded-lg bg-white hover:shadow-md hover:border-slate-300 transition-all text-xs space-y-2 relative group shadow-sm">
-                                    <div className="flex justify-between items-start gap-2">
-                                        <div className="space-y-0.5">
-                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                                <span className="font-bold text-slate-900 text-sm leading-tight">{med.medicine_name}</span>
-                                                {med.medication_type && (
-                                                    <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded-full text-slate-600 font-semibold uppercase tracking-wider">
-                                                        {med.medication_type}
-                                                    </span>
+                                return (
+                                    <div key={index} className="p-3 border border-slate-200 rounded-lg bg-white hover:shadow-md hover:border-slate-300 transition-all text-xs space-y-2 relative group shadow-sm">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div className="space-y-0.5">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="font-bold text-slate-900 text-sm leading-tight">{med.medicine_name}</span>
+                                                    {med.medication_type && (
+                                                        <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded-full text-slate-600 font-semibold uppercase tracking-wider">
+                                                            {med.medication_type}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {med.template ? (
+                                                    <p className="whitespace-pre-line text-[11px] leading-relaxed text-slate-700">{med.instructions}</p>
+                                                ) : (
+                                                    <p className="text-[10px] sm:text-[11px] text-slate-600">
+                                                        {med.dosage} • {frequencyOptions.find((f) => f.value === med.frequency)?.label || med.frequency}
+                                                    </p>
                                                 )}
                                             </div>
-                                            {med.template ? (
-                                                <p className="whitespace-pre-line text-[11px] leading-relaxed text-slate-700">{med.instructions}</p>
-                                            ) : (
-                                                <p className="text-[10px] sm:text-[11px] text-slate-600">
-                                                    {med.dosage} • {frequencyOptions.find((f) => f.value === med.frequency)?.label || med.frequency}
-                                                </p>
+
+                                            <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                                                <button type="button" onClick={() => onEditMedicine(index)} className="p-1 hover:bg-muted rounded text-primary transition-colors" title="Edit medicine">
+                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                    </svg>
+                                                </button>
+                                                <button type="button" onClick={() => onDeleteMedicine(index)} className="p-1 hover:bg-destructive/10 rounded text-destructive transition-colors" title="Remove medicine">
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {!med.template && <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[10px] text-slate-600 pt-2 border-t border-slate-100 mt-1 leading-normal">
+                                            <div>
+                                                <span className="font-semibold text-slate-900">Timing:</span>{" "}
+                                                {timingsList.length > 0 ? timingsList.join(", ") : "As needed"}
+                                            </div>
+                                            <div>
+                                                <span className="font-semibold text-slate-900">Meal:</span>{" "}
+                                                {mealOptions.find((m) => m.value === med.meal)?.label || med.meal?.replace("_", " ")}
+                                            </div>
+                                            {med.start_date && (
+                                                <div className="col-span-2">
+                                                    <span className="font-semibold text-slate-900">Duration:</span>{" "}
+                                                    {med.start_date} {med.end_date ? `to ${med.end_date}` : "(Ongoing)"}
+                                                </div>
                                             )}
-                                        </div>
-
-                                        <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                                            <button type="button" onClick={() => onEditMedicine(index)} className="p-1 hover:bg-muted rounded text-primary transition-colors" title="Edit medicine">
-                                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                </svg>
-                                            </button>
-                                            <button type="button" onClick={() => onDeleteMedicine(index)} className="p-1 hover:bg-destructive/10 rounded text-destructive transition-colors" title="Remove medicine">
-                                                <X className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
+                                            {med.instructions && (
+                                                <div className="col-span-2 italic bg-slate-50 p-1.5 rounded-md border border-slate-200 text-[10px] leading-relaxed wrap-break-word font-medium text-slate-700">
+                                                    &ldquo;{med.instructions}&rdquo;
+                                                </div>
+                                            )}
+                                        </div>}
                                     </div>
-
-                                    {!med.template && <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-[10px] text-slate-600 pt-2 border-t border-slate-100 mt-1 leading-normal">
-                                        <div>
-                                            <span className="font-semibold text-slate-900">Timing:</span>{" "}
-                                            {timingsList.length > 0 ? timingsList.join(", ") : "As needed"}
-                                        </div>
-                                        <div>
-                                            <span className="font-semibold text-slate-900">Meal:</span>{" "}
-                                            {mealOptions.find((m) => m.value === med.meal)?.label || med.meal?.replace("_", " ")}
-                                        </div>
-                                        {med.start_date && (
-                                            <div className="col-span-2">
-                                                <span className="font-semibold text-slate-900">Duration:</span>{" "}
-                                                {med.start_date} {med.end_date ? `to ${med.end_date}` : "(Ongoing)"}
-                                            </div>
-                                        )}
-                                        {med.instructions && (
-                                            <div className="col-span-2 italic bg-slate-50 p-1.5 rounded-xl border border-slate-200 text-[10px] leading-relaxed wrap-break-word font-medium text-slate-700">
-                                                &ldquo;{med.instructions}&rdquo;
-                                            </div>
-                                        )}
-                                    </div>}
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
             </>)}
 

@@ -2124,7 +2124,7 @@ export default function AddPrescriptionDialog({
                 <div className="space-y-5">
                   {/* Video call screen: full-width tabs above both columns. */}
                   {showRecordTab && mode === "full" && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
                       {([
                         ["prescribe", "Prescription", Stethoscope],
                         ["patient_history", "Patient History", History],
@@ -2562,7 +2562,7 @@ export default function AddPrescriptionDialog({
                                     <p className="text-xs font-bold text-slate-900">Selected Files ({reportFiles.length}):</p>
                                     <div className="max-h-28 overflow-y-auto space-y-1 pr-1">
                                       {reportFiles.map((file, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-2 bg-white rounded-xl text-xs border border-slate-200 shadow-sm">
+                                        <div key={idx} className="flex items-center justify-between p-2 bg-white rounded-md text-xs border border-slate-200 shadow-sm">
                                           <span className="truncate font-medium flex-1 max-w-70">{file.name}</span>
                                           <button
                                             type="button"
@@ -2604,7 +2604,7 @@ export default function AddPrescriptionDialog({
                           {/* Previous Prescribed Medicines Button */}
                           <div className="flex flex-wrap items-center justify-between p-3.5 bg-gradient-to-r from-slate-50 to-indigo-50/60 border border-slate-200/80 rounded-2xl shadow-2xs gap-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="p-2 bg-primary/10 text-primary rounded-xl shrink-0">
+                              <div className="p-2 bg-primary/10 text-primary rounded-md shrink-0">
                                 <Pill className="h-4 w-4" />
                               </div>
                               <div>
@@ -2617,7 +2617,7 @@ export default function AddPrescriptionDialog({
                               variant="outline"
                               size="sm"
                               onClick={() => setShowPreviousPrescriptions(true)}
-                              className="text-xs font-semibold border-slate-300 hover:bg-white hover:text-primary hover:border-primary/40 shadow-2xs rounded-xl flex items-center gap-1.5 bg-white transition-all"
+                              className="text-xs font-semibold border-slate-300 hover:bg-white hover:text-primary hover:border-primary/40 shadow-2xs rounded-md flex items-center gap-1.5 bg-white transition-all"
                             >
                               <Pill className="h-3.5 w-3.5 text-primary" />
                               See all previous medicines
@@ -2632,7 +2632,7 @@ export default function AddPrescriptionDialog({
                                 rows={2}
                                 value={medicalRecordForm.final_diagnosis}
                                 onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, final_diagnosis: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
+                                className="text-xs rounded-md border-slate-200"
                               />
                             </div>
                             <div className="space-y-1.5">
@@ -2642,7 +2642,7 @@ export default function AddPrescriptionDialog({
                                 rows={2}
                                 value={medicalRecordForm.chief_complaint}
                                 onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, chief_complaint: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
+                                className="text-xs rounded-md border-slate-200"
                               />
                             </div>
                             <div className="space-y-1.5">
@@ -2652,7 +2652,7 @@ export default function AddPrescriptionDialog({
                                 rows={2}
                                 value={medicalRecordForm.history_of_present_illness}
                                 onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, history_of_present_illness: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
+                                className="text-xs rounded-md border-slate-200"
                               />
                             </div>
                             <div className="space-y-1.5">
@@ -2662,7 +2662,7 @@ export default function AddPrescriptionDialog({
                                 rows={2}
                                 value={medicalRecordForm.present_medical_history}
                                 onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, present_medical_history: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
+                                className="text-xs rounded-md border-slate-200"
                               />
                             </div>
                             <div className="space-y-1.5">
@@ -2672,7 +2672,7 @@ export default function AddPrescriptionDialog({
                                 rows={2}
                                 value={medicalRecordForm.family_history}
                                 onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, family_history: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
+                                className="text-xs rounded-md border-slate-200"
                               />
                             </div>
                             <div className="space-y-1.5">
@@ -2682,7 +2682,7 @@ export default function AddPrescriptionDialog({
                                 rows={2}
                                 value={medicalRecordForm.personal_history}
                                 onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, personal_history: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
+                                className="text-xs rounded-md border-slate-200"
                               />
                             </div>
                             <div className="space-y-1.5">
@@ -2692,7 +2692,7 @@ export default function AddPrescriptionDialog({
                                 rows={2}
                                 value={medicalRecordForm.examination}
                                 onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, examination: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
+                                className="text-xs rounded-md border-slate-200"
                               />
                             </div>
                             <div className="space-y-1.5">
@@ -2702,7 +2702,7 @@ export default function AddPrescriptionDialog({
                                 rows={2}
                                 value={medicalRecordForm.notes}
                                 onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, notes: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
+                                className="text-xs rounded-md border-slate-200"
                               />
                             </div>
                             <div className="space-y-1.5">
@@ -2712,7 +2712,7 @@ export default function AddPrescriptionDialog({
                                 rows={2}
                                 value={medicalRecordForm.investigation}
                                 onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, investigation: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
+                                className="text-xs rounded-md border-slate-200"
                               />
                             </div>
                             <div className="space-y-1.5">
@@ -2722,7 +2722,7 @@ export default function AddPrescriptionDialog({
                                 rows={2}
                                 value={medicalRecordForm.treatment}
                                 onChange={(e) => setMedicalRecordForm((prev) => ({ ...prev, treatment: e.target.value }))}
-                                className="text-xs rounded-xl border-slate-200"
+                                className="text-xs rounded-md border-slate-200"
                               />
                             </div>
                           </div>
@@ -2747,7 +2747,7 @@ export default function AddPrescriptionDialog({
                                     return (
                                       <div
                                         key={file.id || idx}
-                                        className="flex items-center justify-between p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs gap-2"
+                                        className="flex items-center justify-between p-2 bg-slate-50 border border-slate-200 rounded-md text-xs gap-2"
                                       >
                                         <a
                                           href={fullUrl}
@@ -2797,7 +2797,7 @@ export default function AddPrescriptionDialog({
                                 </span>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                   {medicalRecordFiles.map((file, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-2 bg-primary/5 border border-primary/20 rounded-xl text-xs">
+                                    <div key={idx} className="flex items-center justify-between p-2 bg-primary/5 border border-primary/20 rounded-md text-xs">
                                       <span className="truncate font-medium text-slate-700">{file.name}</span>
                                       <button
                                         type="button"
@@ -2812,7 +2812,7 @@ export default function AddPrescriptionDialog({
                               </div>
                             )}
 
-                            <div className="relative border-2 border-dashed border-slate-200 hover:border-primary/50 transition-colors rounded-xl p-3 text-center cursor-pointer bg-white">
+                            <div className="relative border-2 border-dashed border-slate-200 hover:border-primary/50 transition-colors rounded-md p-3 text-center cursor-pointer bg-white">
                               <input
                                 type="file"
                                 multiple
@@ -3089,7 +3089,7 @@ export default function AddPrescriptionDialog({
                   ["Investigation / Order", medicalRecordForm.investigation],
                   ["Clinical Notes", medicalRecordForm.notes],
                 ].map(([label, value]) => (
-                  <div key={label} className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 space-y-1">
+                  <div key={label} className="p-3 rounded-md border border-slate-200/80 bg-slate-50/50 space-y-1">
                     <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">{label}</p>
                     <p className="font-medium text-slate-900 leading-relaxed whitespace-pre-line">
                       {value && value.trim() ? value : <span className="text-slate-400 italic">Not specified</span>}
@@ -3100,7 +3100,7 @@ export default function AddPrescriptionDialog({
 
               {/* Uploaded Files Preview */}
               {(existingMedicalRecordFiles.length > 0 || medicalRecordFiles.length > 0) && (
-                <div className="p-3 rounded-xl border border-emerald-200/80 bg-emerald-50/30 space-y-2">
+                <div className="p-3 rounded-md border border-emerald-200/80 bg-emerald-50/30 space-y-2">
                   <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-800">Attached Medical Documents</p>
                   <div className="flex flex-wrap gap-2">
                     {existingMedicalRecordFiles.map((file, idx) => (
@@ -3896,7 +3896,7 @@ function renderLiveListPreview(value: string | undefined | null) {
   if (lines.length === 0) return null;
 
   return (
-    <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1 mt-1.5 animate-in fade-in duration-150">
+    <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-md text-xs space-y-1 mt-1.5 animate-in fade-in duration-150">
       <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
         Preview
       </div>

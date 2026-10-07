@@ -9,7 +9,7 @@ interface PrescriptionSuccessDialogProps {
 export default function PrescriptionSuccessDialog({ open, onClose }: PrescriptionSuccessDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="w-[90vw] max-w-sm rounded-xl">
+            <DialogContent className="w-[90vw] max-w-sm rounded-md">
                 <DialogHeader>
                     <DialogTitle>Prescription Added</DialogTitle>
                 </DialogHeader>

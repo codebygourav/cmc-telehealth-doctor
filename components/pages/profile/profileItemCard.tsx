@@ -67,7 +67,7 @@ export function ProfileItemCard({
       <CardContent className="p-4 sm:p-5">
         <div className="flex items-start gap-4">
           <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl ${iconClassName}`}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md ${iconClassName}`}
           >
             {imageSrc ? (
               <Image
@@ -122,7 +122,7 @@ export function ProfileItemCard({
                 variant="outline"
                 size="sm"
                 onClick={handleView}
-                className="text-xs h-8 px-3 rounded-xl border-primary/30 text-primary hover:bg-primary/10"
+                className="text-xs h-8 px-3 rounded-md border-primary/30 text-primary hover:bg-primary/10"
               >
                 View
               </Button>

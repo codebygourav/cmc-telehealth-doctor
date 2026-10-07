@@ -119,7 +119,7 @@ const ConsultationContent = () => {
                         className="flex flex-col items-center gap-1 group cursor-pointer"
                         title="View Patient Details"
                     >
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#0000008f] rounded-xl flex items-center justify-center hover:bg-[#000000af] transition-all shadow-md border border-white/10 group-hover:scale-105">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#0000008f] rounded-md flex items-center justify-center hover:bg-[#000000af] transition-all shadow-md border border-white/10 group-hover:scale-105">
                             <FileUser color="#fff" className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
                         <span className="font-inter font-bold text-[10px] sm:text-xs text-white drop-shadow-md">
@@ -133,7 +133,7 @@ const ConsultationContent = () => {
                         className="flex flex-col items-center gap-1 group cursor-pointer"
                         title="Build Prescription"
                     >
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#0000008f] rounded-xl flex items-center justify-center hover:bg-[#000000af] transition-all shadow-md border border-white/10 group-hover:scale-105">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#0000008f] rounded-md flex items-center justify-center hover:bg-[#000000af] transition-all shadow-md border border-white/10 group-hover:scale-105">
                             <Pill color="#fff" className="w-5 h-5 sm:w-6 sm:h-6" />
                         </div>
                         <span className="font-inter font-bold text-[10px] sm:text-xs text-white drop-shadow-md">

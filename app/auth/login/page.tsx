@@ -136,7 +136,7 @@ const LoginPage = () => {
 
                 {imageError && (
                     <div className="mb-4 flex justify-center">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-md bg-primary">
                             <span className="text-2xl font-bold text-primary-foreground">
                                 A
                             </span>
@@ -160,7 +160,7 @@ const LoginPage = () => {
                 buttonText={isPending ? "Signing In..." : "Sign In"}
                 onSubmit={handleLogin}
                 showForgotPassword={true}
-                // No sign up: doctor accounts are created by the clinic (admin panel).
+            // No sign up: doctor accounts are created by the clinic (admin panel).
             />
         </AuthLayout>
     )

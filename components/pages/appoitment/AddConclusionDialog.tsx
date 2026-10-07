@@ -56,7 +56,7 @@
 //   const onSubmit = (data: ConclusionForm) => {
 //     // TODO: Implement API call to save conclusion
 //     console.log("Conclusion data:", data);
-    
+
 //     // Show success dialog
 //     setShowSuccess(true);
 //   };
@@ -75,7 +75,7 @@
 //   return (
 //     <>
 //       <Dialog open={open} onOpenChange={onOpenChange}>
-//         <DialogContent className="w-[95vw] max-w-lg rounded-xl">
+//         <DialogContent className="w-[95vw] max-w-lg rounded-md">
 //           <DialogHeader className="border-b pb-4">
 //             <div className="flex items-center justify-between">
 //               <DialogTitle className="text-lg font-semibold">
@@ -164,7 +164,7 @@
 // }) {
 //   return (
 //     <Dialog open={open} onOpenChange={onClose}>
-//       <DialogContent className="w-[90vw] max-w-sm rounded-xl">
+//       <DialogContent className="w-[90vw] max-w-sm rounded-md">
 //         <DialogHeader>
 //           <DialogTitle className="text-lg font-semibold">Conclusion Submitted</DialogTitle>
 //         </DialogHeader>
@@ -284,7 +284,7 @@ export default function AddConclusionDialog({
           else onOpenChange(value);
         }}
       >
-        <DialogContent className="w-[95vw] max-w-lg rounded-xl">
+        <DialogContent className="w-[95vw] max-w-lg rounded-md">
           <DialogHeader className="border-b pb-4">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-lg font-semibold">
@@ -392,7 +392,7 @@ function SuccessDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="w-[90vw] max-w-sm rounded-xl">
+      <DialogContent className="w-[90vw] max-w-sm rounded-md">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">
             Conclusion Submitted

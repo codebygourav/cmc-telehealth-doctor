@@ -35,6 +35,7 @@ export function RescheduleAppointmentDialog({
     const [selectedSlot, setSelectedSlot] = useState<any>(null);
     // Exact visit time inside the chosen OPD slot (e.g. 10:45 in a 10 AM - 4 PM OPD).
     const [visitTime, setVisitTime] = useState("");
+    const [visitEndTime, setVisitEndTime] = useState("");
     // Video slots: the call can be set at any time on that date. In-person: the slot time.
     const isVideoSlot = String(selectedSlot?.consultation_type || "").toLowerCase().includes("video");
     const visitTimeValid = !selectedSlot || !isVideoSlot || isFutureTimeOnDate(selectedSlot?.date, visitTime);
@@ -43,6 +44,8 @@ export function RescheduleAppointmentDialog({
         const rawSlotTime = slot?.booking_start_time || slot?.start_time || "";
         const defaultTime = getDefaultFutureTime(slot?.date, rawSlotTime);
         setVisitTime(defaultTime);
+        const rawEndTime = slot?.booking_end_time || slot?.end_time || "";
+        setVisitEndTime(rawEndTime);
     };
     const [slots, setSlots] = useState<any[]>([]);
     const [schedule, setSchedule] = useState<{ consultation_type: string; opd_type: string | null; label: string } | null>(null);
@@ -74,6 +77,7 @@ export function RescheduleAppointmentDialog({
             setSelectedDate(firstFree?.date ?? formattedSlots[0]?.date ?? "");
             setSelectedSlot(null);
             setVisitTime("");
+            setVisitEndTime("");
         } catch (err) {
             console.log("Slot fetch error", err);
         } finally {
@@ -90,7 +94,7 @@ export function RescheduleAppointmentDialog({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             {/* Bottom sheet on phones, centred dialog from sm up. */}
-            <DialogContent className="flex max-h-[88dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-b-none rounded-t-2xl p-0 max-sm:top-auto max-sm:bottom-0 max-sm:left-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:data-[state=open]:slide-in-from-bottom-10 sm:max-h-[90vh] sm:w-[90vw] sm:max-w-2xl sm:rounded-xl">
+            <DialogContent className="flex max-h-[88dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-b-none rounded-t-2xl p-0 max-sm:top-auto max-sm:bottom-0 max-sm:left-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:data-[state=open]:slide-in-from-bottom-10 sm:max-h-[90vh] sm:w-[90vw] sm:max-w-2xl sm:rounded-md">
                 {/* Header */}
                 <div className="shrink-0 border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
                     <DialogTitle className="text-lg font-semibold sm:text-xl">Reschedule Appointment</DialogTitle>
@@ -143,18 +147,18 @@ export function RescheduleAppointmentDialog({
                                                 <button key={date} type="button" role="tab" aria-selected={selected}
                                                     onClick={() => { setSelectedDate(date); setSelectedSlot(null); }}
                                                     title={`${free} free`}
-                                                    className={`flex h-16 py-2 w-16 shrink-0 snap-start flex-col items-center justify-center rounded-lg border leading-none transition-colors ${selected
-                                                        ? "border-primary bg-primary text-white"
-                                                        : free > 0 ? "border-slate-200 bg-white text-slate-900 hover:border-primary/50" : "border-slate-200 bg-slate-50 text-slate-400"}`}>
-                                                    <span className="text-[10px] font-semibold uppercase">{d.toLocaleDateString("en-US", { weekday: "short" })}</span>
-                                                    <span className="text-lg font-bold">{d.getDate()}</span>
-                                                    <span className={`text-[10px] ${selected ? "text-white/80" : "text-muted-foreground"}`}>{d.toLocaleDateString("en-US", { month: "short" })}</span>
+                                                    className={`flex h-15 py-1.5 w-15 shrink-0 snap-start flex-col items-center justify-center rounded-md border leading-none transition-all cursor-pointer ${selected
+                                                        ? "border-primary bg-primary text-white shadow-xs"
+                                                        : free > 0 ? "border-slate-200 bg-white text-slate-900 hover:border-primary/50 hover:bg-slate-50/80" : "border-slate-200 bg-slate-50 text-slate-400"}`}>
+                                                    <span className="text-[10px] font-semibold uppercase tracking-wider">{d.toLocaleDateString("en-US", { weekday: "short" })}</span>
+                                                    <span className="text-base font-bold my-0.5">{d.getDate()}</span>
+                                                    <span className={`text-[10px] font-medium ${selected ? "text-white/90" : "text-slate-500"}`}>{d.toLocaleDateString("en-US", { month: "short" })}</span>
                                                 </button>
                                             );
                                         })}
                                     </div>
                                     <button type="button" onClick={() => slideDates(1)} aria-label="Next dates"
-                                        className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-primary hover:border-primary sm:flex">
+                                        className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-primary hover:border-primary sm:flex cursor-pointer">
                                         <ChevronRight className="h-4 w-4" />
                                     </button>
                                 </div>
@@ -168,7 +172,7 @@ export function RescheduleAppointmentDialog({
                                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                                     {slotsForDate.map((slot) => {
                                         const selected = selectedSlot?.id === slot.id && selectedSlot?.date === slot.date;
-                                        
+
                                         // Check if slot time has passed based on current time for today's date
                                         const isPastSlot = (() => {
                                             if (!slot.date) return false;
@@ -206,12 +210,12 @@ export function RescheduleAppointmentDialog({
                                         return (
                                             <button key={`${slot.id}-${slot.date}`} type="button" disabled={full}
                                                 onClick={() => pickSlot(slot)}
-                                                className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${selected
-                                                    ? "border-primary bg-primary text-white"
+                                                className={`rounded-md border px-2.5 py-2 text-left transition-all cursor-pointer ${selected
+                                                    ? "border-primary bg-primary text-white shadow-xs"
                                                     : full ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
                                                         : "border-slate-200 bg-white text-slate-900 hover:border-primary hover:text-primary"}`}>
-                                                <span className="block text-sm font-semibold">{slot.start_time} - {slot.end_time}</span>
-                                                <span className={`mt-0.5 flex items-center gap-1 text-[11px] ${selected ? "text-white/80" : "text-muted-foreground"}`}>
+                                                <span className="block text-xs font-bold">{slot.start_time} - {slot.end_time}</span>
+                                                <span className={`mt-0.5 flex items-center gap-1 text-[10px] font-medium ${selected ? "text-white/90" : "text-slate-500"}`}>
                                                     {video ? <Video className="h-3 w-3" /> : <Building2 className="h-3 w-3" />}
                                                     {video ? "Video" : `In-person · ${slot.opd_type === "private" ? "Private" : "General"} OPD`}
                                                     {isPastSlot ? " · Passed" : full ? " · Full" : ""}
@@ -227,13 +231,15 @@ export function RescheduleAppointmentDialog({
                         </>
                     )}
 
-                    {/* Video slot: choose any call time on that date */}
+                    {/* Video slot: choose start & end call time on that date */}
                     {selectedSlot && isVideoSlot && (
                         <VideoTimePicker
                             id="reschedule-visit-time"
                             date={selectedSlot.date}
-                            value={visitTime}
-                            onChange={setVisitTime}
+                            startTime={visitTime}
+                            endTime={visitEndTime}
+                            onStartTimeChange={setVisitTime}
+                            onEndTimeChange={setVisitEndTime}
                         />
                     )}
 
@@ -243,7 +249,7 @@ export function RescheduleAppointmentDialog({
                 <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-6">
                     <p className="text-sm">
                         {selectedSlot
-                            ? <span className="text-primary"><span className="font-semibold">Selected:</span> {longDate(selectedSlot.date)}, {selectedSlot.start_time}</span>
+                            ? <span className="text-primary"><span className="font-semibold">Selected:</span> {longDate(selectedSlot.date)}, {visitTime || selectedSlot.start_time}{visitEndTime ? ` – ${visitEndTime}` : ""}</span>
                             : <span className="text-muted-foreground">Select a time slot</span>}
                     </p>
                     <button
@@ -251,11 +257,19 @@ export function RescheduleAppointmentDialog({
                         onClick={async () => {
                             if (!selectedSlot) return;
 
+                            const formatTime = (t: string) => {
+                                if (!t) return "";
+                                const clean = t.trim();
+                                if (/^\d{1,2}:\d{2}$/.test(clean)) return `${clean}:00`;
+                                return clean;
+                            };
+
                             const payload = {
                                 appointment_id: appointmentId,
                                 availability_id: selectedSlot.id,
                                 appointment_date: selectedSlot.date,
-                                appointment_time: isVideoSlot && visitTime ? `${visitTime}:00` : selectedSlot.booking_start_time,
+                                appointment_time: isVideoSlot && visitTime ? formatTime(visitTime) : (selectedSlot.booking_start_time || selectedSlot.start_time),
+                                appointment_end_time: isVideoSlot && visitEndTime ? formatTime(visitEndTime) : (selectedSlot.booking_end_time || selectedSlot.end_time),
                                 confirm: true,
                             };
 

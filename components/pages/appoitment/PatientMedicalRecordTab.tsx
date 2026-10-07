@@ -187,7 +187,7 @@ export default function PatientMedicalRecordTab({
         <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
           <header className="flex items-center justify-between gap-2 border-b border-border/70 px-4 sm:px-6 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Stethoscope className="h-4.5 w-4.5" />
               </span>
               <h3 className="text-sm sm:text-base font-bold text-foreground">
@@ -207,11 +207,10 @@ export default function PatientMedicalRecordTab({
               return (
                 <div
                   key={field.label}
-                  className={`min-w-0 rounded-xl border p-3.5 space-y-1.5 transition-colors ${
-                    isHero
+                  className={`min-w-0 rounded-md border p-3.5 space-y-1.5 transition-colors ${isHero
                       ? "md:col-span-2 border-primary/30 bg-primary/5 shadow-2xs"
                       : "border-border/70 bg-muted/10 hover:bg-muted/30"
-                  }`}
+                    }`}
                 >
                   <dt className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                     <IconComp className={`h-3.5 w-3.5 ${meta.color}`} />
@@ -230,7 +229,7 @@ export default function PatientMedicalRecordTab({
         <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
           <header className="flex items-center justify-between gap-2 border-b border-border/70 px-4 sm:px-6 py-3.5 bg-muted/20">
             <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Paperclip className="h-4.5 w-4.5" />
               </span>
               <h3 className="text-sm sm:text-base font-bold text-foreground">
@@ -252,7 +251,7 @@ export default function PatientMedicalRecordTab({
               return (
                 <div
                   key={file.id || idx}
-                  className="group flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-2xs"
+                  className="group flex min-w-0 items-center justify-between gap-3 rounded-md border border-border bg-card p-3 transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-2xs"
                 >
                   <a
                     href={fullUrl}

@@ -14,7 +14,7 @@ const AuthLayout = ({ title, subtitle, children }: AuthLayoutProps) => {
                 <div className="w-full max-w-xl">
 
                     {/* Card Container */}
-                    <div className="mt-8 bg-card py-8 px-6 shadow-xl rounded-xl border border-border sm:px-10">
+                    <div className="mt-8 bg-card py-8 px-6 shadow-xl rounded-md border border-border sm:px-10">
                         {/* Header */}
                         <div className="mb-6 text-center">
                             <h2 className="text-2xl font-bold text-foreground">{title}</h2>

@@ -73,74 +73,71 @@ export default function AppointmentHeader({ appointment }: { appointment: any })
     const [askComplete, setAskComplete] = useState(false);
 
     return (
-        <Card className="rounded-md !border-light-gray shadow-[0px_2px_4px_0px_#0000001A] p-3 lg:p-5">
+        <Card className="rounded-md border border-border/80 shadow-2xs p-3 sm:p-4">
             <CardContent className="p-0">
-                <div className="flex flex-col w-full gap-3 sm:gap-4">
+                <div className="flex flex-col w-full gap-2.5">
 
-                    {/* Desktop Layout - Same as original */}
-                    <div className="hidden sm:flex sm:justify-between w-full gap-4">
+                    {/* Desktop Layout */}
+                    <div className="hidden sm:flex sm:justify-between items-center w-full gap-3">
 
                         {/* Patient Info */}
                         <div className="flex items-center gap-3">
-                            <Avatar className="h-24 w-24">
+                            <Avatar className="h-16 w-16 shrink-0 border border-primary/10">
                                 <AvatarImage src={patient?.avatar} />
-                                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                <AvatarFallback className="bg-primary/10 text-primary font-bold text-base">
                                     {getInitials(patient?.name)}
                                 </AvatarFallback>
                             </Avatar>
 
-                            <div className="flex flex-col gap-1">
-
-                                <div className="flex items-center gap-1">
-                                    <p className="mt-0.5 flex items-center font-bold text-primary text-xs font-semibold">
-                                        {schedule?.date_format || appointment?.appointment_date_format}
-                                        <span className="opacity-50 px-1"> | </span>
+                            <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-1 text-xs font-semibold text-primary">
+                                    <span>{schedule?.date_format || appointment?.appointment_date_format}</span>
+                                    <span className="opacity-40">|</span>
+                                    <span>
                                         {schedule?.time_formatted || appointment?.appointment_time_formatted}
                                         {appointment?.appointment_end_time_formatted &&
                                             ` - ${appointment.appointment_end_time_formatted}`}
-                                        <span className="opacity-50">
-                                            <Dot className="h-5 md:h-7" />
-                                        </span>
-                                        {schedule?.day_format || appointment?.appointment_date_format}
-                                    </p>
+                                    </span>
+                                    <span className="opacity-40">•</span>
+                                    <span>{schedule?.day_format || appointment?.appointment_date_format}</span>
                                 </div>
 
-                                <div className="flex items-center gap-1">
-                                    <h2 className="text-[#1F1E1E] text-2xl font-bold">
+                                <div className="flex items-baseline gap-1.5">
+                                    <h2 className="text-foreground text-xl font-bold">
                                         {patient?.name || "Unknown Patient"}
                                     </h2>
-                                    <span>
+                                    <span className="text-xs text-muted-foreground font-medium">
                                         ({patient?.age_formatted || "N/A"},{" "}
                                         {patient?.gender_formatted || "N/A"})
                                     </span>
                                 </div>
 
                                 {appointment?.booked_by_name && appointment.booked_by_name !== patient?.name && (
-                                    <p className="text-sm text-muted-foreground">Booked by {appointment.booked_by_name}</p>
+                                    <p className="text-xs text-muted-foreground">Booked by {appointment.booked_by_name}</p>
                                 )}
 
-                                <div className="flex items-center flex-wrap gap-x-2.5 text-sm text-muted-foreground">
-                                    <p className="text-sm font-medium flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#F5F6F8]">
-                                        <Mail className="h-3 w-3" /> {patient?.email || "Not provided"}
+                                <div className="flex items-center flex-wrap gap-1.5 text-xs text-muted-foreground mt-0.5">
+                                    <p className="text-xs font-medium flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 border border-border/40">
+                                        <Mail className="h-3 w-3 text-muted-foreground" /> {patient?.email || "Not provided"}
                                     </p>
-                                    <p className="text-sm font-medium flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#F5F6F8]">
-                                        <Phone className="h-3 w-3" /> {patient?.phone || "Not provided"}
+                                    <p className="text-xs font-medium flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 border border-border/40">
+                                        <Phone className="h-3 w-3 text-muted-foreground" /> {patient?.phone || "Not provided"}
                                     </p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Date/Time, Badges, Cancel Button */}
-                        <div className="flex flex-col items-end justify-between flex-wrap gap-2">
+                        <div className="flex flex-col items-end justify-center gap-1.5 shrink-0">
 
-                            <div className="flex flex-col items-end gap-y-2.5">
-                                <Badge className={`${getStatusColor("appointment", localStatus)} gap-1 py-1.5 px-3 !rounded-md h-auto`}>
+                            <div className="flex items-center gap-1.5">
+                                <Badge className={`${getStatusColor("appointment", localStatus)} gap-1 py-1 px-2.5 rounded-md text-xs font-semibold`}>
                                     {appointment?.status_label || "Completed"}
                                 </Badge>
 
-                                <Badge variant="outline" className="gap-1 border-[#E7E8EB] py-1.5 px-2 !rounded-md h-auto bg-[#F5F6F8]">
+                                <Badge variant="outline" className="gap-1 border-border py-1 px-2 rounded-md text-xs font-medium bg-muted/40">
                                     <Video className="h-3 w-3" />
-                                    {schedule?.consultation_type_label || "Video Consultation"}
+                                    {schedule?.consultation_type_label || "Video"}
                                 </Badge>
                             </div>
 
@@ -149,7 +146,7 @@ export default function AppointmentHeader({ appointment }: { appointment: any })
                                     variant="default"
                                     onClick={() => window.open(consultationUrl, "_blank")}
                                     disabled={!joinUrl}
-                                    className="h-10 py-2.5 px-4 font-semibold rounded-md gap-1.5 cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+                                    className="h-9 py-2 px-4 font-semibold rounded-md gap-1.5 cursor-pointer bg-[#064e3b] hover:bg-[#022c22] text-white shadow-2xs"
                                 >
                                     <Phone className="h-4 w-4" />
                                     {callLabel}

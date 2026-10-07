@@ -212,7 +212,7 @@ export default function PasswordSection() {
             variant="ghost"
             size="sm"
             onClick={() => setMode("change")}
-            className="text-xs text-slate-600 gap-1 rounded-xl"
+            className="text-xs text-slate-600 gap-1 rounded-md"
           >
             <ArrowLeft className="h-4 w-4" /> Back to Change Password
           </Button>
@@ -314,7 +314,7 @@ export default function PasswordSection() {
               </div>
 
               <div className="pt-2 flex justify-end">
-                <Button type="submit" disabled={changePasswordMutation.isPending} className="w-full sm:w-auto min-w-[140px] gap-1.5 rounded-xl">
+                <Button type="submit" disabled={changePasswordMutation.isPending} className="w-full sm:w-auto min-w-[140px] gap-1.5 rounded-md">
                   {changePasswordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                   {changePasswordMutation.isPending ? "Updating..." : "Update Password"}
                 </Button>
@@ -326,7 +326,7 @@ export default function PasswordSection() {
         {/* MODE 2: Send OTP */}
         {mode === "send_otp" && (
           <div className="space-y-5 max-w-xl">
-            <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-1">
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-md space-y-1">
               <p className="text-xs font-semibold text-primary uppercase tracking-wider">Forgot Password Verification</p>
               <p className="text-sm text-slate-700">
                 We will send a 6-digit OTP code to your registered email address:{" "}
@@ -339,7 +339,7 @@ export default function PasswordSection() {
                 type="button"
                 onClick={handleSendOtp}
                 disabled={sendOtpMutation.isPending}
-                className="gap-2 rounded-xl"
+                className="gap-2 rounded-md"
               >
                 {sendOtpMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -352,7 +352,7 @@ export default function PasswordSection() {
                 type="button"
                 variant="outline"
                 onClick={() => setMode("change")}
-                className="rounded-xl"
+                className="rounded-md"
               >
                 Cancel
               </Button>
@@ -364,7 +364,7 @@ export default function PasswordSection() {
         {mode === "verify_reset" && (
           <FormProvider {...resetMethods}>
             <form onSubmit={resetMethods.handleSubmit(onResetSubmit)} className="space-y-5 max-w-xl">
-              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-800">
+              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-md flex items-center justify-between text-xs text-emerald-800">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                   <span>OTP code sent to <strong>{userEmail}</strong></span>
@@ -453,11 +453,11 @@ export default function PasswordSection() {
                   type="button"
                   variant="outline"
                   onClick={() => setMode("change")}
-                  className="rounded-xl text-xs"
+                  className="rounded-md text-xs"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isResetPending} className="gap-1.5 rounded-xl text-xs">
+                <Button type="submit" disabled={isResetPending} className="gap-1.5 rounded-md text-xs">
                   {isResetPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                   {isResetPending ? "Verifying & Resetting..." : "Verify OTP & Reset Password"}
                 </Button>

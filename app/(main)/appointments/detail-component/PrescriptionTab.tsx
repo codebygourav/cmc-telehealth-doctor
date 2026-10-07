@@ -306,59 +306,6 @@ export default function PrescriptionTab({
     notes ||
     nextVisitDate;
 
-  if (!hasPrescriptionData && !hasConclusionData) {
-    return (
-      <>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 mt-4 mb-4 w-full">
-          <Button
-            type="button"
-            onClick={() => {
-              setDialogMode("full");
-              setDialogTab("prescribe");
-              setIsAddDialogOpen(true);
-            }}
-            className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm flex items-center gap-1.5 font-semibold"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Edit Notes &amp; Prescription
-          </Button>
-        </div>
-        <Card>
-          <CardContent className="p-6 sm:p-8 text-center">
-            <div className="flex flex-col items-center gap-2 sm:gap-3">
-              <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                No prescription or conclusion available
-              </p>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Start by adding findings, diagnostics, or a prescription
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <PatientMedicalRecordTab appointmentId={appointmentId} />
-        <AddPrescriptionDialog
-          open={isAddDialogOpen}
-          onOpenChange={setIsAddDialogOpen}
-          mode={dialogMode}
-          showRecordTab={true}
-          initialTab={dialogTab}
-          assistantConfig={dictationAssistant}
-          initialMedicines={medicines}
-          initialFindings={initialFindings}
-          initialNextVisitDate={nextVisitDate}
-          initialRecommendedTests={initialRecommendedTests}
-          initialGeneralNotes={data?.data?.follow_up_note}
-          initialDiagnosis={diagnosis}
-          initialOrderInvestigation={orderInvestigation}
-          initialNotes={notes}
-          initialConfidentialNotes={confidentialNotes}
-          initialInstructionsByDoctor={instructionsByDoctor}
-        />
-      </>
-    );
-  }
-
   return (
     <div className="space-y-4 sm:space-y-5 md:space-y-6">
       <div className="flex flex-row items-center justify-end gap-1.5 sm:gap-2.5 w-full">
@@ -367,7 +314,7 @@ export default function PrescriptionTab({
           variant="outline"
           disabled={isDownloadingRecord || !appointmentId}
           onClick={onDownloadMedicalRecord}
-          className="h-8.5 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5 font-semibold border-emerald-300 text-emerald-800 hover:bg-emerald-50 rounded-xl transition-all shadow-2xs shrink-0"
+          className="h-8.5 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5 font-semibold border-emerald-300 text-emerald-800 hover:bg-emerald-50 rounded-md transition-all shadow-2xs shrink-0"
           title="Download Patient Medical Record PDF"
         >
           {isDownloadingRecord ? (
@@ -384,7 +331,7 @@ export default function PrescriptionTab({
             target="_blank"
             rel="noopener noreferrer"
             title="Download Prescription (PDF)"
-            className="inline-flex h-8.5 sm:h-9 items-center justify-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50/90 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold text-sky-800 transition-all hover:bg-sky-100 shadow-2xs shrink-0"
+            className="inline-flex h-8.5 sm:h-9 items-center justify-center gap-1.5 rounded-md border border-sky-300 bg-sky-50/90 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold text-sky-800 transition-all hover:bg-sky-100 shadow-2xs shrink-0"
           >
             <Download className="h-3.5 w-3.5 text-sky-700 shrink-0" />
             <span className="hidden sm:inline">Download Prescription (PDF)</span>
@@ -399,29 +346,86 @@ export default function PrescriptionTab({
             setDialogTab("prescribe");
             setIsAddDialogOpen(true);
           }}
-          className="h-8.5 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5 font-semibold rounded-xl shrink-0"
+          className="h-8.5 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5 font-semibold rounded-md shrink-0"
         >
           <Pencil className="h-3.5 w-3.5 shrink-0" />
           <span className="hidden sm:inline">Edit Notes &amp; Prescription</span>
         </Button>
       </div>
 
-      {/* Mobile Sub-tabs Trigger Button */}
-      <div className="block md:hidden">
-        <button
-          type="button"
-          onClick={() => setIsMobileDrawerOpen(true)}
-          className="w-full flex items-center justify-between gap-2 p-3 bg-white border border-slate-200 rounded-2xl shadow-xs text-slate-700 hover:bg-slate-50 transition-colors"
-        >
-          <div className="flex items-center gap-2 font-medium text-sm text-slate-800">
-            <Layers className="h-4 w-4 text-primary" />
-            <span>Section: <strong className="text-primary font-semibold">{getActiveSubTabLabel()}</strong></span>
-          </div>
-          <div className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-xl">
-            Change
-            <ChevronDown className="h-3.5 w-3.5" />
-          </div>
-        </button>
+      {/* Sub-tabs Navigation: Horizontal Bar on Mobile/Tablet (Always Visible) */}
+      <div className="block md:hidden w-full overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex items-center gap-1.5 min-w-max bg-slate-100/90 p-1.5 rounded-xl border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("all")}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeSubTab === "all"
+              ? "bg-primary text-white shadow-xs font-bold"
+              : "text-slate-700 hover:bg-slate-200/70"
+              }`}
+          >
+            <Layers className="h-3.5 w-3.5 shrink-0" />
+            <span>All Sections</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("medicines")}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeSubTab === "medicines"
+              ? "bg-primary text-white shadow-xs font-bold"
+              : "text-slate-700 hover:bg-slate-200/70"
+              }`}
+          >
+            <Pill className={`h-3.5 w-3.5 shrink-0 ${activeSubTab === "medicines" ? "text-white" : "text-emerald-600"}`} />
+            <span>Prescribed Medicines</span>
+            {medicines.length > 0 && (
+              <Badge
+                className={`text-[10px] px-1.5 py-0.2 shrink-0 ${activeSubTab === "medicines"
+                  ? "bg-white/20 text-white border-0"
+                  : "bg-emerald-100 text-emerald-800 border-0"
+                  }`}
+              >
+                {medicines.length}
+              </Badge>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("summary")}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeSubTab === "summary"
+              ? "bg-primary text-white shadow-xs font-bold"
+              : "text-slate-700 hover:bg-slate-200/70"
+              }`}
+          >
+            <UserCheck className={`h-3.5 w-3.5 shrink-0 ${activeSubTab === "summary" ? "text-white" : "text-indigo-600"}`} />
+            <span>Patient Record Summary</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("conclusion")}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeSubTab === "conclusion"
+              ? "bg-primary text-white shadow-xs font-bold"
+              : "text-slate-700 hover:bg-slate-200/70"
+              }`}
+          >
+            <ClipboardCheck className={`h-3.5 w-3.5 shrink-0 ${activeSubTab === "conclusion" ? "text-white" : "text-amber-600"}`} />
+            <span>Consultation Conclusion</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("files")}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeSubTab === "files"
+              ? "bg-primary text-white shadow-xs font-bold"
+              : "text-slate-700 hover:bg-slate-200/70"
+              }`}
+          >
+            <Paperclip className={`h-3.5 w-3.5 shrink-0 ${activeSubTab === "files" ? "text-white" : "text-blue-600"}`} />
+            <span>Attached Media &amp; Reports</span>
+          </button>
+        </div>
       </div>
 
       {/* Responsive Grid: Desktop Left Sidebar + Right Main Content */}
@@ -432,9 +436,9 @@ export default function PrescriptionTab({
             <button
               type="button"
               onClick={() => setActiveSubTab("all")}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${activeSubTab === "all"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              className={`w-full flex items-center justify-between p-3 rounded-md text-xs sm:text-sm font-semibold transition-all ${activeSubTab === "all"
+                ? "bg-primary text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`}
             >
               <div className="flex items-center gap-2.5">
@@ -446,9 +450,9 @@ export default function PrescriptionTab({
             <button
               type="button"
               onClick={() => setActiveSubTab("medicines")}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${activeSubTab === "medicines"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              className={`w-full flex items-center justify-between p-3 rounded-md text-xs sm:text-sm font-semibold transition-all ${activeSubTab === "medicines"
+                ? "bg-primary text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`}
             >
               <div className="flex items-center gap-2.5">
@@ -458,8 +462,8 @@ export default function PrescriptionTab({
               {medicines.length > 0 && (
                 <Badge
                   className={`text-[10px] px-1.5 py-0.2 shrink-0 ${activeSubTab === "medicines"
-                      ? "bg-white/20 text-white border-0"
-                      : "bg-emerald-100 text-emerald-800 border-0"
+                    ? "bg-white/20 text-white border-0"
+                    : "bg-emerald-100 text-emerald-800 border-0"
                     }`}
                 >
                   {medicines.length}
@@ -470,9 +474,9 @@ export default function PrescriptionTab({
             <button
               type="button"
               onClick={() => setActiveSubTab("summary")}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${activeSubTab === "summary"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              className={`w-full flex items-center justify-between p-3 rounded-md text-xs sm:text-sm font-semibold transition-all ${activeSubTab === "summary"
+                ? "bg-primary text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`}
             >
               <div className="flex items-center gap-2.5">
@@ -484,9 +488,9 @@ export default function PrescriptionTab({
             <button
               type="button"
               onClick={() => setActiveSubTab("conclusion")}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${activeSubTab === "conclusion"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              className={`w-full flex items-center justify-between p-3 rounded-md text-xs sm:text-sm font-semibold transition-all ${activeSubTab === "conclusion"
+                ? "bg-primary text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`}
             >
               <div className="flex items-center gap-2.5">
@@ -498,9 +502,9 @@ export default function PrescriptionTab({
             <button
               type="button"
               onClick={() => setActiveSubTab("files")}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${activeSubTab === "files"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              className={`w-full flex items-center justify-between p-3 rounded-md text-xs sm:text-sm font-semibold transition-all ${activeSubTab === "files"
+                ? "bg-primary text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`}
             >
               <div className="flex items-center gap-2.5">
@@ -513,6 +517,22 @@ export default function PrescriptionTab({
 
         {/* Main Content Area (Right Panel) */}
         <main className="md:col-span-9 space-y-5 min-w-0">
+
+          {!hasPrescriptionData && !hasConclusionData && (
+            <Card>
+              <CardContent className="p-6 sm:p-8 text-center">
+                <div className="flex flex-col items-center gap-2 sm:gap-3">
+                  <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
+                  <p className="text-xs sm:text-sm text-muted-foreground font-semibold">
+                    No prescription or conclusion available
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Start by adding findings, diagnostics, or a prescription
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Medicines List Section */}
           {(activeSubTab === "all" || activeSubTab === "medicines") && (
@@ -640,7 +660,7 @@ export default function PrescriptionTab({
                         {instructionsByDoctor && instructionsByDoctor.includes("Recommended Tests:") && (
                           <div className="space-y-1.5">
                             <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">Assigned Tests</span>
-                            <p className="text-xs sm:text-sm font-medium text-foreground bg-background p-3 rounded-xl border border-indigo-50 whitespace-pre-line leading-relaxed">
+                            <p className="text-xs sm:text-sm font-medium text-foreground bg-background p-3 rounded-md border border-indigo-50 whitespace-pre-line leading-relaxed">
                               {instructionsByDoctor.split("Recommended Tests:")[1]?.trim()}
                             </p>
                           </div>
@@ -659,7 +679,7 @@ export default function PrescriptionTab({
                                   return (
                                     <div
                                       key={file.id || idx}
-                                      className="flex items-center justify-between p-2.5 bg-background hover:bg-indigo-50/40 border border-muted rounded-xl transition-all text-xs text-indigo-950 font-semibold shadow-xs gap-2"
+                                      className="flex items-center justify-between p-2.5 bg-background hover:bg-indigo-50/40 border border-muted rounded-md transition-all text-xs text-indigo-950 font-semibold shadow-xs gap-2"
                                     >
                                       <a
                                         href={fullUrl}
@@ -702,7 +722,7 @@ export default function PrescriptionTab({
                                 })}
                               </div>
                             ) : (
-                              <p className="text-xs italic text-muted-foreground bg-background/50 p-3 rounded-xl border border-dashed text-center">No reference files uploaded by doctor</p>
+                              <p className="text-xs italic text-muted-foreground bg-background/50 p-3 rounded-md border border-dashed text-center">No reference files uploaded by doctor</p>
                             )}
                           </div>
 
@@ -710,12 +730,12 @@ export default function PrescriptionTab({
                           <div className="space-y-2">
                             <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider block">Patient Report Upload</span>
                             {doctorReferenceFiles.some(f => f.type === "patient-uploaded" || f.name?.toLowerCase().includes("patient")) ? (
-                              <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl flex items-center gap-2">
+                              <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-md flex items-center gap-2">
                                 <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
                                 <span className="text-xs text-emerald-800 font-bold">Patient uploaded report files successfully</span>
                               </div>
                             ) : (
-                              <div className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl flex items-center justify-between gap-2">
+                              <div className="p-3 bg-amber-50/50 border border-amber-100 rounded-md flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
                                   <div className="h-2 w-2 rounded-full bg-amber-400" />
                                   <span className="text-xs text-amber-800 font-medium">Reports Pending Patient Upload</span>
@@ -901,7 +921,7 @@ export default function PrescriptionTab({
               <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
                 <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-4 sm:px-6 py-3.5 bg-muted/20">
                   <div className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
                       <ClipboardCheck className="h-4.5 w-4.5" />
                     </span>
                     <h3 className="text-sm sm:text-base font-bold text-foreground">Consultation Conclusion</h3>
@@ -909,7 +929,7 @@ export default function PrescriptionTab({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8.5 shrink-0 gap-1.5 text-xs font-semibold rounded-xl border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                    className="h-8.5 shrink-0 gap-1.5 text-xs font-semibold rounded-md border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
                     onClick={() => {
                       setEditIndex(null);
                       setDialogMode("full");
@@ -923,7 +943,7 @@ export default function PrescriptionTab({
 
                 <div className="space-y-4 p-4 sm:p-5">
                   {nextVisitDate && (
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 dark:border-emerald-700/30 dark:bg-emerald-900/10 p-3.5">
+                    <div className="flex items-center justify-between gap-3 rounded-md border border-emerald-200 bg-emerald-50/70 dark:border-emerald-700/30 dark:bg-emerald-900/10 p-3.5">
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-emerald-600 text-white shrink-0">
                           <CalendarDays className="h-4.5 w-4.5" />
@@ -970,7 +990,7 @@ export default function PrescriptionTab({
                         return (
                           <div
                             key={label}
-                            className="min-w-0 rounded-xl border border-border/70 bg-muted/10 p-3.5 space-y-1.5 hover:bg-muted/30 transition-colors"
+                            className="min-w-0 rounded-md border border-border/70 bg-muted/10 p-3.5 space-y-1.5 hover:bg-muted/30 transition-colors"
                           >
                             <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                               <Icon className="h-3.5 w-3.5 text-primary" /> {label}
@@ -995,7 +1015,7 @@ export default function PrescriptionTab({
                   </div>
 
                   {confidentialNotes && confidentialNotes.trim() && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50/70 dark:border-amber-700/30 dark:bg-amber-900/10 p-3.5 space-y-1.5">
+                    <div className="rounded-md border border-amber-200 bg-amber-50/70 dark:border-amber-700/30 dark:bg-amber-900/10 p-3.5 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
                         <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
                           <Lock className="h-3.5 w-3.5 text-amber-600" /> Confidential Notes
@@ -1089,9 +1109,9 @@ export default function PrescriptionTab({
                 setActiveSubTab("all");
                 setIsMobileDrawerOpen(false);
               }}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all ${activeSubTab === "all"
-                  ? "bg-primary text-white shadow-xs font-bold"
-                  : "text-slate-700 hover:bg-slate-100"
+              className={`w-full flex items-center justify-between p-3 rounded-md text-xs font-semibold transition-all ${activeSubTab === "all"
+                ? "bg-primary text-white shadow-xs font-bold"
+                : "text-slate-700 hover:bg-slate-100"
                 }`}
             >
               <div className="flex items-center gap-2.5">
@@ -1106,9 +1126,9 @@ export default function PrescriptionTab({
                 setActiveSubTab("medicines");
                 setIsMobileDrawerOpen(false);
               }}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all ${activeSubTab === "medicines"
-                  ? "bg-primary text-white shadow-xs font-bold"
-                  : "text-slate-700 hover:bg-slate-100"
+              className={`w-full flex items-center justify-between p-3 rounded-md text-xs font-semibold transition-all ${activeSubTab === "medicines"
+                ? "bg-primary text-white shadow-xs font-bold"
+                : "text-slate-700 hover:bg-slate-100"
                 }`}
             >
               <div className="flex items-center gap-2.5">
@@ -1118,8 +1138,8 @@ export default function PrescriptionTab({
               {medicines.length > 0 && (
                 <Badge
                   className={`text-[10px] px-1.5 py-0.2 ${activeSubTab === "medicines"
-                      ? "bg-white/20 text-white border-0"
-                      : "bg-emerald-100 text-emerald-800 border-0"
+                    ? "bg-white/20 text-white border-0"
+                    : "bg-emerald-100 text-emerald-800 border-0"
                     }`}
                 >
                   {medicines.length}
@@ -1133,9 +1153,9 @@ export default function PrescriptionTab({
                 setActiveSubTab("summary");
                 setIsMobileDrawerOpen(false);
               }}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all ${activeSubTab === "summary"
-                  ? "bg-primary text-white shadow-xs font-bold"
-                  : "text-slate-700 hover:bg-slate-100"
+              className={`w-full flex items-center justify-between p-3 rounded-md text-xs font-semibold transition-all ${activeSubTab === "summary"
+                ? "bg-primary text-white shadow-xs font-bold"
+                : "text-slate-700 hover:bg-slate-100"
                 }`}
             >
               <div className="flex items-center gap-2.5">
@@ -1150,9 +1170,9 @@ export default function PrescriptionTab({
                 setActiveSubTab("conclusion");
                 setIsMobileDrawerOpen(false);
               }}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all ${activeSubTab === "conclusion"
-                  ? "bg-primary text-white shadow-xs font-bold"
-                  : "text-slate-700 hover:bg-slate-100"
+              className={`w-full flex items-center justify-between p-3 rounded-md text-xs font-semibold transition-all ${activeSubTab === "conclusion"
+                ? "bg-primary text-white shadow-xs font-bold"
+                : "text-slate-700 hover:bg-slate-100"
                 }`}
             >
               <div className="flex items-center gap-2.5">
@@ -1167,9 +1187,9 @@ export default function PrescriptionTab({
                 setActiveSubTab("files");
                 setIsMobileDrawerOpen(false);
               }}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all ${activeSubTab === "files"
-                  ? "bg-primary text-white shadow-xs font-bold"
-                  : "text-slate-700 hover:bg-slate-100"
+              className={`w-full flex items-center justify-between p-3 rounded-md text-xs font-semibold transition-all ${activeSubTab === "files"
+                ? "bg-primary text-white shadow-xs font-bold"
+                : "text-slate-700 hover:bg-slate-100"
                 }`}
             >
               <div className="flex items-center gap-2.5">
@@ -1318,7 +1338,7 @@ export default function PrescriptionTab({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="mt-2 flex flex-col items-center justify-center bg-slate-950/5 rounded-xl border p-2 sm:p-4 max-h-[70vh] overflow-auto">
+            <div className="mt-2 flex flex-col items-center justify-center bg-slate-950/5 rounded-md border p-2 sm:p-4 max-h-[70vh] overflow-auto">
               {isImageFile(previewFile.url || previewFile.name) ? (
                 <img
                   src={getFileUrl(previewFile.url)}

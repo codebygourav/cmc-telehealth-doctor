@@ -298,13 +298,13 @@ const ProfilePage = () => {
                 <button
                     type="button"
                     onClick={() => setIsMobileProfileDrawerOpen(true)}
-                    className="w-full flex items-center justify-between gap-2 p-3 bg-white border border-slate-200 rounded-xl shadow-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                    className="w-full flex items-center justify-between gap-2 p-3 bg-white border border-slate-200 rounded-md shadow-xs text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                     <div className="flex items-center gap-2.5 font-medium text-sm text-slate-800">
                         {activeSidebarItem && <activeSidebarItem.icon className="h-4 w-4 text-primary shrink-0" />}
                         <span>Section: <strong className="text-primary font-bold">{activeSidebarItem?.label}</strong></span>
                     </div>
-                    <div className="flex items-center gap-1 text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-xl">
+                    <div className="flex items-center gap-1 text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md">
                         Change
                         <ChevronDown className="h-3.5 w-3.5" />
                     </div>
@@ -332,7 +332,7 @@ const ProfilePage = () => {
                                         setActiveTab(item.key);
                                         setIsMobileProfileDrawerOpen(false);
                                     }}
-                                    className={`w-full flex items-center justify-between p-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${isActive
+                                    className={`w-full flex items-center justify-between p-3 rounded-md text-xs sm:text-sm font-semibold transition-all ${isActive
                                         ? "bg-primary text-white shadow-xs font-bold"
                                         : "text-slate-700 hover:bg-slate-100"
                                         }`}

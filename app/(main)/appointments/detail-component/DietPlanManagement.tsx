@@ -204,22 +204,22 @@ export function DietPlanManagement({
     const sidebarMediaItems = useMemo(() => {
         return normalizedDayMeals
             .map((meal: any) => {
-            const links = Array.isArray(meal.helpfulLinks) ? meal.helpfulLinks : [];
-            const validLinks = links
-                .filter((link: any) => Boolean(link?.url))
-                .map((link: any) => ({
-                    url: link.url,
-                    title: link.title || 'Open link',
-                    type: String(link.type || 'link').toLowerCase(),
-                }));
+                const links = Array.isArray(meal.helpfulLinks) ? meal.helpfulLinks : [];
+                const validLinks = links
+                    .filter((link: any) => Boolean(link?.url))
+                    .map((link: any) => ({
+                        url: link.url,
+                        title: link.title || 'Open link',
+                        type: String(link.type || 'link').toLowerCase(),
+                    }));
 
-            return {
-                mealId: meal.id,
-                mealName: meal.items,
-                mealType: meal.type,
-                links: validLinks,
-            };
-        })
+                return {
+                    mealId: meal.id,
+                    mealName: meal.items,
+                    mealType: meal.type,
+                    links: validLinks,
+                };
+            })
             .filter((entry: any) => entry.links.length > 0)
             .map((entry: any) => ({
                 ...entry,
@@ -558,11 +558,10 @@ export function DietPlanManagement({
                                         key={tab.key}
                                         type="button"
                                         onClick={() => setMealTab(tab.key)}
-                                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
-                                            mealTab === tab.key
+                                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${mealTab === tab.key
                                                 ? 'border-primary bg-primary/10 text-primary'
                                                 : 'border-[#BFD4F5] bg-white text-[#4D4D4D] hover:border-primary/35 hover:text-primary'
-                                        }`}
+                                            }`}
                                     >
                                         {tab.label}
                                     </button>
@@ -605,11 +604,10 @@ export function DietPlanManagement({
                                         key={`${day.date || day.day_number}-${day.id}`}
                                         type="button"
                                         onClick={() => setSelectedDayNumber(day.day_number)}
-                                        className={`relative min-w-24 rounded-md border px-3 py-2.5 text-center transition-all duration-200 ${
-                                            isSelected
+                                        className={`relative min-w-24 rounded-md border px-3 py-2.5 text-center transition-all duration-200 ${isSelected
                                                 ? 'border-primary bg-primary text-white shadow-sm shadow-primary/20'
                                                 : 'border-[#BFD4F5] bg-[#F7FAFF] text-[#1F1E1E] hover:border-primary/35 hover:bg-primary/5'
-                                        }`}
+                                            }`}
                                     >
                                         <span className={`block text-[11px] font-bold ${isSelected ? 'text-white' : 'text-[#1F1E1E]'}`}>
                                             {dayTabLabel(day)}
@@ -732,11 +730,10 @@ export function DietPlanManagement({
                                         return (
                                             <article
                                                 key={meal.key}
-                                                className={`border bg-white p-3.5 global-radius shadow-sm transition-all duration-200 ${
-                                                    isCompleted
+                                                className={`border bg-white p-3.5 global-radius shadow-sm transition-all duration-200 ${isCompleted
                                                         ? 'border-green-150 bg-green-50/10'
                                                         : 'border-[#E7E8EB] hover:border-primary/25 hover:shadow-md'
-                                                }`}
+                                                    }`}
                                             >
                                                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
                                                     <button
@@ -747,11 +744,10 @@ export function DietPlanManagement({
                                                         }}
                                                         className="flex items-start gap-3 flex-1 min-w-0 text-left"
                                                     >
-                                                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${
-                                                            isCompleted
+                                                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${isCompleted
                                                                 ? 'border-green-200 bg-green-50 text-green-600'
                                                                 : 'border-primary/10 bg-primary/5 text-primary'
-                                                        }`}>
+                                                            }`}>
                                                             {meal.mealImage ? (
                                                                 <img src={meal.mealImage} alt={meal.items} className="h-full w-full object-cover" />
                                                             ) : (
@@ -766,9 +762,8 @@ export function DietPlanManagement({
                                                                 <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
                                                                     {meal.type}
                                                                 </span>
-                                                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                                                    isCompleted ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                                                                }`}>
+                                                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${isCompleted ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                                                                    }`}>
                                                                     {isCompleted ? 'Completed' : 'Not completed yet'}
                                                                 </span>
                                                                 {meal.time && (
@@ -890,13 +885,13 @@ export function DietPlanManagement({
                             </DialogHeader>
 
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="rounded-xl border border-[#BFD4F5] bg-[#FAFAFA] p-4">
+                                <div className="rounded-md border border-[#BFD4F5] bg-[#FAFAFA] p-4">
                                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A7A7A]">Status</p>
                                     <p className="mt-1 text-sm font-bold capitalize text-[#1F1E1E]">
                                         {activeMeal.status || 'pending'}
                                     </p>
                                 </div>
-                                <div className="rounded-xl border border-[#BFD4F5] bg-[#FAFAFA] p-4">
+                                <div className="rounded-md border border-[#BFD4F5] bg-[#FAFAFA] p-4">
                                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A7A7A]">Calories</p>
                                     <p className="mt-1 text-sm font-bold text-[#1F1E1E]">
                                         {activeMeal.calories || 0} kcal
@@ -904,7 +899,7 @@ export function DietPlanManagement({
                                 </div>
                             </div>
 
-                            <div className="rounded-xl border border-[#BFD4F5] bg-white p-4 shadow-sm">
+                            <div className="rounded-md border border-[#BFD4F5] bg-white p-4 shadow-sm">
                                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7A7A7A]">Instructions</p>
                                 <p className="mt-1 text-sm leading-relaxed text-[#1F1E1E]">
                                     {activeMeal.instructions || 'No instructions provided.'}
@@ -912,7 +907,7 @@ export function DietPlanManagement({
                             </div>
 
                             {(activeMeal.mealImage || (activeMeal.helpfulLinks || []).length > 0) && (
-                                <div className="rounded-xl border border-[#BFD4F5] bg-[#F4F8FF] p-4 space-y-3">
+                                <div className="rounded-md border border-[#BFD4F5] bg-[#F4F8FF] p-4 space-y-3">
                                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Recipe Media</p>
                                     {activeMeal.mealImage && (
                                         <img src={activeMeal.mealImage} alt="Meal" className="max-h-56 w-full rounded-lg object-cover border border-[#BFD4F5]" />
@@ -938,7 +933,7 @@ export function DietPlanManagement({
                             )}
 
                             {activeMeal.completedAt && (
-                                <div className="rounded-xl border border-[#CFE8D7] bg-[#F2FBF5] p-4 text-sm text-green-800">
+                                <div className="rounded-md border border-[#CFE8D7] bg-[#F2FBF5] p-4 text-sm text-green-800">
                                     <p className="font-semibold">Completed at {activeMeal.completedAt}</p>
                                     {activeMeal.completedByName && (
                                         <p className="mt-1 text-xs text-[#4D4D4D]">
@@ -949,7 +944,7 @@ export function DietPlanManagement({
                             )}
 
                             {activeMeal.patientNotes && (
-                                <div className="rounded-xl border border-[#BFD4F5] bg-[#F4F8FF] p-4 text-sm text-[#1F1E1E]">
+                                <div className="rounded-md border border-[#BFD4F5] bg-[#F4F8FF] p-4 text-sm text-[#1F1E1E]">
                                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Patient notes</p>
                                     <p className="mt-1 leading-relaxed">{activeMeal.patientNotes}</p>
                                 </div>

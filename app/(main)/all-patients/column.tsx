@@ -27,12 +27,18 @@ export const patientsColumns: ColumnDef<PatientAppointmentRow>[] = [
         accessorKey: "patient.name",
         header: "Patient Name",
         cell: ({ row }) => {
+            const router = useRouter();
             const patient = row.original.patient;
+            const appointmentId = row.original.appointment_id || row.original.id;
             return (
-                <div>
-                    <p className="font-medium">{patient?.name ?? "-"}</p>
+                <div
+                    className="cursor-pointer hover:underline"
+                    onClick={() => router.push(`/patient-detail/${appointmentId}`)}
+                    title="Click to view patient profile"
+                >
+                    <p className="font-semibold text-slate-900 hover:text-primary">{patient?.name ?? "-"}</p>
                     <p className="text-xs text-muted-foreground">
-                        {patient?.patient_id ?? "-"}
+                        #{patient?.patient_id ?? "-"}
                     </p>
                 </div>
             );
