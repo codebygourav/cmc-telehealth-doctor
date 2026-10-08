@@ -331,7 +331,7 @@ export default function PatientDetailPage() {
                                         {currentMedications.map((med: any, idx: number) => (
                                             <tr key={med.id || idx} className="hover:bg-slate-50/60">
                                                 <td className="px-4 py-3 font-semibold text-slate-900">
-                                                    {med.medicine_name || med.name}
+                                                    {med.display_name || med.medicine_name || med.name}
                                                     {med.type && (
                                                         <span className="block text-[10px] text-slate-400 font-normal uppercase">
                                                             {med.type}

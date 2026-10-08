@@ -784,7 +784,7 @@ export default function PatientHistoryTab({
                                   <td className="py-2.5 px-3">
                                     <div className="space-y-0.5">
                                       <span className="font-bold text-foreground block">
-                                        {med.medicine_name}
+                                        {med.display_name || med.medicine_name}
                                       </span>
                                       {med.dosage && (
                                         <span className="text-[11px] text-muted-foreground block">

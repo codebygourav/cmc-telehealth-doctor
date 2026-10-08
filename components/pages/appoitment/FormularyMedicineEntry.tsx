@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Loader2, Pill, Plus, Search, X } from "lucide-react";
+import { Check, Loader2, Lock, Pill, Plus, Search, X } from "lucide-react";
 import { getFormularyMedicines, getMedicineCategories } from "@/api/medicines";
 import CategoryCombobox from "./CategoryCombobox";
 import { Button } from "@/components/ui/button";
@@ -98,7 +98,7 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
     const [searching, setSearching] = useState(false);
     const [open, setOpen] = useState(false);
     const [active, setActive] = useState(0);
-    const [picked, setPicked] = useState<{ id: string | null; line: string; form: string } | null>(null);
+    const [picked, setPicked] = useState<{ id: string | null; line: string; form: string; strength?: string } | null>(null);
     const [notes, setNotes] = useState("");
     const [error, setError] = useState<string | null>(null);
     const notesRef = useRef<HTMLTextAreaElement>(null);
@@ -107,7 +107,7 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
     // Editing a medicine already in the list: its line is locked, its notes are editable.
     useEffect(() => {
         if (!editing) return;
-        setPicked({ id: editing.medicine_id || null, line: editing.medicine_name, form: editing.medication_type || "" });
+        setPicked({ id: editing.medicine_id || null, line: editing.medicine_name, form: editing.medication_type || "", strength: editing.strength || "" });
         setNotes(notesFromStructured(editing));
         setQuery("");
         setError(null);
@@ -183,11 +183,9 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
     };
 
     const choose = (medicine: FormularyMedicine) => {
-        // Medicine line without the strength / pack size (e.g. "500ml,1000ml", "50 mg"): the doctor
-        // writes the dose in "How to take".
-        const line = [medicine.name, medicine.generic_name && `(${medicine.generic_name})`, medicine.form].filter(Boolean).join(" ");
-        setPicked({ id: medicine.id, line, form: medicine.form || medicine.type || "" });
-        setNotes(notesTemplate(medicine.form || medicine.type));
+        const line = medicine.label || [medicine.name, medicine.generic_name && `(${medicine.generic_name})`, medicine.strength, medicine.form].filter(Boolean).join(" ");
+        setPicked({ id: medicine.id, line, form: medicine.form || medicine.type || "", strength: medicine.strength || "" });
+        setNotes(notesTemplate(medicine.form || medicine.type, medicine.strength));
         setQuery("");
         setOpen(false);
         setError(null);
@@ -231,10 +229,6 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
             setError("Search and pick a medicine first.");
             return;
         }
-        if (!picked.line.trim()) {
-            setError("Medicine name can't be empty.");
-            return;
-        }
         if (!notes.trim()) {
             setError("Please write how to take it.");
             return;
@@ -242,7 +236,8 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
         onSave({
             template: true,
             medicine_id: picked.id,
-            medicine_name: picked.line.replace(/\s+/g, " ").trim(),
+            medicine_name: picked.line,
+            strength: picked.strength || "",
             medication_type: picked.form || "",
             dosage: "",
             frequency: "",
@@ -366,25 +361,19 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
                     </div>
                     </div>
                 ) : (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3">
-                        <div className="mb-1.5 flex items-center justify-between gap-2">
-                            <label htmlFor="formulary-line" className="text-sm font-semibold text-slate-900">Medicine (as printed)</label>
-                            {!editing && (
-                                <button type="button" onClick={reset} className="shrink-0 rounded-lg p-1 text-slate-500 hover:bg-white hover:text-slate-900" aria-label="Change medicine">
-                                    <X className="h-4 w-4" />
-                                </button>
-                            )}
+                    <div className="flex items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+                        <div className="flex min-w-0 items-start gap-2.5">
+                            <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                            <div className="min-w-0">
+                                <p className="text-sm font-semibold leading-snug text-slate-900">{picked.line}</p>
+                                <p className="text-[11px] text-slate-500">{picked.id ? "From the formulary" : "Typed medicine"} · the medicine line cannot be edited</p>
+                            </div>
                         </div>
-                        {/* Editable: the doctor can trim the formulary text (e.g. remove a pack size). What is typed
-                            here is saved and shown everywhere (list, PDF, doctor and patient apps). */}
-                        <textarea
-                            id="formulary-line"
-                            rows={2}
-                            value={picked.line}
-                            onChange={(e) => setPicked({ ...picked, line: e.target.value })}
-                            className="w-full resize-y rounded-md border border-emerald-200 bg-white px-3 py-2 text-base font-semibold leading-snug text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 sm:text-sm"
-                        />
-                        <p className="mt-1 text-[11px] text-slate-500">{picked.id ? "From the formulary" : "Typed medicine"} · you can edit this text</p>
+                        {!editing && (
+                            <button type="button" onClick={reset} className="shrink-0 rounded-lg p-1 text-slate-500 hover:bg-white hover:text-slate-900" aria-label="Change medicine">
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
                     </div>
                 )}
 

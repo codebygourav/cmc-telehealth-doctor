@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { listName } from "./AddedMedicinesList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -199,7 +200,7 @@ export default function PrescriptionListPanel({
                                         <div className="flex justify-between items-start gap-2">
                                             <div className="space-y-0.5">
                                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                                    <span className="font-bold text-slate-900 text-sm leading-tight">{med.medicine_name}</span>
+                                                    <span className="font-bold text-slate-900 text-sm leading-tight">{listName(med.medicine_name, med.strength, med.medication_type)}</span>
                                                     {med.medication_type && (
                                                         <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded-full text-slate-600 font-semibold uppercase tracking-wider">
                                                             {med.medication_type}

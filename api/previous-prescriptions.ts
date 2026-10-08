@@ -1,6 +1,7 @@
 import api from "@/lib/axios";
 
 export interface PreviousPrescriptionMedicine {
+  display_name?: string | null;
   medicine_name: string;
   dosage?: string;
   frequency?: string;

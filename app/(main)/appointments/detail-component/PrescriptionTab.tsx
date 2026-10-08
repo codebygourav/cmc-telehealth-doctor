@@ -91,6 +91,7 @@ type DraftHistoryItem = {
     prescription_id?: string;
     medicine_name?: string;
     medicine_source?: "inventory" | "doctor_added" | "unknown";
+    display_name?: string | null;
   }>;
 };
 
@@ -603,12 +604,12 @@ export default function PrescriptionTab({
                               .filter((part: unknown) => typeof part === "string" && part.trim())
                               .join(" · ");
                             const duration = typeof m.date === "string" && /\S\s*-\s*\S/.test(m.date) ? m.date : "";
-                            const notesText = Array.isArray(m.instructions) ? m.instructions.join(", ") : m.instructions || m.notes || "";
+                            const notesText = m.display_instructions || (Array.isArray(m.instructions) ? m.instructions.join(", ") : m.instructions || m.notes || "");
                             return (
                               <tr key={m.prescription_id || index} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 px-3 py-3 align-top hover:bg-slate-50/60 md:table-row md:p-0">
                                 <td className="hidden px-4 py-3 text-slate-400 md:table-cell">{index + 1}</td>
                                 <td className="min-w-0 md:table-cell md:px-4 md:py-3">
-                                  <p className="font-semibold leading-snug text-slate-900"><span className="mr-1 text-slate-400 md:hidden">{index + 1}.</span>{m.name || m.medicine_name}</p>
+                                  <p className="font-semibold leading-snug text-slate-900"><span className="mr-1 text-slate-400 md:hidden">{index + 1}.</span>{m.display_name || m.name || m.medicine_name}</p>
                                   <div className="mt-1 flex flex-wrap gap-1">
                                     {m.type && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{m.type}</span>}
                                     {m.created_via === "speech" && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">Voice</span>}
@@ -869,7 +870,7 @@ export default function PrescriptionTab({
                                     variant="outline"
                                     className="text-[10px] sm:text-xs px-1.5 sm:px-2"
                                   >
-                                    {medicine.medicine_name}
+                                    {medicine.display_name || medicine.medicine_name}
                                     {medicine.medicine_source === "doctor_added"
                                       ? " • doctor-added"
                                       : medicine.medicine_source === "inventory"

@@ -21,6 +21,7 @@ export interface Patient {
 
 
 export interface PatientHistoryMedicine {
+  display_name?: string | null;
   prescription_id: string;
   medicine_id?: string;
   medicine_name: string;

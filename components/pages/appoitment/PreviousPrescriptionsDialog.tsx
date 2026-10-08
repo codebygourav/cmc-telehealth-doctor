@@ -246,7 +246,7 @@ export default function PreviousPrescriptionsDialog({
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-slate-900">
-                              {med.medicine_name}
+                              {med.display_name || med.medicine_name}
                             </span>
                             {med.is_ongoing && (
                               <Badge className="bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 border-emerald-200 text-[10px] font-semibold px-2 py-0.5">
