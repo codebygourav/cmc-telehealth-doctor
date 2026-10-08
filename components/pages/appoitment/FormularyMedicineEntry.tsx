@@ -183,9 +183,11 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
     };
 
     const choose = (medicine: FormularyMedicine) => {
-        const line = medicine.label || [medicine.name, medicine.generic_name && `(${medicine.generic_name})`, medicine.strength, medicine.form].filter(Boolean).join(" ");
+        // Medicine line without the strength / pack size (e.g. "500ml,1000ml", "50 mg"): the doctor
+        // writes the dose in "How to take".
+        const line = [medicine.name, medicine.generic_name && `(${medicine.generic_name})`, medicine.form].filter(Boolean).join(" ");
         setPicked({ id: medicine.id, line, form: medicine.form || medicine.type || "" });
-        setNotes(notesTemplate(medicine.form || medicine.type, medicine.strength));
+        setNotes(notesTemplate(medicine.form || medicine.type));
         setQuery("");
         setOpen(false);
         setError(null);
