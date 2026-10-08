@@ -493,8 +493,8 @@ export default function PatientHistoryTab({
               type="button"
               onClick={() => setActiveFilter(key)}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${activeFilter === key
-                  ? "bg-primary text-primary-foreground shadow-2xs"
-                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
+                ? "bg-primary text-primary-foreground shadow-2xs"
+                : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
                 }`}
             >
               {label}
@@ -547,8 +547,8 @@ export default function PatientHistoryTab({
                   setIsMobileFilterDrawerOpen(false);
                 }}
                 className={`w-full flex items-center justify-between p-3 rounded-md text-xs font-semibold transition-all ${activeFilter === key
-                    ? "bg-primary text-white shadow-xs font-bold"
-                    : "text-slate-700 hover:bg-slate-100"
+                  ? "bg-primary text-white shadow-xs font-bold"
+                  : "text-slate-700 hover:bg-slate-100"
                   }`}
               >
                 <span>{label}</span>
@@ -598,8 +598,8 @@ export default function PatientHistoryTab({
             <div
               key={itemKey}
               className={`rounded-md overflow-hidden bg-card shadow-2xs transition-all border ${isOpen
-                  ? "border-primary/40 shadow-xs"
-                  : "border-border/80 hover:border-border"
+                ? "border-primary/40 shadow-xs"
+                : "border-border/80 hover:border-border"
                 }`}
             >
               {/* Toggle Header */}
@@ -680,62 +680,7 @@ export default function PatientHistoryTab({
               {/* Accordion Body */}
               {isOpen && (
                 <div className="bg-card divide-y divide-border/50">
-                  {/* Appointment Action Bar */}
-                  <div className="px-3 sm:px-6 py-2.5 flex items-center justify-end bg-muted/20">
-                    <div className="flex flex-row items-center gap-1.5 sm:gap-2 justify-end w-full sm:w-auto">
-                      {/* Button to view all uploaded files */}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        title="View Uploaded Files"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedApptForFiles(item.appointment_id);
-                        }}
-                        className="text-xs h-8 px-2.5 sm:px-3 rounded-lg border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 gap-1.5 font-semibold shrink-0"
-                      >
-                        <Paperclip className="h-3.5 w-3.5 shrink-0" />
-                        <span className="hidden sm:inline">View Uploaded Files</span>
-                      </Button>
 
-                      {/* Link to view appointment */}
-                      <a
-                        href={`/appointments/${item.appointment_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="View Appointment"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition px-2.5 sm:px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 h-8 shrink-0"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                        <span className="hidden sm:inline">View Appointment</span>
-                      </a>
-
-                      {item.pdf_url ? (
-                        <a
-                          href={item.pdf_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Download PDF"
-                          className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:bg-primary/90 transition shadow-xs cursor-pointer h-8 shrink-0"
-                        >
-                          <Download className="h-3.5 w-3.5 shrink-0" />
-                          <span className="hidden sm:inline">Download PDF</span>
-                        </a>
-                      ) : (
-                        <Button
-                          disabled
-                          variant="outline"
-                          size="sm"
-                          title="Download PDF"
-                          className="text-xs text-muted-foreground gap-1.5 opacity-50 rounded-lg h-8 px-2.5 sm:px-3 shrink-0"
-                        >
-                          <Download className="h-3.5 w-3.5 shrink-0" />
-                          <span className="hidden sm:inline">Download PDF</span>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
 
                   {/* SECTION 1: Prescribed Medicines */}
                   <div className="px-3 sm:px-4 py-3 space-y-2">
@@ -749,6 +694,62 @@ export default function PatientHistoryTab({
                           {medicines.length}
                         </Badge>
                       </h4>
+                      {/* Appointment Action Bar */}
+                      <div className="px-3 sm:px-6 py-2.5 flex items-center justify-end bg-muted/20">
+                        <div className="flex flex-row items-center gap-1.5 sm:gap-2 justify-end w-full sm:w-auto">
+                          {/* Button to view all uploaded files */}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            title="View Uploaded Files"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedApptForFiles(item.appointment_id);
+                            }}
+                            className="text-xs h-8 px-2.5 sm:px-3 rounded-lg border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 gap-1.5 font-semibold shrink-0"
+                          >
+                            <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                            <span className="hidden sm:inline">View Uploaded Files</span>
+                          </Button>
+
+                          {/* Link to view appointment */}
+                          <a
+                            href={`/appointments/${item.appointment_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="View Appointment"
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition px-2.5 sm:px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 h-8 shrink-0"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                            <span className="hidden sm:inline">View Appointment</span>
+                          </a>
+
+                          {item.pdf_url ? (
+                            <a
+                              href={item.pdf_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Download PDF"
+                              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:bg-primary/90 transition shadow-xs cursor-pointer h-8 shrink-0"
+                            >
+                              <Download className="h-3.5 w-3.5 shrink-0" />
+                              <span className="hidden sm:inline">Download PDF</span>
+                            </a>
+                          ) : (
+                            <Button
+                              disabled
+                              variant="outline"
+                              size="sm"
+                              title="Download PDF"
+                              className="text-xs text-muted-foreground gap-1.5 opacity-50 rounded-lg h-8 px-2.5 sm:px-3 shrink-0"
+                            >
+                              <Download className="h-3.5 w-3.5 shrink-0" />
+                              <span className="hidden sm:inline">Download PDF</span>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                       {medicines.length > 0 && (
                         <span className="text-[10px] text-muted-foreground italic">All items digitally verified</span>
                       )}

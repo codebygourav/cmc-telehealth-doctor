@@ -318,8 +318,8 @@ export default function AppointmentCard({
                     {/* 🔹 Bottom Actions Area */}
                     <div className="mt-auto pt-1">
                         {canConfirm ? (
-                            /* 3 Buttons Layout: Details & Reschedule in top 2 columns, Confirm as full-width bottom button */
-                            <div className="space-y-1.5 w-full">
+                            shouldHideReschedule ? (
+                                /* 2 Buttons Layout: Details & Confirm in 1 row */
                                 <div className="grid grid-cols-2 gap-2 w-full">
                                     <Button
                                         variant="outline"
@@ -335,21 +335,44 @@ export default function AppointmentCard({
                                     <AppointmentActions
                                         appointment={appointment}
                                         hideReschedule={shouldHideReschedule}
-                                        renderOnly="reschedule"
+                                        renderOnly="confirm"
                                         className="w-full"
                                     />
                                 </div>
+                            ) : (
+                                /* 3 Buttons Layout: Details & Reschedule in top 2 columns, Confirm as full-width bottom button */
+                                <div className="space-y-1.5 w-full">
+                                    <div className="grid grid-cols-2 gap-2 w-full">
+                                        <Button
+                                            variant="outline"
+                                            className="h-8 sm:h-8.5 px-3 text-xs font-medium rounded-md border border-slate-300 text-slate-800 hover:bg-slate-50 cursor-pointer shadow-none w-full"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                router.push(`/appointments/${appointment.appointment_id || appointment.id}`);
+                                            }}
+                                        >
+                                            Details
+                                        </Button>
 
-                                <AppointmentActions
-                                    appointment={appointment}
-                                    hideReschedule={shouldHideReschedule}
-                                    renderOnly="confirm"
-                                    className="w-full"
-                                />
-                            </div>
+                                        <AppointmentActions
+                                            appointment={appointment}
+                                            hideReschedule={shouldHideReschedule}
+                                            renderOnly="reschedule"
+                                            className="w-full"
+                                        />
+                                    </div>
+
+                                    <AppointmentActions
+                                        appointment={appointment}
+                                        hideReschedule={shouldHideReschedule}
+                                        renderOnly="confirm"
+                                        className="w-full"
+                                    />
+                                </div>
+                            )
                         ) : canComplete ? (
-                            /* 3 Buttons Layout: Details & Reschedule in top 2 columns, Mark Complete as full-width bottom button */
-                            <div className="space-y-1.5 w-full">
+                            shouldHideReschedule ? (
+                                /* 2 Buttons Layout: Details & Mark Complete in 1 row */
                                 <div className="grid grid-cols-2 gap-2 w-full">
                                     <Button
                                         variant="outline"
@@ -362,24 +385,50 @@ export default function AppointmentCard({
                                         Details
                                     </Button>
 
-                                    <AppointmentActions
-                                        appointment={appointment}
-                                        hideReschedule={shouldHideReschedule}
-                                        renderOnly="reschedule"
-                                        className="w-full"
-                                    />
+                                    <Button
+                                        className="h-8 sm:h-8.5 px-3 text-xs font-semibold rounded-md bg-[#064e3b] hover:bg-[#022c22] text-white gap-1.5 w-full flex items-center justify-center shadow-2xs cursor-pointer"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setAskComplete(true);
+                                        }}
+                                    >
+                                        <CheckCircle2 className="h-3.5 w-3.5" /> Mark complete
+                                    </Button>
                                 </div>
+                            ) : (
+                                /* 3 Buttons Layout: Details & Reschedule in top 2 columns, Mark Complete as full-width bottom button */
+                                <div className="space-y-1.5 w-full">
+                                    <div className="grid grid-cols-2 gap-2 w-full">
+                                        <Button
+                                            variant="outline"
+                                            className="h-8 sm:h-8.5 px-3 text-xs font-medium rounded-md border border-slate-300 text-slate-800 hover:bg-slate-50 cursor-pointer shadow-none w-full"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                router.push(`/appointments/${appointment.appointment_id || appointment.id}`);
+                                            }}
+                                        >
+                                            Details
+                                        </Button>
 
-                                <Button
-                                    className="h-8 sm:h-8.5 px-3 text-xs font-semibold rounded-md bg-[#064e3b] hover:bg-[#022c22] text-white gap-1.5 w-full flex items-center justify-center shadow-2xs cursor-pointer"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setAskComplete(true);
-                                    }}
-                                >
-                                    <CheckCircle2 className="h-3.5 w-3.5" /> Mark complete
-                                </Button>
-                            </div>
+                                        <AppointmentActions
+                                            appointment={appointment}
+                                            hideReschedule={shouldHideReschedule}
+                                            renderOnly="reschedule"
+                                            className="w-full"
+                                        />
+                                    </div>
+
+                                    <Button
+                                        className="h-8 sm:h-8.5 px-3 text-xs font-semibold rounded-md bg-[#064e3b] hover:bg-[#022c22] text-white gap-1.5 w-full flex items-center justify-center shadow-2xs cursor-pointer"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setAskComplete(true);
+                                        }}
+                                    >
+                                        <CheckCircle2 className="h-3.5 w-3.5" /> Mark complete
+                                    </Button>
+                                </div>
+                            )
                         ) : appointment.video_consultation?.can_join || (appointment.call_now && patientJoined) ? (
                             /* 2-Column layout: Details + Join Call */
                             <div className="grid grid-cols-2 gap-2 w-full">

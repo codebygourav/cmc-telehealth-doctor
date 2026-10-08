@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Loader2, Lock, Pill, Plus, Search, X } from "lucide-react";
+import { Check, Loader2, Pill, Plus, Search, X } from "lucide-react";
 import { getFormularyMedicines, getMedicineCategories } from "@/api/medicines";
 import CategoryCombobox from "./CategoryCombobox";
 import { Button } from "@/components/ui/button";
@@ -229,6 +229,10 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
             setError("Search and pick a medicine first.");
             return;
         }
+        if (!picked.line.trim()) {
+            setError("Medicine name can't be empty.");
+            return;
+        }
         if (!notes.trim()) {
             setError("Please write how to take it.");
             return;
@@ -236,7 +240,7 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
         onSave({
             template: true,
             medicine_id: picked.id,
-            medicine_name: picked.line,
+            medicine_name: picked.line.replace(/\s+/g, " ").trim(),
             medication_type: picked.form || "",
             dosage: "",
             frequency: "",
@@ -360,19 +364,25 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
                     </div>
                     </div>
                 ) : (
-                    <div className="flex items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3">
-                        <div className="flex min-w-0 items-start gap-2.5">
-                            <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                            <div className="min-w-0">
-                                <p className="text-sm font-semibold leading-snug text-slate-900">{picked.line}</p>
-                                <p className="text-[11px] text-slate-500">{picked.id ? "From the formulary" : "Typed medicine"} · the medicine line cannot be edited</p>
-                            </div>
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                            <label htmlFor="formulary-line" className="text-sm font-semibold text-slate-900">Medicine (as printed)</label>
+                            {!editing && (
+                                <button type="button" onClick={reset} className="shrink-0 rounded-lg p-1 text-slate-500 hover:bg-white hover:text-slate-900" aria-label="Change medicine">
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
                         </div>
-                        {!editing && (
-                            <button type="button" onClick={reset} className="shrink-0 rounded-lg p-1 text-slate-500 hover:bg-white hover:text-slate-900" aria-label="Change medicine">
-                                <X className="h-4 w-4" />
-                            </button>
-                        )}
+                        {/* Editable: the doctor can trim the formulary text (e.g. remove a pack size). What is typed
+                            here is saved and shown everywhere (list, PDF, doctor and patient apps). */}
+                        <textarea
+                            id="formulary-line"
+                            rows={2}
+                            value={picked.line}
+                            onChange={(e) => setPicked({ ...picked, line: e.target.value })}
+                            className="w-full resize-y rounded-md border border-emerald-200 bg-white px-3 py-2 text-base font-semibold leading-snug text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 sm:text-sm"
+                        />
+                        <p className="mt-1 text-[11px] text-slate-500">{picked.id ? "From the formulary" : "Typed medicine"} · you can edit this text</p>
                     </div>
                 )}
 
