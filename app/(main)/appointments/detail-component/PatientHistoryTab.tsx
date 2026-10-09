@@ -35,7 +35,7 @@ import {
   Stethoscope,
   User,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 interface PatientHistoryTabProps {
   appointment?: any;
@@ -304,16 +304,7 @@ export default function PatientHistoryTab({
   const [isMobileFilterDrawerOpen, setIsMobileFilterDrawerOpen] = useState(false);
   // "visits" = each appointment's prescription; "clinical" = clinical examination once per doctor.
   const [historyView, setHistoryView] = useState<"visits" | "clinical">("visits");
-  // Phones: a visit's details open in a bottom drawer instead of expanding in the list.
-  const [drawerItem, setDrawerItem] = useState<PatientHistoryItem | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 639px)");
-    const update = () => setIsMobile(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
+
   const [selectedApptForFiles, setSelectedApptForFiles] = useState<string | null>(null);
 
   const getFilterLabel = (key: string) => {
@@ -426,7 +417,7 @@ export default function PatientHistoryTab({
     void filesCount;
     return (
       <div className="px-3 sm:px-4 py-3 space-y-2">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
             <div className="p-1 rounded-md bg-primary/10 text-primary">
               <Pill className="h-3.5 w-3.5" />
@@ -437,7 +428,7 @@ export default function PatientHistoryTab({
             </Badge>
           </h4>
           {/* Appointment Action Bar */}
-          <div className="px-3 sm:px-6 py-2.5 flex items-center justify-end bg-muted/20">
+          <div className="sm:px-6 sm:py-2.5 flex items-center justify-end sm:bg-muted/20">
             <div className="flex flex-row items-center gap-1.5 sm:gap-2 justify-end w-full sm:w-auto">
               {/* Button to view all uploaded files */}
               <Button
@@ -493,7 +484,7 @@ export default function PatientHistoryTab({
             </div>
           </div>
           {medicines.length > 0 && (
-            <span className="text-[10px] text-muted-foreground italic">All items digitally verified</span>
+            <span className="hidden sm:inline text-[10px] text-muted-foreground italic">All items digitally verified</span>
           )}
         </div>
 
@@ -502,7 +493,32 @@ export default function PatientHistoryTab({
             No medicines prescribed for this consultation.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-md border border-border bg-card shadow-2xs">
+          <>
+          {/* Phones: one simple card per medicine (no wide table). */}
+          <div className="space-y-2 sm:hidden">
+            {medicines.map((med: PatientHistoryMedicine, medIdx: number) => (
+              <div key={med.prescription_id || medIdx} className="rounded-md border border-border bg-card p-3 shadow-2xs">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-bold text-foreground leading-snug">
+                    <span className="mr-1 text-muted-foreground">{medIdx + 1}.</span>
+                    {med.display_name || med.medicine_name}
+                  </p>
+                  {med.is_ongoing ? (
+                    <Badge className="shrink-0 bg-emerald-500/10 text-emerald-700 border-emerald-200 text-[10px] font-semibold px-2 py-0.5">Ongoing</Badge>
+                  ) : (
+                    <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">{formatDuration(med.start_date, med.end_date, med.is_ongoing)}</span>
+                  )}
+                </div>
+                {med.dosage && <p className="mt-0.5 text-[11px] text-muted-foreground">{med.dosage}</p>}
+                {med.instructions && (
+                  <p className="mt-2 text-xs text-amber-900 bg-amber-500/10 px-2 py-1.5 rounded-md border border-amber-500/20 leading-snug">
+                    <ReadMoreText text={med.instructions} />
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="hidden sm:block overflow-x-auto rounded-md border border-border bg-card shadow-2xs">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-muted/60 border-b border-border text-muted-foreground font-semibold text-[11px] uppercase tracking-wide">
@@ -579,6 +595,7 @@ export default function PatientHistoryTab({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
@@ -1007,7 +1024,7 @@ export default function PatientHistoryTab({
                   {/* Toggle Header */}
                   <button
                     type="button"
-                    onClick={() => (isMobile ? setDrawerItem(item) : toggleItem(itemKey))}
+                    onClick={() => toggleItem(itemKey)}
                     aria-expanded={isOpen}
                     className={`w-full text-left p-3 sm:p-3.5 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 cursor-pointer ${isOpen ? "bg-primary/5 border-b border-primary/15" : "bg-muted/15 hover:bg-muted/30"
                       }`}
@@ -1080,7 +1097,7 @@ export default function PatientHistoryTab({
                   </button>
 
                   {/* Accordion Body (desktop): this visit's medicines, files and PDF */}
-                  {isOpen && !isMobile && (
+                  {isOpen && (
                     <div className="bg-card divide-y divide-border/50">
                       {renderMedicines(item)}
                     </div>
@@ -1092,19 +1109,6 @@ export default function PatientHistoryTab({
         </>
       )}
 
-      {/* Phones: a visit's details in a bottom drawer */}
-      <Dialog open={Boolean(drawerItem)} onOpenChange={(open) => { if (!open) setDrawerItem(null); }}>
-        <DialogContent className="sm:max-w-3xl max-h-[88dvh] overflow-y-auto p-0">
-          <DialogHeader className="px-4 pt-4 pb-2 text-left">
-            <DialogTitle className="text-base">
-              {drawerItem ? formatDate(drawerItem.date, drawerItem.date_formatted) : ""}
-              {drawerItem?.time_formatted ? ` · ${drawerItem.time_formatted}` : ""}
-            </DialogTitle>
-            {drawerItem?.doctor_name && <p className="text-xs text-muted-foreground">Consulted with {drawerItem.doctor_name}</p>}
-          </DialogHeader>
-          {drawerItem && <div className="divide-y divide-border/50">{renderMedicines(drawerItem)}</div>}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
