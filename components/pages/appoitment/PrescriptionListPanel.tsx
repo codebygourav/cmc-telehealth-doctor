@@ -161,7 +161,7 @@ export default function PrescriptionListPanel({
     };
 
     return (
-        <div className={`md:col-span-5 rounded-lg border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4 self-start md:sticky md:top-0 md:max-h-[calc(92vh-13rem)] md:overflow-y-auto ${mobileTab === "list" ? "block" : "hidden md:block"}`}>
+        <div className={`md:col-span-5 rounded-lg border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4 self-start md:sticky md:top-0 md:max-h-[calc(92vh-13rem)] md:overflow-y-auto`}>
             {!hideMedicineList && (<>
                 <div className="rounded-lg border border-slate-200 bg-white/90 px-3 py-2.5 shadow-sm">
                     <div className="flex items-center justify-between gap-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, Save, Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill, Download, Loader2, History, UserCheck } from "lucide-react";
+import { Eye, Save, Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill, Download, Loader2, History, UserCheck, ChevronDown, Check } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -132,6 +132,15 @@ declare global {
     webkitSpeechRecognition?: BrowserSpeechRecognitionConstructor;
   }
 }
+
+
+/** Sections of the prescription builder (call screen): desktop tabs, phone bottom drawer. */
+const SECTION_TABS = [
+  ["prescribe", "Prescription", Stethoscope],
+  ["patient_history", "Patient History", History],
+  ["medical_record", "Patient medical record", ClipboardList],
+  ["reports", "Tests & reports", FileText],
+] as const;
 
 interface AddPrescriptionDialogProps {
   open: boolean;
@@ -739,6 +748,8 @@ export default function AddPrescriptionDialog({
   } | null>(null);
 
   const [mobileTab, setMobileTab] = useState<"form" | "list">("form");
+  // Phones: section picker shown as a bottom drawer.
+  const [sectionDrawerOpen, setSectionDrawerOpen] = useState(false);
   const [generalNotes, setGeneralNotes] = useState("");
   const [orderInvestigation, setOrderInvestigation] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
@@ -2083,32 +2094,7 @@ export default function AddPrescriptionDialog({
           </div>
 
 
-          {entryMode !== null && (
-            <div className={`${mode !== "full" ? "hidden" : "flex"} md:hidden border-b bg-background px-4 py-3 shrink-0`}>
-              <div className="flex w-full bg-muted/20 p-1 rounded-lg border">
-                <button
-                  type="button"
-                  onClick={() => setMobileTab("form")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg text-center transition-all ${mobileTab === "form" ? "bg-primary text-white shadow-sm" : "text-muted-foreground"}`}
-                >
-                  {entryMode === "voice" ? "Voice Assistant" : "Manual Form"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMobileTab("list")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg text-center transition-all relative ${mobileTab === "list" ? "bg-primary text-white shadow-sm" : "text-muted-foreground"}`}
-                >
-                  Prescription List
-                  {addedMedicines.length > 0 && (
-                    <span className="absolute top-1/2 -translate-y-1/2 right-2.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground shadow-sm">
-                      {addedMedicines.length}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
+          {/* Phones show the same layout as desktop: form, then the medicines list and details below. */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-6 min-h-0 bg-[linear-gradient(180deg,rgba(248,250,252,0.92),rgba(255,255,255,1))]">
             <form onSubmit={(e) => e.preventDefault()} className="h-full">
               {entryMode === null ? (
@@ -2124,13 +2110,44 @@ export default function AddPrescriptionDialog({
                 <div className="space-y-5">
                   {/* Video call screen: full-width tabs above both columns. */}
                   {showRecordTab && mode === "full" && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
-                      {([
-                        ["prescribe", "Prescription", Stethoscope],
-                        ["patient_history", "Patient History", History],
-                        ["medical_record", "Patient medical record", ClipboardList],
-                        ["reports", "Tests & reports", FileText],
-                      ] as const).map(([key, label, Icon]) => (
+                    /* Phones: current section + "Change" (opens a bottom drawer). */
+                    <button
+                      type="button"
+                      onClick={() => setSectionDrawerOpen(true)}
+                      className="flex w-full items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm sm:hidden"
+                    >
+                      <span className="flex min-w-0 items-center gap-2 font-semibold text-slate-800">
+                        {(() => { const Icon = SECTION_TABS.find(([k]) => k === activeTab)?.[2] ?? Stethoscope; return <Icon className="h-4 w-4 shrink-0 text-primary" />; })()}
+                        <span className="truncate">{SECTION_TABS.find(([k]) => k === activeTab)?.[1] ?? "Prescription"}</span>
+                      </span>
+                      <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                        Change <ChevronDown className="h-3.5 w-3.5" />
+                      </span>
+                    </button>
+                  )}
+                  <Dialog open={sectionDrawerOpen} onOpenChange={setSectionDrawerOpen}>
+                    <DialogContent className="sm:max-w-sm p-4">
+                      <DialogHeader className="text-left">
+                        <DialogTitle className="text-base">Show section</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-1.5">
+                        {SECTION_TABS.map(([key, label, Icon]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => { setActiveTab(key as any); if (key === "reports") setIncludeReports(true); setSectionDrawerOpen(false); }}
+                            className={`flex w-full items-center justify-between rounded-md p-3 text-sm font-semibold transition-colors ${activeTab === key ? "bg-primary text-white" : "text-slate-700 hover:bg-slate-100"}`}
+                          >
+                            <span className="flex items-center gap-2.5"><Icon className="h-4 w-4" />{label}</span>
+                            {activeTab === key && <Check className="h-4 w-4" />}
+                          </button>
+                        ))}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  {showRecordTab && mode === "full" && (
+                    <div className="hidden sm:grid grid-cols-4 gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
+                      {SECTION_TABS.map(([key, label, Icon]) => (
                         <button
                           key={key}
                           type="button"
@@ -2150,7 +2167,7 @@ export default function AddPrescriptionDialog({
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
                     <div
-                      className={mode !== "full" || (showRecordTab && (activeTab === "medical_record" || activeTab === "reports" || activeTab === "patient_history")) ? "md:col-span-12" : `md:col-span-7  p-0 sm:p-0  ${mobileTab === "form" ? "block" : "hidden md:block"}`}
+                      className={mode !== "full" || (showRecordTab && (activeTab === "medical_record" || activeTab === "reports" || activeTab === "patient_history")) ? "md:col-span-12" : `md:col-span-7 p-0 sm:p-0`}
                     >
 
 

@@ -391,17 +391,6 @@ export default function PrescriptionTab({
             )}
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveSubTab("summary")}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${activeSubTab === "summary"
-              ? "bg-primary text-white shadow-xs font-bold"
-              : "text-slate-700 hover:bg-slate-200/70"
-              }`}
-          >
-            <UserCheck className={`h-3.5 w-3.5 shrink-0 ${activeSubTab === "summary" ? "text-white" : "text-indigo-600"}`} />
-            <span>Patient Record Summary</span>
-          </button>
 
           <button
             type="button"
@@ -472,19 +461,6 @@ export default function PrescriptionTab({
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveSubTab("summary")}
-              className={`w-full flex items-center justify-between p-3 rounded-md text-xs sm:text-sm font-semibold transition-all ${activeSubTab === "summary"
-                ? "bg-primary text-white shadow-xs"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <UserCheck className={`h-4 w-4 shrink-0 ${activeSubTab === "summary" ? "text-white" : "text-indigo-600"}`} />
-                <span className="truncate">Patient Record Summary</span>
-              </div>
-            </button>
 
             <button
               type="button"
@@ -911,10 +887,7 @@ export default function PrescriptionTab({
             </>
           )}
 
-          {/* Patient Medical Record Summary Sub-Section */}
-          {(activeSubTab === "all" || activeSubTab === "summary") && (
-            <PatientMedicalRecordTab appointmentId={appointmentId} viewSection="summary" />
-          )}
+          {/* Patient Medical Record Summary: shown in Patient History (not repeated here). */}
 
           {/* Consultation Conclusion Sub-Section */}
           {(activeSubTab === "all" || activeSubTab === "conclusion") && (
@@ -1148,22 +1121,6 @@ export default function PrescriptionTab({
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setActiveSubTab("summary");
-                setIsMobileDrawerOpen(false);
-              }}
-              className={`w-full flex items-center justify-between p-3 rounded-md text-xs font-semibold transition-all ${activeSubTab === "summary"
-                ? "bg-primary text-white shadow-xs font-bold"
-                : "text-slate-700 hover:bg-slate-100"
-                }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <UserCheck className={`h-4 w-4 ${activeSubTab === "summary" ? "text-white" : "text-indigo-600"}`} />
-                <span>Patient Medical Record Summary</span>
-              </div>
-            </button>
 
             <button
               type="button"
