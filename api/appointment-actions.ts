@@ -149,3 +149,10 @@ export const completeAppointment = async (appointmentId: string, voucherNumber?:
     const { data } = await api.post(`/appointments/${appointmentId}/complete`, voucherNumber ? { voucher_number: voucherNumber } : {});
     return data;
 };
+
+// The doctor entered the video call: the server tells the patient at once (app notification +
+// WhatsApp "doctor joined" / "doctor rejoined"), even when the Whereby webhook is late.
+export const reportDoctorJoinedCall = async (appointmentId: string, displayName?: string) => {
+    const { data } = await api.post(`/appointments/${appointmentId}/call-joined`, displayName ? { display_name: displayName } : {});
+    return data;
+};

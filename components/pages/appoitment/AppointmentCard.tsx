@@ -170,6 +170,24 @@ export default function AppointmentCard({
 
     const isOpenVideo = String(appointment.consultation_type).toLowerCase() === "video" && ["confirmed", "rescheduled"].includes(String(appointment.status));
     const canComplete = typeof appointment.can_complete === "boolean" ? appointment.can_complete : isOpenVideo && (appointment.awaiting_completion || appointment.call_is_rejoin);
+    // The call can be (re)joined: shown next to "Mark complete" too, not only on the detail page.
+    const canJoinCall = !!joinUrl && (appointment.video_consultation?.can_join === true || (appointment.call_now && patientJoined) || appointment.call_is_rejoin === true);
+    const openCall = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        window.open(
+            `/start-consultation?room_url=${encodeURIComponent(joinUrl)}&appointment_id=${appointment.appointment_id || appointment.id}`,
+            "_blank"
+        );
+    };
+    const joinButton = (
+        <Button
+            className="h-8 sm:h-8.5 px-3 text-xs font-semibold rounded-md bg-[#064e3b] hover:bg-[#022c22] text-white gap-1.5 flex items-center justify-center shadow-2xs cursor-pointer w-full"
+            onClick={openCall}
+        >
+            <PhoneCallIcon className="h-3.5 w-3.5" />
+            <span>{appointment.call_is_rejoin ? "Rejoin Call" : "Join Call"}</span>
+        </Button>
+    );
 
     const apptDateStr = appointment.appointment_date || appointment.date;
     const isToday = (() => {
@@ -394,6 +412,7 @@ export default function AppointmentCard({
                                     >
                                         <CheckCircle2 className="h-3.5 w-3.5" /> Mark complete
                                     </Button>
+                                    {canJoinCall && <div className="col-span-2">{joinButton}</div>}
                                 </div>
                             ) : (
                                 /* 3 Buttons Layout: Details & Reschedule in top 2 columns, Mark Complete as full-width bottom button */
@@ -418,15 +437,32 @@ export default function AppointmentCard({
                                         />
                                     </div>
 
-                                    <Button
-                                        className="h-8 sm:h-8.5 px-3 text-xs font-semibold rounded-md bg-[#064e3b] hover:bg-[#022c22] text-white gap-1.5 w-full flex items-center justify-center shadow-2xs cursor-pointer"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setAskComplete(true);
-                                        }}
-                                    >
-                                        <CheckCircle2 className="h-3.5 w-3.5" /> Mark complete
-                                    </Button>
+                                    {canJoinCall ? (
+                                        /* Rejoin + Mark complete side by side */
+                                        <div className="grid grid-cols-2 gap-2 w-full">
+                                            {joinButton}
+                                            <Button
+                                                variant="outline"
+                                                className="h-8 sm:h-8.5 px-3 text-xs font-semibold rounded-md border border-[#064e3b] text-[#064e3b] hover:bg-[#064e3b]/5 gap-1.5 w-full flex items-center justify-center shadow-none cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setAskComplete(true);
+                                                }}
+                                            >
+                                                <CheckCircle2 className="h-3.5 w-3.5" /> Mark complete
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <Button
+                                            className="h-8 sm:h-8.5 px-3 text-xs font-semibold rounded-md bg-[#064e3b] hover:bg-[#022c22] text-white gap-1.5 w-full flex items-center justify-center shadow-2xs cursor-pointer"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setAskComplete(true);
+                                            }}
+                                        >
+                                            <CheckCircle2 className="h-3.5 w-3.5" /> Mark complete
+                                        </Button>
+                                    )}
                                 </div>
                             )
                         ) : appointment.video_consultation?.can_join || (appointment.call_now && patientJoined) ? (

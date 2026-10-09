@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useAuth } from "@/context/userContext";
+import { reportDoctorJoinedCall } from "@/api/appointment-actions";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Pill, FileUser, Loader2 } from "lucide-react";
 import AddPrescriptionDialog from "@/components/pages/appoitment/AddPrescriptionDialog";
@@ -71,6 +72,11 @@ const ConsultationContent = () => {
             // Whereby sends postMessage events from the iframe
             if (event.data?.type === "join") {
                 setJoined(true);
+                // Tell the patient (app + WhatsApp) right away; every join / rejoin is reported.
+                if (appointmentId) {
+                    const name = [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim();
+                    reportDoctorJoinedCall(appointmentId, name ? (/^dr\.?\s/i.test(name) ? name : `Dr. ${name}`) : undefined).catch(() => {});
+                }
             }
             if (event.data?.type === "leave") {
                 setJoined(false);
@@ -85,7 +91,7 @@ const ConsultationContent = () => {
 
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, [appointmentId]);
+    }, [appointmentId, user?.first_name, user?.last_name]);
 
     if (!roomUrl) {
         return (
