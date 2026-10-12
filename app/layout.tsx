@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Manrope, Geist_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 import { Providers } from "./providers";
+import InstallAppPrompt from "@/components/InstallAppPrompt";
 
 const cormorant = Cormorant_Garamond({
     subsets: ['latin'],
@@ -31,6 +32,17 @@ export const metadata: Metadata = {
         shortcut: "/icons/icon-192x192.png",
         apple: "/icons/icon-192x192.png",
     },
+    // iPhone / iPad: opens full screen with this name when added to the Home Screen.
+    appleWebApp: {
+        capable: true,
+        title: "CMC Doctor",
+        statusBarStyle: "default",
+    },
+};
+
+// Browser / app bar colour (brand green), also used by the installed app.
+export const viewport: Viewport = {
+    themeColor: "#073827",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -47,6 +59,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <body className="min-h-full flex flex-col" suppressHydrationWarning>
                 <Providers>
                     {children}
+                    {/* Offers to install the portal as an app. */}
+                    <InstallAppPrompt appName="CMC Telehealth Doctor" />
                 </Providers>
             </body>
         </html>

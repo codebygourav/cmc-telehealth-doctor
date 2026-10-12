@@ -38,6 +38,8 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
 }
 
+// The service worker files (sw.js, workbox-*, worker-*) are left alone: redirecting them to the
+// login page would stop the app from installing and from working offline.
 export const config = {
-    matcher: ['/((?!api|_next|favicon.ico|manifest.webmanifest|manifest.json|assets|icons).*)'],
+    matcher: ["/((?!api|_next|favicon.ico|manifest.webmanifest|manifest.json|sw.js|sw-dev.js|workbox-|worker-|assets|icons).*)"],
 };

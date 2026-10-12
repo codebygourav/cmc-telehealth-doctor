@@ -1,207 +1,69 @@
 "use client";
 
-import AddressSection from "@/components/pages/profile/addressSection";
-import AiTrainingSection from "@/components/pages/profile/aiTrainingSection";
-import AwardsSection from "@/components/pages/profile/awardsSection";
-import CertificatesSection from "@/components/pages/profile/certificatesSection";
-import EducationSection from "@/components/pages/profile/educationSection";
-import ExperienceSection from "@/components/pages/profile/experienceSection";
-import PersonalInfoSection from "@/components/pages/profile/personalInfoSection";
 import PasswordSection from "@/components/pages/profile/passwordSection";
+import ProfileEditor, { type ProfileStepKey } from "@/components/pages/profile/profileEditor";
 import ProfileHeader from "@/components/pages/profile/profileHeader";
 import ReviewsSection from "@/components/pages/profile/reviewsSection";
-import SocialLinksSection from "@/components/pages/profile/socialLinksSection";
-import VoiceSettingsSection from "@/components/pages/profile/voiceSettingsSection";
 import { Button } from "@/components/ui";
 import HeroSection from "@/components/ui/hero-section";
 import { useAuth } from "@/context/userContext";
-import { cn, stripHtml } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useDoctorHome } from "@/queries/useHome";
-import { useDoctorProfile, useUpdateDoctorProfile } from "@/queries/useProfile";
+import { useDoctorProfile } from "@/queries/useProfile";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Award, BrainCircuit, ChevronDown, FileBadge, GraduationCap, KeyRound, Link, MapPinPen, Trophy, User, UserStar, Volume2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { Award, BookOpenText, Globe, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, FileBadge, GraduationCap, KeyRound, ListPlus, MapPinPen, Medal, Trophy, User, UserStar } from "lucide-react";
+import { useMemo, useState } from "react";
 
-type TabKey = "personal" | "address" | "experience" | "education" | "awards" | "certificates" | "social" | "reviews" | "password";
+type TabKey = ProfileStepKey | "reviews" | "password";
+
+// Same steps, in the same order, as Admin → Doctors → Edit, plus International Payment.
+const PROFILE_STEPS: { key: ProfileStepKey; label: string; icon: typeof User }[] = [
+    { key: "basic", label: "Basic Info", icon: User },
+    { key: "availability", label: "Availability", icon: CalendarClock },
+    { key: "bio", label: "Professional Bio", icon: BookOpenText },
+    { key: "education", label: "Education", icon: GraduationCap },
+    { key: "awards", label: "Awards", icon: Trophy },
+    { key: "certificates", label: "Certificates", icon: FileBadge },
+    { key: "experience", label: "Experience", icon: Award },
+    { key: "fellowships", label: "Fellowships", icon: Medal },
+    { key: "additional", label: "Additional Information", icon: ListPlus },
+    { key: "contact", label: "Contact", icon: MapPinPen },
+    // Not an admin form step: the doctor's own international payment switch and fee.
+    { key: "international", label: "International Payment", icon: Globe },
+];
 
 const ProfilePage = () => {
 
-    const [activeTab, setActiveTab] = useState<TabKey>("personal");
-    const [isEditingPersonal, setIsEditingPersonal] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
+    const [activeTab, setActiveTab] = useState<TabKey>("basic");
     const [isMobileProfileDrawerOpen, setIsMobileProfileDrawerOpen] = useState(false);
 
-    const { user, updateUser } = useAuth();
+    const { user } = useAuth();
     const { data, isLoading, isError, error } = useDoctorProfile();
-    const updateProfileMutation = useUpdateDoctorProfile();
     const { data: homeData } = useDoctorHome();
 
     const profile = data?.data;
     const homeProfile = homeData?.data;
-    const personalInfo = profile?.personal_information;
-    const address = profile?.address;
-    const workingExperience = profile?.working_experience ?? [];
-    const educationInfo = profile?.education_info ?? [];
-    const certificationsInfo = profile?.certifications_info ?? [];
-    const awardsInfo = profile?.awards_info ?? [];
-    const socialMedia = profile?.social_media ?? null;
+    const personalInfo = profile?.personal_information as any;
     const reviewSummary = profile?.review_summary ?? undefined;
 
-    const sidebarItems = [
-        {
-            key: "personal" as TabKey,
-            label: "Personal Info",
-            icon: User,
-        },
-        {
-            key: "address" as TabKey,
-            label: "Manage Address",
-            icon: MapPinPen,
-        },
-        {
-            key: "experience" as TabKey,
-            label: "Experience",
-            icon: Award,
-        },
-        {
-            key: "education" as TabKey,
-            label: "Education",
-            icon: GraduationCap,
-        },
-        {
-            key: "awards" as TabKey,
-            label: "Awards",
-            icon: Trophy,
-        },
-        {
-            key: "certificates" as TabKey,
-            label: "Certificates",
-            icon: FileBadge,
-        },
-        {
-            key: "social" as TabKey,
-            label: "Social Links",
-            icon: Link,
-        },
-        {
-            key: "reviews" as TabKey,
-            label: "Reviews",
-            icon: UserStar,
-        },
-        {
-            key: "password" as TabKey,
-            label: "Change Password",
-            icon: KeyRound,
-        },
+    const sidebarItems: { key: TabKey; label: string; icon: typeof User; step?: number }[] = [
+        ...PROFILE_STEPS.map((step, index) => ({ ...step, step: index + 1 })),
+        { key: "reviews", label: "Reviews", icon: UserStar },
+        { key: "password", label: "Change Password", icon: KeyRound },
     ];
 
-    const activeSidebarItem = useMemo(
-        () => sidebarItems.find((i) => i.key === activeTab),
-        [activeTab, sidebarItems]
-    );
+    const activeSidebarItem = sidebarItems.find((i) => i.key === activeTab);
+    const activeStepIndex = PROFILE_STEPS.findIndex((step) => step.key === activeTab);
 
-    const [formData, setFormData] = useState({
-        first_name: "",
-        last_name: "",
-        email: "",
-        bio: "",
-        phone: "",
-        medical_license: "",
-    });
-
-    useEffect(() => {
-        if (personalInfo) {
-            setFormData({
-                first_name: personalInfo.first_name ?? "",
-                last_name: personalInfo.last_name ?? "",
-                email: personalInfo.email ?? "",
-                bio: stripHtml(personalInfo.bio),
-                phone: user?.phone ?? "",
-                medical_license: personalInfo.medical_license ?? "",
-            });
-        }
-    }, [personalInfo, user]);
-
-    // Also update cancel handler when user changes
-    useEffect(() => {
-        if (!isEditingPersonal) {
-            setFormData((prev) => ({
-                ...prev,
-                phone: user?.phone ?? "",
-            }));
-        }
-    }, [user?.phone, isEditingPersonal]);
-
-    const fullName = `${formData.first_name} ${formData.last_name}`.trim() || "Doctor";
-    const initials = `${formData.first_name?.[0] ?? ""}${formData.last_name?.[0] ?? ""}` || "DR";
+    const fullName = `${personalInfo?.first_name ?? ""} ${personalInfo?.last_name ?? ""}`.trim() || "Doctor";
+    const initials = `${personalInfo?.first_name?.[0] ?? ""}${personalInfo?.last_name?.[0] ?? ""}` || "DR";
     const primaryDepartment = personalInfo?.doctor_departments?.[0]?.department_name || "General Practice";
     const primaryRole = personalInfo?.doctor_departments?.[0]?.role || "Doctor";
-
-    const mappedExperience = useMemo(() => {
-        return workingExperience.map((item, index) => ({
-            id: index + 1,
-            company: item.past_associations || "N/A",
-            role: "Doctor",
-            period: item.career_start ? `${item.career_start} - Present` : "N/A",
-        }));
-    }, [workingExperience]);
-
-    const mappedEducation = useMemo(() => {
-        return educationInfo.map((item, index) => ({
-            id: index + 1,
-            degree: item.degree || "N/A",
-            institution: item.institution || "N/A",
-            year: formatEducationYear(item.start_date, item.end_date),
-        }));
-    }, [educationInfo]);
-
-    const mappedCertificates = useMemo(() => {
-        return certificationsInfo
-            .filter(
-                (item) =>
-                    item.name ||
-                    item.organization ||
-                    item.issue_date ||
-                    item.expiry_date ||
-                    item.certification_image
-            )
-            .map((item, index) => ({
-                id: index + 1,
-                name: item.name || "N/A",
-                organization: item.organization || "N/A",
-                issue_date: item.issue_date || "",
-                expiry_date: item.expiry_date || "",
-                certification_image: item.certification_image || "",
-            }));
-    }, [certificationsInfo]);
-
-    const mappedAwards = useMemo(() => {
-        return {
-            awards_info: awardsInfo.map((item) => ({
-                award_image: item.award_image || "",
-                title: item.title || "N/A",
-                organization: item.organization || "N/A",
-                year: item.year || "",
-                description: item.description || "",
-            })),
-        };
-    }, [awardsInfo]);
-
-    const mappedSocialMedia = useMemo(() => {
-        return {
-            facebook: socialMedia?.facebook || "",
-            twitter: socialMedia?.twitter || "",
-            linkedin: socialMedia?.linkedin || "",
-            instagram: socialMedia?.instagram || "",
-            website: socialMedia?.website || "",
-        };
-    }, [socialMedia]);
 
     const reviews = useMemo(() => {
         return homeProfile?.doctor_reviews?.map((review, index) => ({
@@ -213,50 +75,6 @@ const ProfilePage = () => {
             patient_image: review.patient_image,
         })) || [];
     }, [homeProfile?.doctor_reviews]);
-
-    const handleInputChange = (field: string, value: string) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
-    };
-
-    const handleSavePersonalInfo = async () => {
-        if (!user?.id) return;
-        setIsSaving(true);
-        try {
-            await updateProfileMutation.mutateAsync({
-                userId: user.id,
-                group: "personal_information",
-                data: {
-                    first_name: formData.first_name,
-                    last_name: formData.last_name,
-                    bio: formData.bio,
-                },
-            });
-            await updateUser({
-                first_name: formData.first_name,
-                last_name: formData.last_name,
-            });
-            setIsEditingPersonal(false);
-            toast.success("Profile updated successfully!");
-        } catch (error) {
-            console.error("Error saving personal info:", error);
-            toast.error("Failed to update profile");
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleCancelPersonalEdit = () => {
-        setIsEditingPersonal(false);
-
-        setFormData({
-            first_name: personalInfo?.first_name ?? "",
-            last_name: personalInfo?.last_name ?? "",
-            email: personalInfo?.email ?? "",
-            bio: stripHtml(personalInfo?.bio),
-            phone: user?.phone ?? "",
-            medical_license: personalInfo?.medical_license ?? "",
-        });
-    };
 
     if (isLoading) {
         return (
@@ -288,8 +106,8 @@ const ProfilePage = () => {
                 department={primaryDepartment}
                 role={primaryRole}
                 email={personalInfo?.email ?? ""}
-                phone={formData.phone}
-                license={formData.medical_license}
+                phone={personalInfo?.phone ?? user?.phone ?? ""}
+                license={personalInfo?.medical_license_number ?? ""}
                 reviewSummary={reviewSummary}
             />
 
@@ -339,7 +157,7 @@ const ProfilePage = () => {
                                 >
                                     <div className="flex items-center gap-2.5">
                                         <Icon className="h-4 w-4 shrink-0" />
-                                        <span>{item.label}</span>
+                                        <span>{item.step ? `${String(item.step).padStart(2, "0")}  ${item.label}` : item.label}</span>
                                     </div>
                                 </button>
                             );
@@ -351,7 +169,7 @@ const ProfilePage = () => {
             <div className="flex flex-col md:flex-row gap-x-5 container-max-width w-full mx-auto my-7">
 
                 {/* Sidebar (Desktop Only) */}
-                <aside className="hidden md:block md:w-72 lg:w-96 space-y-2 shrink-0">
+                <aside className="hidden md:block md:w-72 lg:w-72 space-y-2 shrink-0">
                     <div className="bg-white p-3 lg:p-5 rounded-lg border-light-gray h-full">
                         {sidebarItems.map((item) => {
                             const Icon = item.icon;
@@ -362,14 +180,22 @@ const ProfilePage = () => {
                                     variant="outline"
                                     onClick={() => setActiveTab(item.key)}
                                     className={cn(
-                                        "w-full flex items-center justify-start gap-3 px-5 py-3 h-auto text-start hover:bg-primary/10",
+                                        "w-full flex items-center justify-start gap-3 p-2 h-auto text-start hover:bg-primary/10",
                                         isActive
-                                            ? "text-primary"
+                                            ? "text-primary border-primary/300"
                                             : "g-text-dark border border-transparent"
                                     )}
                                 >
-                                    <Icon size={14} color={`${isActive ? "var(--primary)" : "#4D4D4D"}`} />
-                                    {item.label}
+                                    {/* The button forces its icons to 16px, so the tinted square is a wrapper around the icon. */}
+                                    <span
+                                        className={cn(
+                                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
+                                            isActive ? "bg-primary text-white" : "bg-primary/10 text-primary"
+                                        )}
+                                    >
+                                        <Icon className="size-[18px]" />
+                                    </span>
+                                    <span className="font-medium">{item.label}</span>
                                 </Button>
                             );
                         })}
@@ -377,58 +203,39 @@ const ProfilePage = () => {
                 </aside>
 
                 {/* Content Area */}
-                <main className="flex-1 bg-white p-3 lg:p-5 rounded-lg border-light-gray min-h-[600px]">
-                    {activeTab === "personal" && (
-                        <PersonalInfoSection
-                            isEditing={isEditingPersonal}
-                            setIsEditing={setIsEditingPersonal}
-                            formData={formData}
-                            profileData={{
-                                email: personalInfo?.email ?? "",
-                                bio: personalInfo?.bio ?? "",
-                                avatar: personalInfo?.avatar ?? "",
-                                doctor_departments: personalInfo?.doctor_departments ?? [],
-                            }}
-                            fullName={fullName}
-                            primaryDepartment={primaryDepartment}
-                            primaryRole={primaryRole}
-                            isSaving={isSaving}
-                            onInputChange={handleInputChange}
-                            onSave={handleSavePersonalInfo}
-                            onCancel={handleCancelPersonalEdit}
-                            averageRating={reviewSummary}
-                        />
+                <main className="flex-1 min-w-0 bg-white p-3 lg:p-5 rounded-lg border-light-gray min-h-[600px]">
+                    {activeStepIndex >= 0 && (
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Step {activeStepIndex + 1} of {PROFILE_STEPS.length}
+                        </p>
                     )}
-                    {activeTab === "address" && (
-                        <div>
-                            <AddressSection
-                                address={{
-                                    address_line1: address?.address_line1 ?? "",
-                                    address_line2: address?.address_line2 ?? "",
-                                    area: address?.area ?? "",
-                                    landmark: address?.landmark ?? "",
-                                    city: address?.city ?? "",
-                                    state: address?.state ?? "",
-                                    country: address?.country ?? "",
-                                    pincode: address?.pincode ?? "",
-                                }}
-                            />
+                    {/* Always mounted: edits on every step are kept while moving between steps and tabs. */}
+                    <ProfileEditor
+                        step={activeStepIndex >= 0 ? PROFILE_STEPS[activeStepIndex].key : null}
+                        profile={profile}
+                        onStepError={(step) => setActiveTab(step)}
+                    />
+                    {activeStepIndex >= 0 && (
+                        <div className="mt-5 flex items-center justify-between gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={activeStepIndex === 0}
+                                onClick={() => setActiveTab(PROFILE_STEPS[activeStepIndex - 1].key)}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Previous
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={activeStepIndex === PROFILE_STEPS.length - 1}
+                                onClick={() => setActiveTab(PROFILE_STEPS[activeStepIndex + 1].key)}
+                            >
+                                Next
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
                         </div>
-                    )}
-                    {activeTab === "experience" && (
-                        <ExperienceSection experience={mappedExperience} />
-                    )}
-                    {activeTab === "education" && (
-                        <EducationSection education={mappedEducation} />
-                    )}
-                    {activeTab === "awards" && (
-                        <AwardsSection awards={mappedAwards} />
-                    )}
-                    {activeTab === "certificates" && (
-                        <CertificatesSection certificates={mappedCertificates} />
-                    )}
-                    {activeTab === "social" && (
-                        <SocialLinksSection socialMedia={mappedSocialMedia} />
                     )}
                     {activeTab === "reviews" && (
                         <ReviewsSection reviews={reviews} averageRating={reviewSummary?.average_rating?.toString() || "0"} />
@@ -444,22 +251,6 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
-
-function formatEducationYear(
-    startDate?: string | null,
-    endDate?: string | null
-) {
-    if (!startDate && !endDate) return "N/A";
-
-    const startYear = startDate ? new Date(startDate).getFullYear() : "";
-    const endYear = endDate ? new Date(endDate).getFullYear() : "";
-
-    if (startYear && endYear) return `${startYear} - ${endYear}`;
-    if (startYear) return `${startYear}`;
-    if (endYear) return `${endYear}`;
-
-    return "N/A";
-}
 
 function getErrorMessage(error: unknown) {
     if (

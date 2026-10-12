@@ -159,7 +159,7 @@ export default function AppointmentActions({ appointment, hideReschedule = false
 
     return (
         <>
-            <div className={cn("flex items-center gap-2 w-full", className)} onClick={(e) => e.stopPropagation()}>
+            <div className={cn("flex items-center gap-2 w-full empty:hidden", className)} onClick={(e) => e.stopPropagation()}>
                 {showConfirm && (
                     <Button
                         size="sm"

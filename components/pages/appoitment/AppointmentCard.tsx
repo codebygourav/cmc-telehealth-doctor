@@ -494,22 +494,32 @@ export default function AppointmentCard({
                                 </Button>
                             </div>
                         ) : !shouldHideReschedule ? (
-                            /* 2-Column layout: Details + Reschedule */
-                            <div className="grid grid-cols-2 gap-2 w-full">
-                                <Button
-                                    variant="outline"
-                                    className="h-8 sm:h-8.5 px-3 text-xs font-medium rounded-md border border-slate-300 text-slate-800 hover:bg-slate-50 cursor-pointer shadow-none w-full"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        router.push(`/appointments/${appointment.appointment_id || appointment.id}`);
-                                    }}
-                                >
-                                    Details
-                                </Button>
+                            /* Details + Reschedule in 2 columns; Mark Attendance (when it applies) as a full-width third button */
+                            <div className="space-y-1.5 w-full">
+                                <div className="grid grid-cols-2 gap-2 w-full">
+                                    <Button
+                                        variant="outline"
+                                        className="h-8 sm:h-8.5 px-3 text-xs font-medium rounded-md border border-slate-300 text-slate-800 hover:bg-slate-50 cursor-pointer shadow-none w-full"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            router.push(`/appointments/${appointment.appointment_id || appointment.id}`);
+                                        }}
+                                    >
+                                        Details
+                                    </Button>
+
+                                    <AppointmentActions
+                                        appointment={appointment}
+                                        hideReschedule={shouldHideReschedule}
+                                        renderOnly="reschedule"
+                                        className="w-full"
+                                    />
+                                </div>
 
                                 <AppointmentActions
                                     appointment={appointment}
                                     hideReschedule={shouldHideReschedule}
+                                    renderOnly="attendance"
                                     className="w-full"
                                 />
                             </div>
