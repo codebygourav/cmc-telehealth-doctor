@@ -1,5 +1,6 @@
 "use client";
 
+import InstallAppButton from "@/components/InstallAppButton";
 import PasswordSection from "@/components/pages/profile/passwordSection";
 import ProfileEditor, { type ProfileStepKey } from "@/components/pages/profile/profileEditor";
 import ProfileHeader from "@/components/pages/profile/profileHeader";
@@ -110,6 +111,9 @@ const ProfilePage = () => {
                 license={personalInfo?.medical_license_number ?? ""}
                 reviewSummary={reviewSummary}
             />
+
+            {/* Install the portal as an app (Android, iPhone, computer). */}
+            <InstallAppButton appName="CMC Telehealth Doctor" className="mt-4" />
 
             {/* Mobile Profile Section Selector Trigger */}
             <div className="block md:hidden mb-4 mt-4">
