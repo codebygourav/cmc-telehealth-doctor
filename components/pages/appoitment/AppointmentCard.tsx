@@ -189,8 +189,10 @@ export default function AppointmentCard({
         </Button>
     );
 
-    // Only awaiting-confirmation, confirmed, rescheduled and completed appointments can move.
-    const shouldHideReschedule = !["awaiting_confirmation", "confirmed", "rescheduled", "completed"].includes(appointment.status);
+    // Use the server's shared 24-hour permission as well as the eligible statuses. Without this,
+    // an expired appointment left an empty second column where a reschedule button would be.
+    const shouldHideReschedule = appointment.can_reschedule === false
+        || !["awaiting_confirmation", "confirmed", "rescheduled", "completed"].includes(String(appointment.status).toLowerCase());
 
     const isAwaiting = appointment?.awaiting_confirmation === true || String(appointment?.status).toLowerCase() === "awaiting_confirmation";
     const canConfirm = appointment?.can_confirm ?? isAwaiting;
