@@ -14,17 +14,16 @@ import { RescheduleAppointmentDialog } from "./Reshedule-dialogbox";
 import VideoTimePicker from "./VideoTimePicker";
 
 type Attendance = "present" | "absent";
+const RESCHEDULABLE_STATUSES = ["awaiting_confirmation", "confirmed", "rescheduled", "completed"];
 
 interface AppointmentActionsProps {
     appointment: any;
-    // Hide the reschedule button (e.g. past tab)
+    // Allows a parent view to suppress the button for layout-specific reasons.
     hideReschedule?: boolean;
     className?: string;
     renderOnly?: "confirm" | "reschedule" | "attendance";
     initialAttendanceOpen?: boolean;
 }
-
-const ACTIVE_STATUSES = ["awaiting_confirmation", "confirmed", "rescheduled"];
 
 /**
  * Doctor actions for one appointment:
@@ -39,32 +38,9 @@ export default function AppointmentActions({ appointment, hideReschedule = false
 
     const isAwaiting = appointment?.awaiting_confirmation === true || status === "awaiting_confirmation";
     const canConfirm = appointment?.can_confirm ?? isAwaiting;
-    const isToday = (() => {
-        const dStr = appointment?.appointment_date || appointment?.date;
-        if (!dStr) return false;
-        const d = new Date(dStr);
-        if (isNaN(d.getTime())) return false;
-        const today = new Date();
-        return (
-            d.getFullYear() === today.getFullYear() &&
-            d.getMonth() === today.getMonth() &&
-            d.getDate() === today.getDate()
-        );
-    })();
-
-    const isPastDate = (() => {
-        const dStr = appointment?.appointment_date || appointment?.schedule?.date || appointment?.date;
-        if (!dStr) return false;
-        const d = new Date(String(dStr).slice(0, 10) + "T00:00:00");
-        if (isNaN(d.getTime())) return false;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return d < today;
-    })();
-
     const canReschedule = !hideReschedule && (typeof appointment?.can_reschedule === "boolean"
         ? appointment.can_reschedule
-        : (isToday || !isPastDate) && ACTIVE_STATUSES.includes(status));
+        : RESCHEDULABLE_STATUSES.includes(status));
     const canMarkAttendance = appointment?.can_mark_attendance === true;
     const markedAttendance: Attendance | null =
         (typeof appointment?.attendance === "string" ? appointment.attendance : appointment?.attendance?.status) || null;

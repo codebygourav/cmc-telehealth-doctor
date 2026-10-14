@@ -189,34 +189,8 @@ export default function AppointmentCard({
         </Button>
     );
 
-    const apptDateStr = appointment.appointment_date || appointment.date;
-    const isToday = (() => {
-        if (!apptDateStr) return false;
-        const d = new Date(apptDateStr);
-        if (isNaN(d.getTime())) return false;
-        const today = new Date();
-        return (
-            d.getFullYear() === today.getFullYear() &&
-            d.getMonth() === today.getMonth() &&
-            d.getDate() === today.getDate()
-        );
-    })();
-    const isPastDate = (() => {
-        if (!apptDateStr) return false;
-        const d = new Date(apptDateStr);
-        if (isNaN(d.getTime())) return false;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        d.setHours(0, 0, 0, 0);
-        return d.getTime() < today.getTime();
-    })();
-
-    // Reschedule rule: allow for today regardless of completed status; block past dates or cancelled/failed.
-    const shouldHideReschedule =
-        isPastDate ||
-        variant === "past" ||
-        ["failed", "cancelled"].includes(appointment.status) ||
-        (!isToday && ["completed"].includes(appointment.status));
+    // Only awaiting-confirmation, confirmed, rescheduled and completed appointments can move.
+    const shouldHideReschedule = !["awaiting_confirmation", "confirmed", "rescheduled", "completed"].includes(appointment.status);
 
     const isAwaiting = appointment?.awaiting_confirmation === true || String(appointment?.status).toLowerCase() === "awaiting_confirmation";
     const canConfirm = appointment?.can_confirm ?? isAwaiting;
