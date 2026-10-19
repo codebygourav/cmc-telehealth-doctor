@@ -2,14 +2,17 @@ import api from "@/lib/axios";
 
 // Doctor confirms a booking that is awaiting confirmation, optionally at an exact time
 // inside the OPD window (e.g. "10:45" in a 10 AM - 4 PM OPD). The patient is emailed this time.
+// Video: appointmentDate ("YYYY-MM-DD") moves the call to another of the doctor's video dates.
 export const confirmAppointment = async (
     appointmentId: string,
     appointmentTime?: string | null,
-    appointmentEndTime?: string | null
+    appointmentEndTime?: string | null,
+    appointmentDate?: string | null
 ) => {
     const payload: any = {};
     if (appointmentTime) payload.appointment_time = appointmentTime;
     if (appointmentEndTime) payload.appointment_end_time = appointmentEndTime;
+    if (appointmentDate) payload.appointment_date = appointmentDate;
     const { data } = await api.post(`/appointments/${appointmentId}/confirm`, payload);
     return data;
 };

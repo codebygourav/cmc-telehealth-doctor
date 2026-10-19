@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, CheckCircle2, ClipboardCheck, UserCheck, UserX } from "lucide-react";
-import { useState } from "react";
+import { CalendarClock, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, Loader2, UserCheck, UserX } from "lucide-react";
+import { useRef, useState } from "react";
+import { getDoctorSlots } from "@/api/resheodule";
+import { useAuth } from "@/context/userContext";
 import { RescheduleAppointmentDialog } from "./Reshedule-dialogbox";
 import VideoTimePicker from "./VideoTimePicker";
 
@@ -61,7 +63,33 @@ export default function AppointmentActions({ appointment, hideReschedule = false
     const bookedTime: string = parseTo24HourTime(rawTimeStr);
     const [visitTime, setVisitTime] = useState(() => getDefaultFutureTime(appointmentDate, rawTimeStr));
     const [visitEndTime, setVisitEndTime] = useState(() => parseTo24HourTime(rawEndTimeStr));
-    const visitTimeValid = !isVideo || isFutureTimeOnDate(appointmentDate, visitTime);
+    // Video: the doctor can confirm on any of their video dates (the booked date is always offered).
+    const { user } = useAuth();
+    const bookedDate = String(appointmentDate || "").split("T")[0].split(" ")[0];
+    const [confirmDate, setConfirmDate] = useState(bookedDate);
+    const [confirmDates, setConfirmDates] = useState<string[]>([]);
+    const [loadingDates, setLoadingDates] = useState(false);
+    const confirmDateStrip = useRef<HTMLDivElement>(null);
+    const slideConfirmDates = (direction: 1 | -1) =>
+        confirmDateStrip.current?.scrollBy({ left: direction * confirmDateStrip.current.clientWidth * 0.8, behavior: "smooth" });
+
+    const loadConfirmDates = async () => {
+        if (!isVideo || !user?.doctor_id) return;
+        setLoadingDates(true);
+        const today = new Date().toLocaleDateString("en-CA");
+        try {
+            const res = await getDoctorSlots(user.doctor_id, appointmentId);
+            const days: { slots?: { date?: string }[] }[] = res?.data ?? [];
+            const dates = days.flatMap((day) => day.slots ?? []).map((slot) => slot.date || "");
+            if (bookedDate && bookedDate >= today) dates.push(bookedDate);
+            setConfirmDates(Array.from(new Set(dates.filter((d) => d && d >= today))).sort());
+        } catch {
+            setConfirmDates(bookedDate && bookedDate >= today ? [bookedDate] : []);
+        } finally {
+            setLoadingDates(false);
+        }
+    };
+    const visitTimeValid = !isVideo || (!!confirmDate && isFutureTimeOnDate(confirmDate, visitTime));
     const [resultOpen, setResultOpen] = useState(false);
     const [result, setResult] = useState<{ title: string; description: string; type: "success" | "danger" } | null>(null);
 
@@ -79,11 +107,16 @@ export default function AppointmentActions({ appointment, hideReschedule = false
     const handleConfirm = async () => {
         try {
             setLoading(true);
-            await confirmAppointment(appointmentId, isVideo ? visitTime || null : null, isVideo ? visitEndTime || null : null);
+            await confirmAppointment(
+                appointmentId,
+                isVideo ? visitTime || null : null,
+                isVideo ? visitEndTime || null : null,
+                isVideo && confirmDate && confirmDate !== bookedDate ? confirmDate : null,
+            );
             setConfirmOpen(false);
             showResult(
                 "Appointment Confirmed",
-                `The patient has been emailed the confirmation${isVideo && visitTime ? ` for ${formatClock(visitTime)}${visitEndTime ? ` - ${formatClock(visitEndTime)}` : ""}` : ""}.`,
+                `The patient has been emailed the confirmation${isVideo && visitTime ? ` for ${confirmDate ? new Date(`${confirmDate}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) + ", " : ""}${formatClock(visitTime)}${visitEndTime ? ` - ${formatClock(visitEndTime)}` : ""}` : ""}.`,
             );
             refresh();
         } catch (err) {
@@ -143,7 +176,9 @@ export default function AppointmentActions({ appointment, hideReschedule = false
                         onClick={() => {
                             const initTime = getDefaultFutureTime(appointmentDate, rawTimeStr);
                             setVisitTime(initTime);
+                            setConfirmDate(bookedDate);
                             setConfirmOpen(true);
+                            loadConfirmDates();
                         }}
                     >
                         <CheckCircle2 className="h-3.5 w-3.5" />
@@ -177,34 +212,105 @@ export default function AppointmentActions({ appointment, hideReschedule = false
             </div>
 
             <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-                <DialogContent className="max-w-[95vw] sm:max-w-lg rounded-md p-5">
-                    <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
-                        Confirm Appointment
-                    </DialogTitle>
-                    <p className="text-sm text-muted-foreground">
-                        Confirm the booking for {appointment?.patient?.name || appointment?.patient_name || "this patient"}.
-                        {isVideo
-                            ? " Choose the time of the video call; the patient is emailed this time."
-                            : ` The patient will be emailed the confirmation${bookedTime ? ` for ${formatClock(bookedTime)}` : ""}.`}
-                    </p>
+                {/* Same layout as the Reschedule dialog: bottom sheet on phones, centred from sm up. */}
+                <DialogContent className={cn(
+                    "flex w-full max-w-full flex-col gap-0 overflow-hidden p-0",
+                    isVideo
+                        ? "max-h-[88dvh] rounded-b-none rounded-t-2xl max-sm:top-auto max-sm:bottom-0 max-sm:left-0 max-sm:translate-x-0 max-sm:translate-y-0 sm:max-h-[90vh] sm:w-[90vw] sm:max-w-2xl sm:rounded-md"
+                        : "max-w-[95vw] rounded-md sm:max-w-lg",
+                )}>
+                    <div className="shrink-0 border-b border-slate-200 px-4 py-3 sm:px-6 sm:py-4">
+                        <DialogTitle className="flex items-center gap-2 text-lg font-semibold sm:text-xl">
+                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            Confirm Appointment
+                        </DialogTitle>
+                        <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+                            Confirm the booking for {appointment?.patient?.name || appointment?.patient_name || "this patient"}.
+                            {isVideo
+                                ? " Pick a date, then the time of the video call. The patient is notified of it."
+                                : ` The patient will be emailed the confirmation${bookedTime ? ` for ${formatClock(bookedTime)}` : ""}.`}
+                        </p>
+                    </div>
 
                     {isVideo && (
-                        <VideoTimePicker
-                            id={`visit-time-${appointmentId}`}
-                            date={appointmentDate}
-                            startTime={visitTime}
-                            endTime={visitEndTime}
-                            onStartTimeChange={setVisitTime}
-                            onEndTimeChange={setVisitEndTime}
-                        />
+                        <div className="min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-6">
+                            <div className="min-w-0">
+                                <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
+                                    <CalendarDays className="h-4 w-4" /> Date
+                                </p>
+                                {loadingDates ? (
+                                    <p className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
+                                        <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading your video dates...
+                                    </p>
+                                ) : confirmDates.length === 0 ? (
+                                    <p className="py-2 text-sm text-muted-foreground">No upcoming video dates in your schedule.</p>
+                                ) : (
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <button type="button" onClick={() => slideConfirmDates(-1)} aria-label="Previous dates"
+                                            className="hidden h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-primary hover:border-primary sm:flex">
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </button>
+                                        <div ref={confirmDateStrip} role="tablist" aria-label="Video dates"
+                                            className="flex min-w-0 flex-1 snap-x gap-2 overflow-x-auto scroll-smooth py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                            {confirmDates.map((date) => {
+                                                const d = new Date(`${date}T00:00:00`);
+                                                const selected = confirmDate === date;
+                                                return (
+                                                    <button key={date} type="button" role="tab" aria-selected={selected}
+                                                        onClick={() => {
+                                                            setConfirmDate(date);
+                                                            if (!isFutureTimeOnDate(date, visitTime)) setVisitTime(getDefaultFutureTime(date, visitTime));
+                                                        }}
+                                                        className={`flex w-15 shrink-0 snap-start cursor-pointer flex-col items-center justify-center rounded-md border py-1.5 leading-none transition-all ${selected
+                                                            ? "border-primary bg-primary text-white shadow-xs"
+                                                            : "border-slate-200 bg-white text-slate-900 hover:border-primary/50 hover:bg-slate-50/80"}`}>
+                                                        <span className="text-[10px] font-semibold uppercase tracking-wider">{d.toLocaleDateString("en-US", { weekday: "short" })}</span>
+                                                        <span className="my-0.5 text-base font-bold">{d.getDate()}</span>
+                                                        <span className={`text-[10px] font-medium ${selected ? "text-white/90" : "text-slate-500"}`}>{d.toLocaleDateString("en-US", { month: "short" })}</span>
+                                                        {date === bookedDate && <span className={`mt-0.5 text-[9px] font-semibold ${selected ? "text-white/90" : "text-primary"}`}>Booked</span>}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <button type="button" onClick={() => slideConfirmDates(1)} aria-label="Next dates"
+                                            className="hidden h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-primary hover:border-primary sm:flex">
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {confirmDate && (
+                                <div className="min-w-0">
+                                    <VideoTimePicker
+                                        id={`visit-time-${appointmentId}`}
+                                        date={confirmDate}
+                                        startTime={visitTime}
+                                        endTime={visitEndTime}
+                                        onStartTimeChange={setVisitTime}
+                                        onEndTimeChange={setVisitEndTime}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     )}
 
-                    <div className="flex justify-end gap-2 pt-1">
-                        <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={loading}>Not now</Button>
-                        <Button onClick={handleConfirm} disabled={loading || !visitTimeValid}>
-                            {loading ? "Confirming..." : "Yes, Confirm"}
-                        </Button>
+                    <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                        <p className="text-sm">
+                            {isVideo && confirmDate && visitTime ? (
+                                <span className="text-primary">
+                                    <span className="font-semibold">Selected:</span>{" "}
+                                    {new Date(`${confirmDate}T00:00:00`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })},{" "}
+                                    {formatClock(visitTime)}{visitEndTime ? ` – ${formatClock(visitEndTime)}` : ""}
+                                </span>
+                            ) : null}
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={loading}>Not now</Button>
+                            <Button onClick={handleConfirm} disabled={loading || !visitTimeValid}>
+                                {loading ? "Confirming..." : "Yes, Confirm"}
+                            </Button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

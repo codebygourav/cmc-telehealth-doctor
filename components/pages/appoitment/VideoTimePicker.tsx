@@ -1,6 +1,6 @@
 "use client";
 
-import { formatClock, isFutureTimeOnDate, parseTo24HourTime } from "@/api/appointment-actions";
+import { formatClock, getDefaultFutureTime, isFutureTimeOnDate, parseTo24HourTime } from "@/api/appointment-actions";
 import { Clock, Sun, Sunrise, Sunset, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 
 interface VideoTimePickerProps {
@@ -33,7 +33,7 @@ const PRESETS = [
         times: [
             { start: "12:00", end: "13:00" },
             { start: "13:00", end: "14:00" },
-            { start: "14:30", end: "19:30" },
+            { start: "14:30", end: "15:30" },
             { start: "15:00", end: "16:00" },
             { start: "16:00", end: "17:00" },
         ],
@@ -170,19 +170,23 @@ export default function VideoTimePicker({
                                     {section.times.map((t) => {
                                         const selected = cleanStart === t.start && cleanEnd === t.end;
                                         const timeValid = isFutureTimeOnDate(date, t.start);
+                                        // Start and end both over: can't be picked. Started but not ended: starts at the next quarter hour.
+                                        const passed = !isFutureTimeOnDate(date, t.end);
                                         return (
                                             <button
                                                 key={`${t.start}-${t.end}`}
                                                 type="button"
+                                                disabled={passed}
+                                                title={passed ? "This time has passed" : undefined}
                                                 onClick={() => {
-                                                    handleStartChange(t.start);
+                                                    handleStartChange(timeValid ? t.start : getDefaultFutureTime(date, t.start));
                                                     handleEndChange(t.end);
                                                 }}
                                                 className={`flex h-9 items-center justify-center gap-1 rounded-md border text-xs font-semibold transition-all cursor-pointer ${selected
                                                     ? "border-primary bg-primary text-white shadow-sm ring-2 ring-primary/30"
-                                                    : timeValid
-                                                        ? "border-slate-200 bg-white text-slate-700 hover:border-primary/50 hover:bg-slate-100/80"
-                                                        : "border-slate-100 bg-slate-100 text-slate-400 hover:bg-slate-200/50"
+                                                    : passed
+                                                        ? "cursor-not-allowed border-slate-100 bg-slate-100 text-slate-400 line-through opacity-60"
+                                                        : "border-slate-200 bg-white text-slate-700 hover:border-primary/50 hover:bg-slate-100/80"
                                                     }`}
                                             >
                                                 <span>{formatClock(t.start)}</span>
