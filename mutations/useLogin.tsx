@@ -38,7 +38,7 @@ interface LoginResponse {
 export function useLogin() {
     return useMutation<LoginResponse, any, LoginPayload>({
         mutationFn: async (payload) => {
-            const { data } = await api.post("/auth/login", { ...payload, portal: "doctor" });
+            const { data } = await api.post("/auth/login", { ...payload, login: payload.email, portal: "doctor" });
             return data;
         },
     });

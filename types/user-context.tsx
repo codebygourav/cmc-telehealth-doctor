@@ -23,6 +23,9 @@ export interface User {
     phone: string;
     address: Address;
     status: string;
+    phone_verified?: boolean;
+    requires_phone_verification?: boolean;
+    suggest_phone_verification?: boolean;
   // Doctor in test mode (only this doctor and their own patients see their data)
   is_test_doctor?: boolean;
 }

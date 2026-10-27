@@ -3,7 +3,9 @@ import api from "@/lib/axios";
 
 export const rescheduleAppointment = async (payload: {
     appointment_id: string;
-    availability_id: string;
+    // Not needed with custom = true (any date & time, outside the doctor's slots).
+    availability_id?: string;
+    custom?: boolean;
     appointment_date: string;
     appointment_time: string;
     appointment_end_time?: string;

@@ -33,15 +33,12 @@ const LoginPage = () => {
 
     const fields = [
         {
+            // Mobile number first; email still works.
             name: "email",
-            type: "email",
-            label: "Email Address",
-            placeholder: "Enter your email",
+            type: "login",
+            label: "Mobile Number or Email",
+            placeholder: "e.g. 98765 43210 or name@mail.com",
             required: true,
-            validation: {
-                pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                message: "Please enter a valid email address",
-            },
         },
         {
             name: "password",
@@ -86,6 +83,8 @@ const LoginPage = () => {
                         patient_id: user.patient_id,
                         doctor_id: user.doctor_id,
                         status: user.status ?? "",
+                        phone_verified: Boolean(user.phone_verified),
+                        requires_phone_verification: Boolean(user.requires_phone_verification),
                         avatar: user.avatar,
                         address: {
                             address: user.address?.address,

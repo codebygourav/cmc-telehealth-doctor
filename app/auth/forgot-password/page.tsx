@@ -10,10 +10,12 @@ type ForgotPasswordStep = "SEND_OTP" | "VERIFY_OTP" | "RESET_PASSWORD";
 const ForgotPasswordPage = () => {
   const [step, setStep] = useState<ForgotPasswordStep>("SEND_OTP");
   const [email, setEmail] = useState("");
+  const [sentTo, setSentTo] = useState("");
   const [resetToken, setResetToken] = useState("");
 
-  const handleSendOtpSuccess = (email: string) => {
+  const handleSendOtpSuccess = (email: string, to?: string) => {
     setEmail(email);
+    setSentTo(to || email);
     setStep("VERIFY_OTP");
   };
 
@@ -36,7 +38,7 @@ const ForgotPasswordPage = () => {
                 Forgot Password?
               </h1>
               <p className="text-sm text-muted-foreground font-source-sans">
-                Enter your email address to receive a verification code.
+                Enter your mobile number or email. We will send the code on WhatsApp to your verified mobile number.
               </p>
             </div>
             <SendOtpForm onSuccess={handleSendOtpSuccess} />
@@ -51,7 +53,7 @@ const ForgotPasswordPage = () => {
               </h1>
               <p className="text-sm text-muted-foreground font-source-sans">
                 We've sent a 6-digit verification code to{" "}
-                <span className="font-semibold">{email}</span>.
+                <span className="font-semibold">{sentTo || email}</span>.
               </p>
             </div>
             <VerifyOtpForm

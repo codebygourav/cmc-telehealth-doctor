@@ -7,6 +7,7 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { isValidLoginId, LOGIN_ID_ERROR } from '@/lib/loginId';
 import InputField from '../custom/inputfield';
 
 interface FieldProps {
@@ -44,7 +45,10 @@ function AuthForm<T extends Record<string, any>>({
   const getFieldSchema = (field: FieldProps) => {
     let schema: z.ZodTypeAny;
 
-    if (field.type === 'email') {
+    if (field.type === 'login') {
+      // Mobile number (first choice) or email.
+      schema = z.string().trim().refine(isValidLoginId, LOGIN_ID_ERROR);
+    } else if (field.type === 'email') {
       schema = z.string().email('Invalid email address');
     } else if (field.type === 'password' && field.name === 'password') {
       schema = z.string().min(6, 'Password must be at least 6 characters');
@@ -52,7 +56,7 @@ function AuthForm<T extends Record<string, any>>({
       schema = z.string();
     }
 
-    if (field.required && field.type !== 'email' && field.type !== 'password') {
+    if (field.required && !['email', 'login', 'password'].includes(field.type)) {
       schema = (schema as z.ZodString).min(1, `${field.label} is required`);
     }
 
@@ -101,6 +105,7 @@ function AuthForm<T extends Record<string, any>>({
   };
 
   const getInputType = (field: FieldProps) => {
+    if (field.type === 'login') return 'text';
     if (field.type !== 'password') return field.type;
     return showPasswords[field.name] ? 'text' : 'password';
   };

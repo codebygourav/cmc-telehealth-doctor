@@ -40,7 +40,7 @@ export default function MedicinesPage() {
         <div className="space-y-6 md:px-4 container-max-width w-full mx-auto">
 
             <HeroSection
-                title="Medicine Inventory"
+                title="Medicine Formulary"
                 description="Connect with world-class specialists curated for your health journey. Expert clinical care delivered with a human touch."
             />
 

@@ -6,16 +6,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import React from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { isValidLoginId, LOGIN_ID_ERROR } from "@/lib/loginId";
 import * as z from "zod";
 
 const sendOtpSchema = z.object({
-    email: z.string().email("Please enter a valid email address"),
+    // Mobile number (code on WhatsApp) or email.
+    email: z.string().trim().refine(isValidLoginId, LOGIN_ID_ERROR),
 });
 
 type SendOtpFormData = z.infer<typeof sendOtpSchema>;
 
 interface SendOtpFormProps {
-    onSuccess: (email: string) => void;
+    onSuccess: (login: string, sentTo?: string) => void;
 }
 
 const SendOtpForm: React.FC<SendOtpFormProps> = ({ onSuccess }) => {
@@ -30,9 +32,9 @@ const SendOtpForm: React.FC<SendOtpFormProps> = ({ onSuccess }) => {
 
     const onSubmit = async (data: SendOtpFormData) => {
         mutate(data, {
-            onSuccess: () => {
-                toast.success("OTP sent to your email");
-                onSuccess(data.email);
+            onSuccess: (res: any) => {
+                toast.success(res?.message || "Verification code sent");
+                onSuccess(data.email.trim(), res?.data?.sent_to);
             },
             onError: (error: any) => {
                 console.error(error);
@@ -54,8 +56,8 @@ const SendOtpForm: React.FC<SendOtpFormProps> = ({ onSuccess }) => {
             <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
                 <InputField
                     name="email"
-                    label="Email Address"
-                    placeholder="Enter your email"
+                    label="Mobile Number or Email"
+                    placeholder="e.g. 98765 43210 or name@mail.com"
                     required
                 />
                 <Button type="submit" className="w-full" disabled={isPending}>

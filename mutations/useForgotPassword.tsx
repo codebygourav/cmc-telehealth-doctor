@@ -43,7 +43,7 @@ interface ResetPasswordResponse {
 export function useSendOtp() {
   return useMutation<SendOtpResponse, any, SendOtpPayload>({
     mutationFn: async (payload) => {
-      const { data } = await api.post("/auth/forgot-password/send-otp", payload);
+      const { data } = await api.post("/auth/forgot-password/send-otp", { login: payload.email, ...payload });
       return data;
     },
   });
@@ -55,7 +55,7 @@ export function useSendOtp() {
 export function useVerifyOtp() {
   return useMutation<VerifyOtpResponse, any, VerifyOtpPayload>({
     mutationFn: async (payload) => {
-      const { data } = await api.post("/auth/forgot-password/verify-otp", payload);
+      const { data } = await api.post("/auth/forgot-password/verify-otp", { login: payload.email, ...payload });
       return data;
     },
   });
@@ -67,7 +67,7 @@ export function useVerifyOtp() {
 export function useResetPassword() {
   return useMutation<ResetPasswordResponse, any, ResetPasswordPayload>({
     mutationFn: async (payload) => {
-      const { data } = await api.post("/auth/forgot-password/reset", payload);
+      const { data } = await api.post("/auth/forgot-password/reset", { login: payload.email, ...payload });
       return data;
     },
   });

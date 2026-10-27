@@ -118,7 +118,7 @@ const Home = () => {
         },
         {
             id: 3,
-            title: "Medicine Inventory",
+            title: "Medicine Formulary",
             icon: <MessageSquare color="#1F1E1E" size={30} />,
             href: "/medicine-inventory",
         },

@@ -14,7 +14,7 @@ export interface ResendOtpResponse {
 export function useResendOtp() {
   return useMutation<ResendOtpResponse, any, ResendOtpPayload>({
     mutationFn: async (payload) => {
-      const { data } = await api.post("/auth/resend-otp", payload);
+      const { data } = await api.post("/auth/resend-otp", { login: payload.email, ...payload });
       return data;
     },
   });
