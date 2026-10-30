@@ -1,4 +1,4 @@
-import MobileNumberCard from "./MobileNumberCard";
+import WhatsAppNumberCard from "./WhatsAppNumberCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
@@ -79,7 +79,7 @@ export default function PersonalInfoSection({
             <div className="space-y-4 mt-7">
                 {isEditing ? (
                     <>
-                        <MobileNumberCard />
+                        <WhatsAppNumberCard />
                         <div className="grid gap-4 md:grid-cols-2">
 
                             <div className="space-y-2">
@@ -112,15 +112,12 @@ export default function PersonalInfoSection({
 
                             <div className="space-y-2">
                                 <Label htmlFor="phone">Phone</Label>
-                                {/* The sign-in number: changed only with a WhatsApp code ("Change number" above). */}
                                 <Input
                                     id="phone"
                                     value={formData.phone}
-                                    readOnly
-                                    disabled
+                                    onChange={(e) => onInputChange("phone", e.target.value)}
                                     placeholder="Enter phone number"
                                 />
-                                <p className="text-xs text-muted-foreground">Use &quot;Change number&quot; above to change it (code on WhatsApp).</p>
                             </div>
 
                             <div className="space-y-2">
@@ -157,7 +154,7 @@ export default function PersonalInfoSection({
                     </>
                 ) : (
                     <div className="space-y-4">
-                        <MobileNumberCard />
+                        <WhatsAppNumberCard />
                         <div className="grid gap-4 md:grid-cols-2">
                             <InfoField label="Full Name" value={fullName} />
                             <InfoField label="Department" value={primaryDepartment} />

@@ -3,7 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { PushNotificationBanner } from "@/components/ui/PushNotificationBanner";
 import { UnconfirmedVideoAlertBanner } from "@/components/ui/UnconfirmedVideoAlertBanner";
 import { Toaster } from "sonner";
-import PhoneVerificationGate from "@/components/auth/PhoneVerificationGate";
+import PhoneVerificationPrompt from "@/components/auth/PhoneVerificationPrompt";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -24,8 +24,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     },
                 }}
             />
-            {/* Accounts without a verified mobile number confirm it first (WhatsApp code). */}
-            <PhoneVerificationGate />
+            {/* Optional WhatsApp verification: asked once, then only from the profile. */}
+            <PhoneVerificationPrompt />
             <Footer />
         </div>
     );

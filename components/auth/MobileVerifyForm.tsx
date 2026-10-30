@@ -14,15 +14,15 @@ import OtpBoxes from "./OtpBoxes";
 
 // Dial codes offered for a doctor's number (India first).
 const COUNTRIES = [
-    { iso: "IN", code: "+91", flag: "🇮🇳" },
-    { iso: "AE", code: "+971", flag: "🇦🇪" },
-    { iso: "GB", code: "+44", flag: "🇬🇧" },
-    { iso: "US", code: "+1", flag: "🇺🇸" },
-    { iso: "CA", code: "+1", flag: "🇨🇦" },
-    { iso: "AU", code: "+61", flag: "🇦🇺" },
-    { iso: "SG", code: "+65", flag: "🇸🇬" },
-    { iso: "SA", code: "+966", flag: "🇸🇦" },
-    { iso: "NP", code: "+977", flag: "🇳🇵" },
+    { iso: "IN", code: "+91", flag: "🇮🇳", name: "India" },
+    { iso: "AE", code: "+971", flag: "🇦🇪", name: "United Arab Emirates" },
+    { iso: "GB", code: "+44", flag: "🇬🇧", name: "United Kingdom" },
+    { iso: "US", code: "+1", flag: "🇺🇸", name: "United States" },
+    { iso: "CA", code: "+1", flag: "🇨🇦", name: "Canada" },
+    { iso: "AU", code: "+61", flag: "🇦🇺", name: "Australia" },
+    { iso: "SG", code: "+65", flag: "🇸🇬", name: "Singapore" },
+    { iso: "SA", code: "+966", flag: "🇸🇦", name: "Saudi Arabia" },
+    { iso: "NP", code: "+977", flag: "🇳🇵", name: "Nepal" },
 ];
 
 export interface VerifiedPhone {
@@ -107,7 +107,14 @@ export default function MobileVerifyForm({
         }
         setBusy(true);
         try {
-            const { data } = await api.post("/auth/phone/verify", { phone: number, country_code: country.code, otp: code });
+            // The country chosen here becomes the patient's country (fees for that country).
+            const { data } = await api.post("/auth/phone/verify", {
+                phone: number,
+                country_code: country.code,
+                country_iso: country.iso,
+                country_name: country.name,
+                otp: code,
+            });
             await onVerified(
                 { phone: data?.data?.phone ?? number, country_code: data?.data?.country_code ?? country.code, verified_phone: data?.data?.verified_phone ?? fullNumber },
                 data?.message,
