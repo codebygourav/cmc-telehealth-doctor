@@ -25,7 +25,7 @@ export default function AppointmentFilters({
     setSelectedType,
     statusOptions,
     typeOptions = [
-        { value: "all", label: "All Types" },
+        { value: "all", label: "Select Appointment Type" },
         { value: "video", label: "Video" },
         { value: "in-person", label: "In Person" },
     ],
@@ -51,7 +51,7 @@ export default function AppointmentFilters({
                     <Select value={selectedType} onValueChange={setSelectedType}>
                         <SelectTrigger className="w-auto !h-full !p-4 !rounded-md">
                             <Filter className="mr-2 h-4 w-4" />
-                            <SelectValue placeholder="All Types" />
+                            <SelectValue placeholder="Select Appointment Type" />
                         </SelectTrigger>
                         <SelectContent>
                             {typeOptions.map((type) => (
