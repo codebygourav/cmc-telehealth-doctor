@@ -29,7 +29,7 @@ export const patientsColumns: ColumnDef<PatientAppointmentRow>[] = [
         cell: ({ row }) => {
             const router = useRouter();
             const patient = row.original.patient;
-            const appointmentId = row.original.appointment_id || row.original.id;
+            const appointmentId = row.original.appointment_id;
             return (
                 <div
                     className="cursor-pointer hover:underline"
@@ -94,7 +94,7 @@ export const patientsColumns: ColumnDef<PatientAppointmentRow>[] = [
     {
         accessorKey: "fee_amount",
         header: "Fee",
-        cell: ({ row }) => `₹ ${row.original.fee_amount ?? "0"}`,
+        cell: ({ row }) => `${row.original.currency_symbol ?? "₹"}${row.original.fee_amount ?? "0"}`,
     },
     {
         accessorKey: "Action",

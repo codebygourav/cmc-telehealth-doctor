@@ -32,6 +32,8 @@ export interface PatientAppointmentRow {
   status: string;
   status_label: string;
   fee_amount: string;
+  currency?: string;
+  currency_symbol?: string;
   notes: string | null;
   opd_type?: string | null;
   patient: PatientInfo;
