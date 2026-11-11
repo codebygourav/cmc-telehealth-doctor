@@ -41,6 +41,8 @@ interface PatientHistoryTabProps {
   appointment?: any;
   appointmentId?: string;
   patientHistory?: PatientHistoryItem[];
+  /** Show only this view and hide the built-in switch (used inside the prescription window). */
+  view?: "visits" | "clinical";
 }
 
 const PREVIEW_CHAR_LIMIT = 220;
@@ -275,6 +277,7 @@ export default function PatientHistoryTab({
   appointment: propAppointment,
   appointmentId,
   patientHistory: customHistory,
+  view: controlledView,
 }: PatientHistoryTabProps) {
   const targetId = appointmentId || propAppointment?.appointment_id || propAppointment?.id;
   const { data: fetchedData, isLoading } = useAppointmentById(targetId ? String(targetId) : "");
@@ -303,7 +306,8 @@ export default function PatientHistoryTab({
   const [activeFilter, setActiveFilter] = useState<"all" | "prescriptions" | "notes" | "tests">("all");
   const [isMobileFilterDrawerOpen, setIsMobileFilterDrawerOpen] = useState(false);
   // "visits" = each appointment's prescription; "clinical" = clinical examination once per doctor.
-  const [historyView, setHistoryView] = useState<"visits" | "clinical">("visits");
+  const [ownHistoryView, setHistoryView] = useState<"visits" | "clinical">("visits");
+  const historyView = controlledView ?? ownHistoryView;
 
   const [selectedApptForFiles, setSelectedApptForFiles] = useState<string | null>(null);
 
@@ -828,6 +832,7 @@ export default function PatientHistoryTab({
       </div>
 
       {/* View: visits (prescriptions) | clinical examination (once per doctor) */}
+      {!controlledView && (
       <div className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-1 sm:inline-grid sm:w-auto">
         {([
           ["visits", "Visits & prescriptions", Pill],
@@ -847,6 +852,7 @@ export default function PatientHistoryTab({
           </button>
         ))}
       </div>
+      )}
 
       {historyView === "clinical" ? (
         <div className="space-y-3">

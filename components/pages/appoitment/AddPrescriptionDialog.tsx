@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -134,10 +135,23 @@ declare global {
 }
 
 
+/** Medical record fields (key, label) for the read-only summary. */
+const RECORD_FIELDS = [
+  ["final_diagnosis", "Final diagnosis"],
+  ["chief_complaint", "Chief complaint"],
+  ["history_of_present_illness", "History of present illness"],
+  ["present_medical_history", "Present medical history"],
+  ["family_history", "Family history"],
+  ["personal_history", "Personal history"],
+  ["examination", "Examination"],
+  ["notes", "Clinical notes"],
+  ["investigation", "Investigation"],
+  ["treatment", "Treatment"],
+] as const;
+
 /** Sections of the prescription builder (call screen): desktop tabs, phone bottom drawer. */
 const SECTION_TABS = [
   ["prescribe", "Prescription", Stethoscope],
-  ["patient_history", "Patient History", History],
   ["medical_record", "Patient medical record", ClipboardList],
   ["reports", "Tests & reports", FileText],
 ] as const;
@@ -412,22 +426,28 @@ export default function AddPrescriptionDialog({
     setAddedMedicines(newMeds);
   };
 
-  const [activeTab, setActiveTab] = useState<"prescribe" | "reports" | "medical_record" | "patient_history">(
+  const [activeTab, setActiveTab] = useState<"prescribe" | "reports" | "medical_record">(
     initialTab === "reports"
       ? "reports"
-      : initialTab === "medical_record"
+      : initialTab === "medical_record" || initialTab === "patient_history"
         ? "medical_record"
-        : initialTab === "patient_history"
-          ? "patient_history"
-          : "prescribe"
+        : "prescribe"
   );
+
+  // Medical record tab: "record" (read-only until Edit) or "history" (the old Patient History tab).
+  const [recordView, setRecordView] = useState<"record" | "visits" | "clinical">("record");
+  const [recordEditing, setRecordEditing] = useState(false);
 
   useEffect(() => {
     if (open && initialTab) {
       if (initialTab === "reports") setActiveTab("reports");
-      else if (initialTab === "medical_record") setActiveTab("medical_record");
-      else if (initialTab === "patient_history") setActiveTab("patient_history");
+      else if (initialTab === "medical_record") { setActiveTab("medical_record"); setRecordView("record"); }
+      else if (initialTab === "patient_history") { setActiveTab("medical_record"); setRecordView("visits"); }
       else setActiveTab("prescribe");
+    }
+    if (!open) {
+      setRecordEditing(false);
+      setRecordView("record");
     }
   }, [open, initialTab]);
 
@@ -549,6 +569,8 @@ export default function AddPrescriptionDialog({
         type: "patient_medical_record",
       });
       setMedicalRecordFiles([]);
+      setRecordEditing(false);
+      markSaved();
       setShowMedicalRecordPreview(true);
       setToastMessage({
         text: "Patient Medical Record saved successfully",
@@ -582,6 +604,7 @@ export default function AddPrescriptionDialog({
         files: reportFiles,
       });
       setReportFiles([]);
+      markSaved();
       setToastMessage({
         text: "Tests & Reports saved successfully",
         type: "success",
@@ -1565,8 +1588,66 @@ export default function AddPrescriptionDialog({
 
   const handleSuccessClose = () => {
     setShowSuccess(false);
-    onOpenChange(false);
+    onOpenChange(false); // saved: no unsaved-changes question
   };
+
+  // Everything the doctor can change in this window. A snapshot is taken once it has loaded and
+  // after every save; closing with a different state asks first.
+  const unsavedSignature = JSON.stringify({
+    addedMedicines, notes, diagnosis, confidentialNotes, instructionsByDoctor, nextVisitDate, findingsText,
+    recommendedTests, reportFiles: reportFiles.length, medicalRecordForm, medicalRecordFiles: medicalRecordFiles.length,
+  });
+  const signatureRef = useRef(unsavedSignature);
+  signatureRef.current = unsavedSignature;
+  const [savedSignature, setSavedSignature] = useState<string | null>(null);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setSavedSignature(null);
+      return;
+    }
+    // Wait until the existing prescription / record has filled the form.
+    const timer = setTimeout(() => setSavedSignature((current) => current ?? signatureRef.current), 1200);
+    return () => clearTimeout(timer);
+  }, [open, prescriptionData, medicalRecordResponse]);
+
+  useEffect(() => {
+    if (showSuccess) markSaved();
+  }, [showSuccess]);
+
+  function markSaved() {
+    setTimeout(() => setSavedSignature(signatureRef.current), 0);
+  }
+
+  const hasUnsavedChanges = savedSignature !== null && unsavedSignature !== savedSignature;
+
+  const requestOpenChange = (next: boolean) => {
+    if (!next && hasUnsavedChanges) {
+      setConfirmCloseOpen(true);
+      return;
+    }
+    onOpenChange(next);
+  };
+
+  // Medical record "Cancel edit": back to what was saved.
+  function cancelRecordEdit() {
+    const rec = medicalRecordResponse?.data;
+    setMedicalRecordForm({
+      final_diagnosis: formatClinicalValue(rec?.final_diagnosis),
+      chief_complaint: formatClinicalValue(rec?.chief_complaint),
+      history_of_present_illness: formatClinicalValue(rec?.history_of_present_illness),
+      present_medical_history: formatClinicalValue(rec?.present_medical_history),
+      family_history: formatClinicalValue(rec?.family_history),
+      personal_history: formatClinicalValue(rec?.personal_history),
+      examination: formatClinicalValue(rec?.examination),
+      notes: formatClinicalValue(rec?.notes ?? rec?.clinical_notes),
+      investigation: formatClinicalValue(rec?.investigation),
+      treatment: formatClinicalValue(rec?.treatment),
+    });
+    setMedicalRecordFiles([]);
+    setRecordEditing(false);
+  }
 
   const getCurrentVoiceDraftPayload = (): DraftFormPayload => ({
     medicine_id: getValues("medicine_id") || null,
@@ -2004,7 +2085,7 @@ export default function AddPrescriptionDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={requestOpenChange}>
         <DialogContent className="max-sm:pb-0 w-[95vw] max-h-[92vh] sm:max-w-6xl! rounded-lg p-0 overflow-hidden flex flex-col gap-0! fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-slate-200 bg-linear-to-br from-white via-slate-50 to-sky-50 shadow-[0_30px_90px_rgba(15,23,42,0.18)]">
           {toastMessage && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-100 animate-in fade-in slide-in-from-top-4 duration-300">
@@ -2146,7 +2227,7 @@ export default function AddPrescriptionDialog({
                     </DialogContent>
                   </Dialog>
                   {showRecordTab && mode === "full" && (
-                    <div className="hidden sm:grid grid-cols-4 gap-1 rounded-md border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
+                    <div className="hidden sm:grid grid-cols-3 gap-1 w-full max-w-3xl mx-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="tablist">
                       {SECTION_TABS.map(([key, label, Icon]) => (
                         <button
                           key={key}
@@ -2167,7 +2248,7 @@ export default function AddPrescriptionDialog({
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
                     <div
-                      className={mode !== "full" || (showRecordTab && (activeTab === "medical_record" || activeTab === "reports" || activeTab === "patient_history")) ? "md:col-span-12" : `md:col-span-7 p-0 sm:p-0`}
+                      className={mode !== "full" || (showRecordTab && (activeTab === "medical_record" || activeTab === "reports")) ? "md:col-span-12" : `md:col-span-7 p-0 sm:p-0`}
                     >
 
 
@@ -2603,6 +2684,33 @@ export default function AddPrescriptionDialog({
 
                       {activeTab === "medical_record" && (
                         <div className="space-y-5 animate-in fade-in duration-200">
+                          {/* One clear switch: this visit's record | the patient's past visits | clinical history */}
+                          <div className="flex justify-center">
+                            <div className="grid w-full max-w-xl grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+                              {([
+                                ["record", "This visit", ClipboardList, "Medical record for this consultation"],
+                                ["visits", "Past visits", History, "Earlier visits, prescriptions, notes and tests"],
+                                ["clinical", "Clinical history", Stethoscope, "History & examination written by each doctor"],
+                              ] as const).map(([key, label, Icon, hint]) => (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  title={hint}
+                                  onClick={() => setRecordView(key)}
+                                  className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${recordView === key ? "bg-white text-primary shadow-sm ring-1 ring-slate-200" : "text-slate-600 hover:text-primary"}`}
+                                >
+                                  <Icon className="h-4 w-4 shrink-0" /> <span className="truncate">{label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="-mt-2 text-center text-[11px] text-slate-500">
+                            {recordView === "record" ? "Medical record for this consultation" : recordView === "visits" ? "Earlier visits, prescriptions, notes and tests" : "History & examination written by each doctor"}
+                          </p>
+
+                          {recordView !== "record" && <PatientHistoryTab appointmentId={appointmentId} view={recordView} />}
+
+                          {recordView === "record" && (<>
                           {Boolean(medicalRecordForm.treatment.trim()) && (
                             <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-1.5 animate-in fade-in duration-200">
                               <h4 className="text-sm font-bold text-slate-900">Treatment</h4>
@@ -2641,6 +2749,33 @@ export default function AddPrescriptionDialog({
                             </Button>
                           </div>
 
+                          {!recordEditing && (
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                              <div className="mb-3 flex items-center justify-between gap-3">
+                                <h4 className="text-sm font-bold text-slate-900">This visit&apos;s medical record</h4>
+                                <Button type="button" size="sm" variant="outline" onClick={() => setRecordEditing(true)} className="text-xs font-semibold">
+                                  <FileText className="mr-1.5 h-3.5 w-3.5" /> {RECORD_FIELDS.some(([k]) => medicalRecordForm[k].trim()) ? "Edit" : "Add medical record"}
+                                </Button>
+                              </div>
+                              {RECORD_FIELDS.some(([k]) => medicalRecordForm[k].trim()) ? (
+                                <dl className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
+                                  {RECORD_FIELDS.filter(([k]) => medicalRecordForm[k].trim()).map(([k, label]) => (
+                                    <div key={k}>
+                                      <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</dt>
+                                      <dd className="mt-0.5 whitespace-pre-line text-xs text-slate-800">{medicalRecordForm[k]}</dd>
+                                    </div>
+                                  ))}
+                                </dl>
+                              ) : (
+                                <p className="text-xs text-slate-500">No medical record yet. Click "Add medical record" to write it.</p>
+                              )}
+                              {existingMedicalRecordFiles.length > 0 && (
+                                <p className="mt-3 text-xs text-slate-500">{existingMedicalRecordFiles.length} attached file{existingMedicalRecordFiles.length === 1 ? "" : "s"} · click Edit to view or add files</p>
+                              )}
+                            </div>
+                          )}
+
+                          {recordEditing && (<>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                               <label className="text-xs font-semibold text-slate-700 block">Final Diagnosis</label>
@@ -2849,18 +2984,15 @@ export default function AddPrescriptionDialog({
                           </div>
 
 
+                          </>)}
+                          </>)}
                         </div>
                       )}
 
-                      {activeTab === "patient_history" && (
-                        <div className="space-y-5 animate-in fade-in duration-200">
-                          <PatientHistoryTab appointmentId={appointmentId} />
-                        </div>
-                      )}
                     </div>
 
                     {/* Call screen: the notes sidebar only on the Prescription tab. */}
-                    {mode === "full" && !(showRecordTab && (activeTab === "medical_record" || activeTab === "reports" || activeTab === "patient_history")) && <PrescriptionListPanel
+                    {mode === "full" && !(showRecordTab && (activeTab === "medical_record" || activeTab === "reports")) && <PrescriptionListPanel
                       addedMedicines={addedMedicines}
                       onEditMedicine={handleEditMedicine}
                       onDeleteMedicine={handleDeleteMedicine}
@@ -2961,33 +3093,47 @@ export default function AddPrescriptionDialog({
               {activeTab === "medical_record" && (
                 <>
                   <p className="text-xs text-slate-500 font-medium">
-                    Patient Medical Record — Save changes or preview medical record
+                    {recordView !== "record" ? "Viewing the patient's history" : recordEditing ? "Editing the patient medical record — save to keep the changes" : "Patient medical record — click Edit to change it"}
                   </p>
                   <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowMedicalRecordPreview(true)}
-                      className="font-semibold border-emerald-300 text-emerald-800 hover:bg-emerald-50"
-                    >
-                      <Eye className="mr-1.5 h-4 w-4 text-emerald-700" /> Preview Record
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={handleSaveMedicalRecordOnly}
-                      disabled={saveMedicalRecordMutation.isPending}
-                      className="sm:min-w-52 font-semibold bg-emerald-700 hover:bg-emerald-800 text-white"
-                    >
-                      {saveMedicalRecordMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                        </>
-                      ) : (
-                        <>
-                          <FileText className="mr-2 h-4 w-4" /> Save Patient Medical Record
-                        </>
-                      )}
-                    </Button>
+                    {recordView === "record" && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowMedicalRecordPreview(true)}
+                        className="font-semibold border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                      >
+                        <Eye className="mr-1.5 h-4 w-4 text-emerald-700" /> Preview Record
+                      </Button>
+                    )}
+                    {recordView === "record" && !recordEditing && (
+                      <Button type="button" onClick={() => setRecordEditing(true)} className="sm:min-w-40 font-semibold">
+                        <FileText className="mr-2 h-4 w-4" /> Edit medical record
+                      </Button>
+                    )}
+                    {recordView === "record" && recordEditing && (
+                      <>
+                        <Button type="button" variant="outline" onClick={cancelRecordEdit} className="font-semibold">
+                          Cancel edit
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={handleSaveMedicalRecordOnly}
+                          disabled={saveMedicalRecordMutation.isPending}
+                          className="sm:min-w-52 font-semibold bg-emerald-700 hover:bg-emerald-800 text-white"
+                        >
+                          {saveMedicalRecordMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="mr-2 h-4 w-4" /> Save Patient Medical Record
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </>
               )}
@@ -3021,29 +3167,32 @@ export default function AddPrescriptionDialog({
                 </>
               )}
 
-              {activeTab === "patient_history" && (
-                <>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Viewing Patient Consultation History
-                  </p>
-                  <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => onOpenChange(false)}
-                      className="sm:min-w-28 text-xs font-semibold"
-                    >
-                      Close
-                    </Button>
-                  </div>
-                </>
-              )}
             </div>
           )}
         </DialogContent>
       </Dialog>
 
       {/* PDF preview: check it, close to fix anything, then save */}
+      {/* Closing with unsaved changes */}
+      <Dialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle>Unsaved changes</DialogTitle>
+            <DialogDescription>
+              You have changes that are not saved yet (prescription, medical record or tests &amp; reports). If you close now they will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => { setConfirmCloseOpen(false); onOpenChange(false); }}>
+              Discard &amp; close
+            </Button>
+            <Button type="button" onClick={() => setConfirmCloseOpen(false)}>
+              Keep editing
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!previewUrl} onOpenChange={(value) => !value && closePreview()}>
         <DialogContent className="flex h-[92vh] w-[95vw] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-4xl!">
           <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-3">

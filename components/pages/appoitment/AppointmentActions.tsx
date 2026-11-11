@@ -68,6 +68,9 @@ export default function AppointmentActions({ appointment, hideReschedule = false
     const bookedDate = String(appointmentDate || "").split("T")[0].split(" ")[0];
     const [confirmDate, setConfirmDate] = useState(bookedDate);
     const [confirmDates, setConfirmDates] = useState<string[]>([]);
+    // Video: "slots" = the doctor's video dates; "custom" = any date (like Reschedule → Custom date & time).
+    const [confirmMode, setConfirmMode] = useState<"slots" | "custom">("slots");
+    const todayKey = new Date().toLocaleDateString("en-CA");
     const [loadingDates, setLoadingDates] = useState(false);
     const confirmDateStrip = useRef<HTMLDivElement>(null);
     const slideConfirmDates = (direction: 1 | -1) =>
@@ -177,6 +180,7 @@ export default function AppointmentActions({ appointment, hideReschedule = false
                             const initTime = getDefaultFutureTime(appointmentDate, rawTimeStr);
                             setVisitTime(initTime);
                             setConfirmDate(bookedDate);
+                            setConfirmMode("slots");
                             setConfirmOpen(true);
                             loadConfirmDates();
                         }}
@@ -230,6 +234,20 @@ export default function AppointmentActions({ appointment, hideReschedule = false
                                 ? " Pick a date, then the time of the video call. The patient is notified of it."
                                 : ` The patient will be emailed the confirmation${bookedTime ? ` for ${formatClock(bookedTime)}` : ""}.`}
                         </p>
+                        {isVideo && (
+                            <div role="tablist" className="mt-3 flex gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1">
+                                {([["slots", "From my schedule"], ["custom", "Custom date & time"]] as const).map(([value, label]) => (
+                                    <button key={value} type="button" role="tab" aria-selected={confirmMode === value}
+                                        onClick={() => {
+                                            setConfirmMode(value);
+                                            if (value === "slots" && !confirmDates.includes(confirmDate)) setConfirmDate(bookedDate);
+                                        }}
+                                        className={`flex-1 cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-all sm:text-sm ${confirmMode === value ? "bg-primary text-white shadow-xs" : "text-slate-600 hover:bg-white"}`}>
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {isVideo && (
@@ -238,7 +256,20 @@ export default function AppointmentActions({ appointment, hideReschedule = false
                                 <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
                                     <CalendarDays className="h-4 w-4" /> Date
                                 </p>
-                                {loadingDates ? (
+                                {confirmMode === "custom" ? (
+                                    <div className="space-y-3">
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+                                            Any date and time, even outside your video schedule. The patient is notified of the confirmed timing.
+                                        </div>
+                                        <input id={`confirm-custom-date-${appointmentId}`} type="date" min={todayKey} value={confirmDate}
+                                            onChange={(e) => {
+                                                const date = e.target.value;
+                                                setConfirmDate(date);
+                                                if (date && !isFutureTimeOnDate(date, visitTime)) setVisitTime(getDefaultFutureTime(date, visitTime));
+                                            }}
+                                            className="h-10 w-full max-w-xs rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                                    </div>
+                                ) : loadingDates ? (
                                     <p className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
                                         <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading your video dates...
                                     </p>
