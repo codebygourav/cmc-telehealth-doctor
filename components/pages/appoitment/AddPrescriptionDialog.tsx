@@ -1,10 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, Save, Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill, Download, Loader2, History, UserCheck, ChevronDown, Check } from "lucide-react";
+import { MessageCircle, Eye, Save, Undo2, X, ClipboardList, Stethoscope, FileText, Mic, Upload, Trash2, FileImage, ExternalLink, Pill, Download, Loader2, History, UserCheck, ChevronDown, Check } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { getMedicines } from "@/api/medicines";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ import FormularyMedicineEntry from "./FormularyMedicineEntry";
 import AddedMedicinesList from "./AddedMedicinesList";
 import { previewPrescriptionPdf } from "@/api/addPrescription";
 import PrescriptionSuccessDialog from "./PrescriptionSuccessDialog";
+import SendPrescriptionWhatsAppDialog from "./SendPrescriptionWhatsAppDialog";
 import PrescriptionVoiceAssistantPanel from "./PrescriptionVoiceAssistantPanel";
 import PreviousPrescriptionsDialog from "./PreviousPrescriptionsDialog";
 import {
@@ -1601,6 +1603,8 @@ export default function AddPrescriptionDialog({
   signatureRef.current = unsavedSignature;
   const [savedSignature, setSavedSignature] = useState<string | null>(null);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareQueryClient = useQueryClient();
 
   useEffect(() => {
     if (!open) {
@@ -2172,6 +2176,24 @@ export default function AddPrescriptionDialog({
               <span className="hidden sm:inline">Download Prescription</span>
               <span className="inline sm:hidden">Download</span>
             </button>
+            {appointmentId && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (hasUnsavedChanges) {
+                    setToastMessage({ text: "Save your changes first, then send the prescription.", type: "error" });
+                    return;
+                  }
+                  setShareOpen(true);
+                }}
+                className="h-8 px-2.5 sm:px-3 rounded-full border border-emerald-200 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                title="Send the prescription PDF to the patient on WhatsApp"
+              >
+                <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden sm:inline">Send on WhatsApp</span>
+                <span className="inline sm:hidden">WhatsApp</span>
+              </button>
+            )}
           </div>
 
 
@@ -3173,6 +3195,15 @@ export default function AddPrescriptionDialog({
       </Dialog>
 
       {/* PDF preview: check it, close to fix anything, then save */}
+      {appointmentId && (
+        <SendPrescriptionWhatsAppDialog
+          appointmentId={appointmentId}
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          onSent={() => shareQueryClient.invalidateQueries({ queryKey: ["prescription-share", appointmentId] })}
+        />
+      )}
+
       {/* Closing with unsaved changes */}
       <Dialog open={confirmCloseOpen} onOpenChange={setConfirmCloseOpen}>
         <DialogContent className="sm:max-w-md rounded-2xl p-6">

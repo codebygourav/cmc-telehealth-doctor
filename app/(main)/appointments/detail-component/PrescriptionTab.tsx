@@ -44,8 +44,12 @@ import {
   Paperclip,
   UserCheck,
   ChevronDown,
+  MessageCircle,
 } from "lucide-react";
 import { useState } from "react";
+import SendPrescriptionWhatsAppDialog from "@/components/pages/appoitment/SendPrescriptionWhatsAppDialog";
+import PrescriptionShareHistory, { prescriptionShareKey } from "@/components/pages/appoitment/PrescriptionShareHistory";
+import { useQueryClient } from "@tanstack/react-query";
 
 // TypeScript interfaces
 interface Medicine {
@@ -157,6 +161,9 @@ export default function PrescriptionTab({
   appointmentId: string;
 }) {
   const deleteMutation = useDeletePrescriptionItem(appointmentId);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [resendNumber, setResendNumber] = useState<string | undefined>(undefined);
+  const queryClient = useQueryClient();
   const deleteConclusionFileMutation = useDeleteConclusionFile(appointmentId);
 
   const { data, isLoading, error } =
@@ -339,6 +346,23 @@ export default function PrescriptionTab({
           </a>
         )}
 
+        <button
+          type="button"
+          onClick={() => { setResendNumber(undefined); setShareOpen(true); }}
+          title="Send the prescription PDF to the patient on WhatsApp"
+          className="inline-flex h-8.5 sm:h-9 items-center justify-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50/90 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold text-emerald-800 transition-all hover:bg-emerald-100 shadow-2xs shrink-0 cursor-pointer"
+        >
+          <MessageCircle className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
+          <span className="hidden sm:inline">Send on WhatsApp</span>
+        </button>
+        <SendPrescriptionWhatsAppDialog
+          appointmentId={appointmentId}
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          initialNumber={resendNumber}
+          onSent={() => queryClient.invalidateQueries({ queryKey: prescriptionShareKey(appointmentId) })}
+        />
+
         <Button
           type="button"
           title="Edit Notes & Prescription"
@@ -353,6 +377,12 @@ export default function PrescriptionTab({
           <span className="hidden sm:inline">Edit Notes &amp; Prescription</span>
         </Button>
       </div>
+
+      {/* When the prescription was sent on WhatsApp, to whom, its status — with Resend. */}
+      <PrescriptionShareHistory
+        appointmentId={appointmentId}
+        onResend={(number) => { setResendNumber(number); setShareOpen(true); }}
+      />
 
       {/* Sub-tabs Navigation: Horizontal Bar on Mobile/Tablet (Always Visible) */}
       <div className="block md:hidden w-full overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">

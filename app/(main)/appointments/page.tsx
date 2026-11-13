@@ -23,14 +23,28 @@ const AppointmentsContent = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedFilter, setSelectedFilter] = useState("all");
     const [selectedType, setSelectedType] = useState("all");
+    const [perPage, setPerPage] = useState<number | "all" | undefined>(undefined); // undefined = admin default
+    // Search goes to the server after a short pause in typing.
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     useEffect(() => {
         setIsMounted(true);
     }, []);
 
-    const { data, isLoading, error } = useMyAppointments(activeTab, currentPage);
+    // Tab, search, status, type and page size are applied by the server over ALL appointments.
+    const { data, isLoading, isFetching, error } = useMyAppointments(activeTab, currentPage, {
+        search: debouncedSearch,
+        status: selectedFilter,
+        consultationType: selectedType,
+        perPage,
+    });
     const appointments = Array.isArray(data?.data) ? data.data : [];
     const pagination = data?.pagination;
+    const listMeta = data as any;
 
     // Reset pagination to page 1 when query filters or search query change
     const handleSearchQueryChange = (query: string) => {
@@ -48,17 +62,11 @@ const AppointmentsContent = () => {
         setCurrentPage(1);
     };
 
-    // ✅ Unique status list
+    // Status choices of the current tab, from the server (with counts).
     const statusOptions = [
         { value: "all", label: "All Status" },
-        ...Array.from(
-            new Map(
-                appointments.map((apt: any) => [
-                    apt.status,
-                    { value: apt.status, label: apt.status_label },
-                ]),
-            ).values(),
-        ),
+        ...((listMeta?.status_options ?? []) as { value: string; label: string; count: number }[])
+            .map((o) => ({ value: o.value, label: `${o.label} (${o.count})` })),
     ];
 
     useEffect(() => {
@@ -70,48 +78,38 @@ const AppointmentsContent = () => {
 
     const handleTabChange = (value: string) => {
         setActiveTab(value);
+        setSelectedFilter("all"); // statuses differ per tab
         setCurrentPage(1);
     };
 
-    // ✅ Filters
-    const applyFilters = (list: any[]) => {
-        return list.filter((apt) => {
-            const name = apt.patient?.name?.toLowerCase() || apt.patient_name?.toLowerCase() || "";
-            const reason = apt.reason?.toLowerCase() || apt.appointment_reason?.toLowerCase() || "";
-            const matchesSearch = name.includes(searchQuery.toLowerCase()) || reason.includes(searchQuery.toLowerCase());
-            const matchesStatus =
-                selectedFilter === "all" || apt.status === selectedFilter;
-            const type = (apt.consultation_type || "").toLowerCase();
-            const matchesType =
-                selectedType === "all" ||
-                (selectedType === "video" && type === "video") ||
-                (selectedType === "in-person" && (type === "in-person" || type === "clinic"));
-            return matchesSearch && matchesStatus && matchesType;
-        });
-    };
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedSearch]);
 
-    // Date order: today -> future (soonest first); "Past" newest first.
-    const visitTime = (apt: any) => {
-        const date = String(apt.appointment_date || apt.schedule?.date || apt.date || "").slice(0, 10);
-        const time = String(apt.appointment_time || apt.schedule?.time || "00:00").slice(0, 8);
-        const t = Date.parse(`${date}T${/^\d{1,2}:\d{2}/.test(time) ? time.padStart(5, "0") : "00:00"}`);
-        return Number.isNaN(t) ? 0 : t;
-    };
-    const filteredAppointments = applyFilters(appointments).sort((a: any, b: any) =>
-        activeTab === "past" ? visitTime(b) - visitTime(a) : visitTime(a) - visitTime(b));
+    // The server already filtered and ordered the list (today -> future; "Past" newest first).
+    const filteredAppointments = appointments;
 
     // ✅ Render Cards & Pagination
     const renderCardsWithPagination = () => {
+        if (isLoading) {
+            return (
+                <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+            );
+        }
         if (!filteredAppointments.length) {
             return (
                 <div className="text-center py-12">
-                    <p className="text-muted-foreground">No appointments found</p>
+                    <p className="text-muted-foreground">
+                        {debouncedSearch || selectedFilter !== "all" || selectedType !== "all" ? "No appointments match your search or filters" : "No appointments found"}
+                    </p>
                 </div>
             );
         }
 
         return (
-            <div className="space-y-6">
+            <div className={`space-y-6 transition-opacity ${isFetching ? "opacity-60" : ""}`}>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-5">
                     {filteredAppointments.map((apt: any, index: number) => (
                         <AppointmentCard
@@ -129,6 +127,10 @@ const AppointmentsContent = () => {
                         totalItems={pagination.total || filteredAppointments.length}
                         itemsPerPage={pagination.per_page || 10}
                         onPageChange={(page) => setCurrentPage(page)}
+                        perPage={perPage ?? listMeta?.default_per_page ?? pagination.per_page}
+                        perPageOptions={listMeta?.per_page_options}
+                        allowAll={listMeta?.allow_all}
+                        onPerPageChange={(value) => { setPerPage(value); setCurrentPage(1); }}
                     />
                 )}
             </div>

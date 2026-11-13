@@ -39,7 +39,7 @@ export default function AppointmentFilters({
                     <div className="relative">
                         <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                            placeholder="Search by patient name or reason..."
+                            placeholder="Search patient, phone, date (12 Nov 2026), month (Nov), video / clinic, status…"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-9"
