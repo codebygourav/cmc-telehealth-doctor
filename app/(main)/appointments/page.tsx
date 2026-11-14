@@ -8,6 +8,7 @@ import { useMyAppointments } from "@/queries/useAppointments";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import HeroSection from "@/components/ui/hero-section";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AppointmentsContent = () => {
     const searchParams = useSearchParams();
@@ -36,7 +37,7 @@ const AppointmentsContent = () => {
     }, []);
 
     // Tab, search, status, type and page size are applied by the server over ALL appointments.
-    const { data, isLoading, isFetching, error } = useMyAppointments(activeTab, currentPage, {
+    const { data, isLoading, isFetching, isPlaceholderData, error } = useMyAppointments(activeTab, currentPage, {
         search: debouncedSearch,
         status: selectedFilter,
         consultationType: selectedType,
@@ -91,10 +92,32 @@ const AppointmentsContent = () => {
 
     // ✅ Render Cards & Pagination
     const renderCardsWithPagination = () => {
-        if (isLoading) {
+        // New results loading (search, filter, page, page size, tab): skeleton cards.
+        if (isLoading || isPlaceholderData) {
+            const count = Math.min(Number(perPage === "all" ? 9 : (perPage ?? listMeta?.default_per_page ?? 9)), 9);
             return (
-                <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Loading appointments">
+                    {Array.from({ length: count }).map((_, i) => (
+                        <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
+                            <div className="flex items-center gap-3">
+                                <Skeleton className="h-11 w-11 rounded-full" />
+                                <div className="flex-1 space-y-2">
+                                    <Skeleton className="h-4 w-2/3" />
+                                    <Skeleton className="h-3 w-1/2" />
+                                </div>
+                                <Skeleton className="h-6 w-20 rounded-full" />
+                            </div>
+                            <Skeleton className="mt-4 h-10 w-full rounded-lg" />
+                            <div className="mt-4 grid grid-cols-2 gap-4">
+                                <div className="space-y-2"><Skeleton className="h-3 w-12" /><Skeleton className="h-4 w-28" /></div>
+                                <div className="space-y-2"><Skeleton className="h-3 w-16" /><Skeleton className="h-4 w-32" /></div>
+                            </div>
+                            <div className="mt-4 grid grid-cols-2 gap-3">
+                                <Skeleton className="h-9 w-full rounded-md" />
+                                <Skeleton className="h-9 w-full rounded-md" />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             );
         }
@@ -109,7 +132,7 @@ const AppointmentsContent = () => {
         }
 
         return (
-            <div className={`space-y-6 transition-opacity ${isFetching ? "opacity-60" : ""}`}>
+            <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-5">
                     {filteredAppointments.map((apt: any, index: number) => (
                         <AppointmentCard
@@ -167,7 +190,7 @@ const AppointmentsContent = () => {
     ];
 
     // ✅ Loading & Error
-    if (!isMounted || isLoading) {
+    if (!isMounted) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -246,6 +269,12 @@ const AppointmentsContent = () => {
                     setSelectedType={handleSelectedTypeChange}
                     statusOptions={statusOptions}
                 />
+
+                {isFetching && (
+                    <p className="-mt-3 flex items-center gap-2 text-xs font-medium text-slate-500" role="status">
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" /> Loading appointments…
+                    </p>
+                )}
 
                 {/* Tabs */}
                 <CustomTabs
