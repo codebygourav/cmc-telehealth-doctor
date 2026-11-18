@@ -135,7 +135,7 @@ export default function PatientMedicalRecordTab({
     "Family History": { icon: User, color: "text-primary" },
     "Personal History": { icon: User, color: "text-muted-foreground" },
     Examination: { icon: Activity, color: "text-emerald-600" },
-    "Clinical Notes": { icon: FileText, color: "text-muted-foreground" },
+    "Confidential Record": { icon: FileText, color: "text-muted-foreground" },
     Investigation: { icon: FlaskConical, color: "text-primary" },
     Treatment: { icon: Pill, color: "text-primary" },
   };
@@ -148,7 +148,7 @@ export default function PatientMedicalRecordTab({
     { label: "Family History", value: record?.family_history },
     { label: "Personal History", value: record?.personal_history },
     { label: "Examination", value: record?.examination },
-    { label: "Clinical Notes", value: record?.notes || record?.clinical_notes },
+    { label: "Confidential Record", value: record?.notes || record?.clinical_notes },
     { label: "Investigation", value: record?.investigation },
     { label: "Treatment", value: record?.treatment },
   ].filter((f) => f.value && typeof f.value === "string" && f.value.trim().length > 0);

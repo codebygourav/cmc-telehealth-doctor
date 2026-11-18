@@ -3,7 +3,9 @@
 import AddPrescriptionDialog from "@/components/pages/appoitment/AddPrescriptionDialog";
 import EditConclusionDialog from "@/components/pages/appoitment/EditConclusionDialog";
 import PatientMedicalRecordTab from "@/components/pages/appoitment/PatientMedicalRecordTab";
-import { handleDownloadPatientMedicalRecord } from "@/api/patient-medical-record";
+import { downloadPatientMedicalRecord } from "@/api/patient-medical-record";
+import { fetchFreshPrescriptionPdf } from "@/api/addPrescription";
+import PdfPreviewDialog, { type PdfPreview } from "@/components/pdf/PdfPreviewDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +47,7 @@ import {
   UserCheck,
   ChevronDown,
   MessageCircle,
+  Loader2,
 } from "lucide-react";
 import { useState } from "react";
 import SendPrescriptionWhatsAppDialog from "@/components/pages/appoitment/SendPrescriptionWhatsAppDialog";
@@ -194,16 +197,31 @@ export default function PrescriptionTab({
   const [isConclusionOpen, setIsConclusionOpen] = useState(false);
   const [isDownloadingRecord, setIsDownloadingRecord] = useState(false);
 
-  const onDownloadMedicalRecord = async () => {
+  // Header PDFs: rebuilt now from the latest data, previewed, then downloaded.
+  const [pdfPreview, setPdfPreview] = useState<PdfPreview | null>(null);
+  const [pdfLoading, setPdfLoading] = useState<null | "record" | "prescription">(null);
+  const closePdf = () => {
+    if (pdfPreview?.url) URL.revokeObjectURL(pdfPreview.url);
+    setPdfPreview(null);
+    setPdfLoading(null);
+  };
+  const openPdf = async (kind: "record" | "prescription") => {
     if (!appointmentId) return;
+    setPdfLoading(kind);
     try {
-      setIsDownloadingRecord(true);
-      await handleDownloadPatientMedicalRecord(appointmentId);
-    } catch (err: any) {
-      console.error("Failed to download patient medical record", err);
-      alert(err?.message || "Failed to download patient medical record");
+      const blob = kind === "prescription"
+        ? await fetchFreshPrescriptionPdf(appointmentId)
+        : new Blob([(await downloadPatientMedicalRecord(appointmentId)).data], { type: "application/pdf" });
+      setPdfPreview({
+        title: kind === "prescription" ? "Prescription PDF" : "Patient Medical Record PDF",
+        url: URL.createObjectURL(blob),
+        filename: kind === "prescription" ? `Prescription-${appointmentId}.pdf` : `Medical-Record-${appointmentId}.pdf`,
+      });
+    } catch (error) {
+      console.error("PDF failed", error);
+      alert("Could not create the PDF. Please try again.");
     } finally {
-      setIsDownloadingRecord(false);
+      setPdfLoading(null);
     }
   };
 
@@ -320,31 +338,28 @@ export default function PrescriptionTab({
         <Button
           type="button"
           variant="outline"
-          disabled={isDownloadingRecord || !appointmentId}
-          onClick={onDownloadMedicalRecord}
-          className="h-8.5 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5 font-semibold border-emerald-300 text-emerald-800 hover:bg-emerald-50 rounded-md transition-all shadow-2xs shrink-0"
-          title="Download Patient Medical Record PDF"
+          disabled={pdfLoading !== null || !appointmentId}
+          onClick={() => openPdf("record")}
+          className="h-8.5 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5 font-semibold border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 rounded-md transition-all shadow-2xs shrink-0"
+          title="Preview and download the patient medical record PDF"
         >
-          {isDownloadingRecord ? (
-            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-700 border-t-transparent shrink-0" />
-          ) : (
-            <FileText className="h-3.5 w-3.5 text-emerald-700 shrink-0" />
-          )}
+          {pdfLoading === "record" ? <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" /> : <FileText className="h-3.5 w-3.5 shrink-0" />}
           <span className="hidden sm:inline">Download Patient Medical Record</span>
         </Button>
 
-        {pdfUrl && (
-          <a
-            href={pdfUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Download Prescription (PDF)"
-            className="inline-flex h-8.5 sm:h-9 items-center justify-center gap-1.5 rounded-md border border-sky-300 bg-sky-50/90 px-2.5 sm:px-3 text-xs sm:text-sm font-semibold text-sky-800 transition-all hover:bg-sky-100 shadow-2xs shrink-0"
-          >
-            <Download className="h-3.5 w-3.5 text-sky-700 shrink-0" />
-            <span className="hidden sm:inline">Download Prescription (PDF)</span>
-          </a>
-        )}
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pdfLoading !== null || !appointmentId}
+          onClick={() => openPdf("prescription")}
+          className="h-8.5 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm flex items-center justify-center gap-1.5 font-semibold border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 rounded-md transition-all shadow-2xs shrink-0"
+          title="Preview and download the prescription PDF"
+        >
+          {pdfLoading === "prescription" ? <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" /> : <Download className="h-3.5 w-3.5 shrink-0" />}
+          <span className="hidden sm:inline">Download Prescription (PDF)</span>
+        </Button>
+
+        <PdfPreviewDialog preview={pdfPreview} loading={pdfLoading !== null} onClose={closePdf} />
 
         <button
           type="button"

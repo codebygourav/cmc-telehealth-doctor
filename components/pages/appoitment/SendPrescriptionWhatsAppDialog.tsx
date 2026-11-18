@@ -13,13 +13,15 @@ import { getPrescriptionShareInfo, getPrescriptionSharePdf, sendPrescriptionWhat
 
 const OTHER = "__other__";
 
-export default function SendPrescriptionWhatsAppDialog({ appointmentId, open, onOpenChange, initialNumber, onSent }: {
+export default function SendPrescriptionWhatsAppDialog({ appointmentId, open, onOpenChange, initialNumber, onSent, inline = false }: {
     appointmentId: string;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     /** Resend: preselect this number (typed in "Another number" when it is not on record). */
     initialNumber?: string;
     onSent?: () => void;
+    /** Render inside a panel (the prescription slide-over) instead of as its own modal. */
+    inline?: boolean;
 }) {
     const [info, setInfo] = useState<PrescriptionShareInfo | null>(null);
     const [loading, setLoading] = useState(false);
@@ -82,17 +84,20 @@ export default function SendPrescriptionWhatsAppDialog({ appointmentId, open, on
         }
     };
 
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className={`flex w-[95vw] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-5xl! ${step === 2 && !sentTo ? "h-[92vh]" : "max-h-[92vh]"}`}>
-                <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-4">
-                    <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-                        <MessageCircle className="h-5 w-5 text-emerald-600" /> Send prescription on WhatsApp
-                    </DialogTitle>
-                    <DialogDescription>
+    if (inline && !open) return null;
+    const Title = inline ? "p" : DialogTitle;
+    const Description = inline ? "p" : DialogDescription;
+    const Header = inline ? "div" : DialogHeader;
+    const body = (
+            <>
+                <Header className="shrink-0 border-b border-slate-200 px-5 py-4">
+                    <Title className="flex items-center gap-2 text-lg font-semibold">
+                        <MessageCircle className="h-5 w-5 text-primary" /> Send prescription on WhatsApp
+                    </Title>
+                    <Description className="text-sm text-muted-foreground">
                         {info?.patient_name ? `To ${info.patient_name}. ` : ""}Choose the number, check the PDF, then send.
-                    </DialogDescription>
-                </DialogHeader>
+                    </Description>
+                </Header>
 
                 {/* Steps */}
                 {!sentTo && (
@@ -225,6 +230,17 @@ export default function SendPrescriptionWhatsAppDialog({ appointmentId, open, on
                         )}
                     </div>
                 )}
+            </>
+    );
+
+    if (inline) {
+        return <div className="flex min-h-0 flex-1 flex-col bg-white">{body}</div>;
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className={`flex w-[95vw] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-5xl! ${step === 2 && !sentTo ? "h-[92vh]" : "max-h-[92vh]"}`}>
+                {body}
             </DialogContent>
         </Dialog>
     );

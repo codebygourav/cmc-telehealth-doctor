@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, X, Mic, ClipboardList, FileText } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import { useDoctorProfile } from "@/queries/useProfile";
 import type { AddedMedicine, PrescriptionForm } from "./prescription-dialog-types";
 
@@ -50,6 +50,10 @@ interface PrescriptionListPanelProps {
     includeReports?: boolean;
     recommendedTests?: string;
     reportFiles?: File[];
+    /** Shown at the top of the panel (e.g. its tabs). */
+    topSlot?: ReactNode;
+    /** When set, shown instead of the details (e.g. the Tests & reports view). */
+    overrideContent?: ReactNode;
 }
 
 export default function PrescriptionListPanel({
@@ -85,6 +89,8 @@ export default function PrescriptionListPanel({
     includeReports = false,
     recommendedTests = "",
     reportFiles = [],
+    topSlot,
+    overrideContent,
 }: PrescriptionListPanelProps) {
     const { data: profileResponse } = useDoctorProfile();
     const doctorVoiceLocale = profileResponse?.data?.voice_settings?.speech_locale;
@@ -161,7 +167,9 @@ export default function PrescriptionListPanel({
     };
 
     return (
-        <div className={`md:col-span-5 rounded-lg border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4 self-start md:sticky md:top-0 md:max-h-[calc(92vh-13rem)] md:overflow-y-auto`}>
+        <div className={`@3xl:col-span-5 rounded-lg border border-slate-200 bg-white p-4 space-y-4 self-start`}>
+            {topSlot}
+            {overrideContent ? overrideContent : (<>
             {!hideMedicineList && (<>
                 <div className="rounded-lg border border-slate-200 bg-white/90 px-3 py-2.5 shadow-sm">
                     <div className="flex items-center justify-between gap-2">
@@ -210,7 +218,7 @@ export default function PrescriptionListPanel({
                                                 {med.template ? (
                                                     <p className="whitespace-pre-line text-[11px] leading-relaxed text-slate-700">{med.instructions}</p>
                                                 ) : (
-                                                    <p className="text-[10px] sm:text-[11px] text-slate-600">
+                                                    <p className="text-[10px] @2xl:text-[11px] text-slate-600">
                                                         {med.dosage} • {frequencyOptions.find((f) => f.value === med.frequency)?.label || med.frequency}
                                                     </p>
                                                 )}
@@ -316,7 +324,7 @@ export default function PrescriptionListPanel({
 
             <div className={`space-y-4 ${hideMedicineList ? "" : "pt-4 border-t border-slate-200"}`}>
                 <div>
-                    <h3 className="text-sm font-semibold text-slate-900">Prescription Details</h3>
+                    <p className="text-sm font-semibold text-slate-900">Prescription Details</p>
                     <p className="text-xs text-slate-500">Printed on the prescription output.</p>
                 </div>
 
@@ -344,7 +352,7 @@ export default function PrescriptionListPanel({
                     />
                 </div>
 
-                <div className="space-y-1 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="space-y-1.5">
                     <Label className="text-sm font-semibold text-slate-800">Stamp Preference *</Label>
                     <Select value={stampPreference} onValueChange={onStampChange}>
                         <SelectTrigger className="h-8.5 text-xs rounded-lg">
@@ -365,7 +373,7 @@ export default function PrescriptionListPanel({
                     type="button"
                     onClick={onFinalSubmit}
                     disabled={addPrescriptionPending || (addedMedicines.length === 0 && !findingsText.trim() && !nextVisitDate && !recommendedTests.trim() && reportFiles.length === 0)}
-                    className="w-full h-11 text-xs sm:text-sm font-semibold rounded-lg shadow-sm bg-slate-900 hover:bg-slate-800 text-white"
+                    className="w-full h-11 text-xs @2xl:text-sm font-semibold rounded-lg shadow-sm bg-slate-900 hover:bg-slate-800 text-white"
                 >
                     {addPrescriptionPending ? (
                         <>
@@ -377,6 +385,7 @@ export default function PrescriptionListPanel({
                     )}
                 </Button>}
             </div>
+            </>)}
         </div>
     );
 }

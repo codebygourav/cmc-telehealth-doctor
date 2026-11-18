@@ -25,3 +25,9 @@ export const previewPrescriptionPdf = async (appointmentId: string, payload: any
     });
     return response.data as Blob;
 };
+
+// Prescription PDF rebuilt now from the saved data (preview, then download).
+export const fetchFreshPrescriptionPdf = async (appointmentId: string): Promise<Blob> => {
+    const response = await api.get(`/doctor/${appointmentId}/prescriptions/pdf`, { responseType: "blob" });
+    return response.data as Blob;
+};

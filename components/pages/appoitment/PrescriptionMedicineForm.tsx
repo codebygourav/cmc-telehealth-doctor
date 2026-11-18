@@ -136,10 +136,10 @@ export default function PrescriptionMedicineForm({
 
     return (
         <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-            <div className="border-b border-slate-200 bg-linear-to-r from-sky-50 via-white to-emerald-50 px-4 py-4 sm:px-5 flex items-center justify-between gap-3">
+            <div className="border-b border-slate-200 bg-linear-to-r from-sky-50 via-white to-emerald-50 px-4 py-4 @2xl:px-5 flex items-center justify-between gap-3">
                 <div className="space-y-1">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-700">Prescription Builder</p>
-                    <span className="font-bold text-slate-900 text-base sm:text-lg">{title}</span>
+                    <span className="font-bold text-slate-900 text-base @2xl:text-lg">{title}</span>
                 </div>
                 {editingIndex !== null && (
                     <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-semibold uppercase tracking-wider">
@@ -148,7 +148,7 @@ export default function PrescriptionMedicineForm({
                 )}
             </div>
 
-            <div className="space-y-5 p-4 sm:p-5">
+            <div className="space-y-5 p-4 @2xl:p-5">
                 {subtitle && <p className="text-[11px] text-slate-500 -mt-2 leading-relaxed">{subtitle}</p>}
 
                 {/* Medicine Search Section */}
@@ -235,7 +235,7 @@ export default function PrescriptionMedicineForm({
                 {medicineStatus && <MedicineStatusCard {...medicineStatus} />}
 
                 {/* Core Medicine Properties - Grid is fully responsive */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 @2xl:grid-cols-2 @3xl:grid-cols-3 gap-4">
                     {shouldShowField("medication_type") && (
                         <div className="space-y-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
                             <Label className="text-xs font-semibold text-slate-700">Medication Type *</Label>
@@ -302,7 +302,7 @@ export default function PrescriptionMedicineForm({
                 </div>
 
                 {/* Frequency & Meal - Grid is responsive */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-4">
                     {shouldShowField("frequency") && (
                         <div className="space-y-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
                             <Label className="text-xs font-semibold text-slate-700">Frequency *</Label>
@@ -355,7 +355,7 @@ export default function PrescriptionMedicineForm({
                                     <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                                     Timings
                                 </Label>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div className="grid grid-cols-2 @2xl:grid-cols-4 gap-2">
                                     {[
                                         { label: "Morning", name: "timing_morning" as const, val: timingMorning },
                                         { label: "Afternoon", name: "timing_afternoon" as const, val: timingAfternoon },
@@ -379,7 +379,7 @@ export default function PrescriptionMedicineForm({
                         )}
 
                         {/* Application Area & Duration Presets */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-4">
                             {shouldShowField("application_area") && applicationAreaOptions.length > 0 && (
                                 <div className="space-y-1">
                                     <Label className="text-xs font-semibold text-slate-700">Application Area</Label>
@@ -419,7 +419,7 @@ export default function PrescriptionMedicineForm({
 
                         {/* Duration Range (Calendar input) */}
                         {shouldShowField("duration") && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                                         <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
@@ -449,13 +449,13 @@ export default function PrescriptionMedicineForm({
                 )}
 
                 {/* Bottom Submit Buttons */}
-                <div className="flex flex-col sm:flex-row gap-2.5 pt-4 border-t border-slate-200 mt-4">
+                <div className="flex flex-col @2xl:flex-row gap-2.5 pt-4 border-t border-slate-200 mt-4">
                     {onCancel && (
-                        <Button type="button" variant="outline" onClick={onCancel} className="h-11 text-xs rounded-2xl order-2 sm:order-1 sm:flex-1 border-slate-200 bg-white">
+                        <Button type="button" variant="outline" onClick={onCancel} className="h-11 text-xs rounded-2xl order-2 @2xl:order-1 @2xl:flex-1 border-slate-200 bg-white">
                             {cancelLabel}
                         </Button>
                     )}
-                    <Button type="button" onClick={onSubmit} className={`${fullWidthButton ? "w-full" : "flex-1"} h-11 text-xs rounded-2xl font-semibold shadow-sm order-1 sm:order-2 bg-slate-900 hover:bg-slate-800 text-white`}>
+                    <Button type="button" onClick={onSubmit} className={`${fullWidthButton ? "w-full" : "flex-1"} h-11 text-xs rounded-2xl font-semibold shadow-sm order-1 @2xl:order-2 bg-slate-900 hover:bg-slate-800 text-white`}>
                         {submitLabel}
                     </Button>
                 </div>
@@ -481,7 +481,7 @@ function MedicineStatusCard({
                 }`} />
             <div className="space-y-0.5">
                 <p className="text-xs font-bold leading-normal">{title}</p>
-                <p className="text-[10px] sm:text-xs leading-normal opacity-90">{description}</p>
+                <p className="text-[10px] @2xl:text-xs leading-normal opacity-90">{description}</p>
             </div>
         </div>
     );

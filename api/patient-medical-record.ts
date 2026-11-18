@@ -9,6 +9,9 @@ export interface PatientMedicalRecordFile {
   type?: string;
   created_at?: string;
   size?: number;
+  uploaded_by?: "doctor" | "patient";
+  uploaded_by_name?: string | null;
+  uploaded_at?: string | null;
 }
 
 export interface PatientMedicalRecordData {
@@ -23,6 +26,7 @@ export interface PatientMedicalRecordData {
   final_diagnosis?: string;
   investigation?: string;
   treatment?: string;
+  recommended_tests?: string;
   instructions_by_doctor?: string;
   notes?: string;
   clinical_notes?: string;
@@ -52,6 +56,7 @@ export interface SavePatientMedicalRecordPayload {
   final_diagnosis?: string;
   investigation?: string;
   treatment?: string;
+  recommended_tests?: string;
   instructions_by_doctor?: string;
   notes?: string;
   clinical_notes?: string;
@@ -88,6 +93,7 @@ export const savePatientMedicalRecord = async ({
   final_diagnosis,
   investigation,
   treatment,
+  recommended_tests,
   instructions_by_doctor,
   notes,
   clinical_notes,
@@ -107,6 +113,7 @@ export const savePatientMedicalRecord = async ({
   if (final_diagnosis !== undefined) formData.append("final_diagnosis", final_diagnosis);
   if (investigation !== undefined) formData.append("investigation", investigation);
   if (treatment !== undefined) formData.append("treatment", treatment);
+  if (recommended_tests !== undefined) formData.append("recommended_tests", recommended_tests);
   if (instructions_by_doctor !== undefined) formData.append("instructions_by_doctor", instructions_by_doctor);
   
   // Backend expects notes column. Append both notes and clinical_notes for full compatibility

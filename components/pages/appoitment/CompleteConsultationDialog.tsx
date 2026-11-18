@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Loader2, PhoneCall } from "lucide-react";
+import { CheckCircle2, ClipboardList, Loader2, PhoneCall } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { completeAppointment, getApiErrorMessage } from "@/api/appointment-actions";
+import ConsultationSummaryDialog from "./ConsultationSummaryDialog";
 
 interface CompleteConsultationDialogProps {
     open: boolean;
@@ -23,6 +24,7 @@ export default function CompleteConsultationDialog({ open, onOpenChange, appoint
     const queryClient = useQueryClient();
     const [saving, setSaving] = useState(false);
     const [voucher, setVoucher] = useState("");
+    const [summaryOpen, setSummaryOpen] = useState(false);
 
     const complete = async () => {
         try {
@@ -44,6 +46,7 @@ export default function CompleteConsultationDialog({ open, onOpenChange, appoint
     };
 
     return (
+        <>
         <Dialog open={open} onOpenChange={(value) => !saving && onOpenChange(value)}>
             <DialogContent className="sm:max-w-md">
                 <DialogTitle className="text-lg font-semibold">Complete this appointment?</DialogTitle>
@@ -61,6 +64,13 @@ export default function CompleteConsultationDialog({ open, onOpenChange, appoint
                     <li>• <strong>Completed:</strong> the patient sees it as completed and is marked present. You and the patient can still rejoin the call today.</li>
                     <li>• <strong>Not yet:</strong> the appointment stays open and both of you can rejoin.</li>
                 </ul>
+                <button
+                    type="button"
+                    onClick={() => setSummaryOpen(true)}
+                    className="-mt-1 inline-flex items-center gap-1.5 self-start text-sm! font-semibold! text-primary underline-offset-4 hover:underline"
+                >
+                    <ClipboardList className="h-4 w-4" /> View all prescription, notes &amp; reports
+                </button>
                 <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     {onRejoin ? (
                         <Button variant="outline" onClick={() => { onOpenChange(false); onRejoin(); }} disabled={saving}>
@@ -76,5 +86,7 @@ export default function CompleteConsultationDialog({ open, onOpenChange, appoint
                 </div>
             </DialogContent>
         </Dialog>
+        <ConsultationSummaryDialog open={summaryOpen} onOpenChange={setSummaryOpen} appointmentId={appointmentId} patientName={patientName} />
+        </>
     );
 }

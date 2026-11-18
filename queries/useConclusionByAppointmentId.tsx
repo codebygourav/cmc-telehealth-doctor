@@ -12,6 +12,20 @@ interface ConclusionData {
     file_url?: string;
     type?: string;
   }>;
+  /** Tests & reports tab: files shared by the patient or uploaded by the doctor for this appointment. */
+  shared_files?: AppointmentSharedFile[];
+}
+
+export interface AppointmentSharedFile {
+  id: string;
+  name: string;
+  type?: string | null;
+  file_url?: string | null;
+  file_type?: string | null;
+  report_date?: string | null;
+  uploaded_at?: string | null;
+  shared_by: "patient" | "doctor";
+  can_delete?: boolean;
 }
 
 interface ConclusionResponse {

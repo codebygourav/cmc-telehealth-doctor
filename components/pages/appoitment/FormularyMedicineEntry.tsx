@@ -274,26 +274,26 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
     };
 
     return (
-        <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+        <section className="rounded-lg border border-slate-200 bg-white">
+            <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
                 <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">{editing ? "Edit medicine" : "Add medicine"}</p>
-                    <h3 className="text-base font-semibold text-slate-900">Search by trade or generic name</h3>
+                    <p className="text-sm font-semibold text-slate-900">{editing ? "Edit medicine" : "Add medicine"}</p>
+                    <p className="text-xs text-slate-500">Search by trade or generic name</p>
                 </div>
-                <Pill className="h-5 w-5 text-primary" />
+                <Pill className="h-4 w-4 text-primary" />
             </header>
 
-            <div className="space-y-4 p-5">
+            <div className="space-y-3 p-4">
                 {/* Medicine: search, or the locked line once picked */}
                 {!picked ? (
                     <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex w-full rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-semibold sm:inline-flex sm:w-auto" role="radiogroup" aria-label="Search by">
+                    <div className="flex w-full rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-semibold @2xl:inline-flex @2xl:w-auto" role="radiogroup" aria-label="Search by">
                         {([["trade", "Trade name"], ["generic", "Generic name"]] as const).map(([key, label]) => (
                             <button key={key} type="button" role="radio" aria-checked={searchBy === key}
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => { setSearchBy(key); setOpen(true); searchRef.current?.focus(); }}
-                                className={cn("flex-1 rounded-md px-3 py-1.5 transition-colors sm:flex-none", searchBy === key ? "bg-primary text-white shadow-sm" : "text-slate-600 hover:text-primary")}>
+                                className={cn("flex-1 rounded-md px-3 py-1.5 text-xs! font-semibold! leading-5! transition-colors @2xl:flex-none", searchBy === key ? "bg-primary text-white shadow-sm" : "text-slate-600 hover:text-primary")}>
                                 {label}
                             </button>
                         ))}
@@ -301,7 +301,7 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
                     <CategoryCombobox options={categories} value={categoryId}
                         onOpen={() => { if (!categories.length) getMedicineCategories().then(setCategories).catch(() => {}); }}
                         onChange={(id) => { setCategoryId(id); setOpen(true); setTimeout(() => searchRef.current?.focus(), 0); }}
-                        className="w-full sm:w-auto sm:flex-1 sm:max-w-xs" />
+                        className="w-full @2xl:w-auto @2xl:flex-1 @2xl:max-w-xs" />
                     </div>
                     <div className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -401,11 +401,11 @@ export default function FormularyMedicineEntry({ editing, onSave, onCancelEdit }
 
                 {error && <p className="text-xs font-medium text-destructive">{error}</p>}
 
-                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <div className="flex flex-col-reverse gap-2 @2xl:flex-row @2xl:justify-end">
                     {editing && onCancelEdit && (
                         <Button type="button" variant="outline" onClick={() => { reset(); onCancelEdit(); }}>Cancel</Button>
                     )}
-                    <Button type="button" onClick={save} disabled={!picked} className="sm:min-w-48">
+                    <Button type="button" onClick={save} disabled={!picked} className="@2xl:min-w-48">
                         <Check className="mr-1.5 h-4 w-4" /> {editing ? "Update medicine" : "Add to prescription"}
                     </Button>
                 </div>

@@ -33,9 +33,9 @@ export const listName = (name: string | undefined, strength?: string, type?: str
 /** The medicines in this prescription, under the add-medicine form. */
 export default function AddedMedicinesList({ medicines, editingIndex, onEdit, onDelete }: AddedMedicinesListProps) {
     return (
-        <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <section className="rounded-lg border border-slate-200 bg-white">
             <header className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
-                <h3 className="text-sm font-semibold text-slate-900">Medicines to be submitted</h3>
+                <p className="text-sm font-semibold text-slate-900">Medicines to be submitted</p>
                 <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
                     {medicines.length} {medicines.length === 1 ? "medicine" : "medicines"}
                 </span>

@@ -43,6 +43,8 @@ interface PatientHistoryTabProps {
   patientHistory?: PatientHistoryItem[];
   /** Show only this view and hide the built-in switch (used inside the prescription window). */
   view?: "visits" | "clinical";
+  /** Narrow places (prescription slide-over): filters as the dropdown, never the pill row. */
+  compactFilters?: boolean;
 }
 
 const PREVIEW_CHAR_LIMIT = 220;
@@ -278,6 +280,7 @@ export default function PatientHistoryTab({
   appointmentId,
   patientHistory: customHistory,
   view: controlledView,
+  compactFilters = false,
 }: PatientHistoryTabProps) {
   const targetId = appointmentId || propAppointment?.appointment_id || propAppointment?.id;
   const { data: fetchedData, isLoading } = useAppointmentById(targetId ? String(targetId) : "");
@@ -315,7 +318,7 @@ export default function PatientHistoryTab({
     switch (key) {
       case "all": return "All Records";
       case "prescriptions": return "Prescriptions";
-      case "notes": return "Clinical Notes";
+      case "notes": return "Confidential Record";
       case "tests": return "Tests & Reports";
       default: return "All Records";
     }
@@ -904,12 +907,12 @@ export default function PatientHistoryTab({
             </div>
 
             {/* Desktop Filter Pills */}
-            <div className="hidden md:flex items-center gap-1 shrink-0">
+            <div className={`${compactFilters ? "hidden" : "hidden md:flex"} items-center gap-1 shrink-0`}>
               {(
                 [
                   ["all", "All Records"],
                   ["prescriptions", "Prescriptions"],
-                  ["notes", "Clinical Notes"],
+                  ["notes", "Confidential Record"],
                   ["tests", "Tests"],
                 ] as const
               ).map(([key, label]) => (
@@ -928,7 +931,7 @@ export default function PatientHistoryTab({
             </div>
 
             {/* Mobile Filter Drawer Trigger */}
-            <div className="block md:hidden shrink-0 w-full sm:w-auto">
+            <div className={`${compactFilters ? "block w-full" : "block md:hidden w-full sm:w-auto"} shrink-0`}>
               <button
                 type="button"
                 onClick={() => setIsMobileFilterDrawerOpen(true)}
@@ -960,7 +963,7 @@ export default function PatientHistoryTab({
                   [
                     ["all", "All Records"],
                     ["prescriptions", "Prescriptions"],
-                    ["notes", "Clinical Notes"],
+                    ["notes", "Confidential Record"],
                     ["tests", "Tests & Reports"],
                   ] as const
                 ).map(([key, label]) => (
