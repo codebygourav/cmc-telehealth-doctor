@@ -1,5 +1,6 @@
 import axios, { InternalAxiosRequestConfig } from "axios";
 import { getAuthToken } from "./authToken";
+import { getTurnstileToken, needsTurnstile } from "./turnstile";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -9,7 +10,13 @@ const api = axios.create({
   },
 });
 
-api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  // Sign-in, sign-up and OTP requests: invisible captcha token for the API.
+  if (needsTurnstile(config.url, config.method)) {
+    const captcha = await getTurnstileToken();
+    if (captcha) config.headers["X-Turnstile-Token"] = captcha;
+  }
+
   const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
