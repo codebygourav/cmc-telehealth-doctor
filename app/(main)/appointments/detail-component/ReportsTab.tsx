@@ -51,10 +51,12 @@ export default function Reports({ appointment }: { appointment: any }) {
                                 <Button
                                     size="sm"
                                     className="gap-2 cursor-pointer shrink-0"
-                                    onClick={() => window.open(report.file_url, "_blank")}
+                                    disabled={!report.file_url}
+                                    title={report.file_url ? undefined : "File not found on the server"}
+                                    onClick={() => report.file_url && window.open(report.file_url, "_blank")}
                                 >
                                     <ArrowUpRight className="h-4 w-4" />
-                                    View
+                                    {report.file_url ? "View" : "File missing"}
                                 </Button>
                             </div>
                         </CardHeader>
@@ -119,10 +121,12 @@ export default function Reports({ appointment }: { appointment: any }) {
                             <Button
                                 size="sm"
                                 className="gap-1.5 cursor-pointer w-full text-xs h-8"
-                                onClick={() => window.open(report.file_url, "_blank")}
+                                disabled={!report.file_url}
+                                    title={report.file_url ? undefined : "File not found on the server"}
+                                    onClick={() => report.file_url && window.open(report.file_url, "_blank")}
                             >
                                 <ArrowUpRight className="h-3 w-3" />
-                                View
+                                {report.file_url ? "View" : "File missing"}
                             </Button>
                         </div>
                     </div>
