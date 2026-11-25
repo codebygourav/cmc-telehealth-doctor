@@ -40,6 +40,7 @@ export interface PatientHistoryFile {
   id?: string;
   name?: string;
   file_url?: string;
+  file_missing?: boolean;
   url?: string;
   file_type?: string;
 }

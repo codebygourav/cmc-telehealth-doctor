@@ -21,6 +21,7 @@ export interface AppointmentSharedFile {
   name: string;
   type?: string | null;
   file_url?: string | null;
+  file_missing?: boolean;
   file_type?: string | null;
   report_date?: string | null;
   uploaded_at?: string | null;

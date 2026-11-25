@@ -1,5 +1,6 @@
 "use client";
 
+import MissingFileReupload from "@/components/common/MissingFileReupload";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, FileImage, FileText, Loader2, Trash2 } from "lucide-react";
@@ -87,7 +88,9 @@ export default function AppointmentSharedFiles({ appointmentId }: { appointmentI
                     {file.uploaded_at && <span className="text-[10px] text-slate-500">{file.uploaded_at}</span>}
                   </div>
                 </div>
-                {file.file_url && (
+                {file.file_missing ? (
+                  <MissingFileReupload reportId={file.id} compact />
+                ) : file.file_url && (
                   <a href={file.file_url} target="_blank" rel="noopener noreferrer" className="p-1 text-slate-400 hover:text-primary" title="Open">
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>

@@ -1,5 +1,6 @@
 "use client";
 
+import MissingFileReupload from "@/components/common/MissingFileReupload";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import HeroSection from "@/components/ui/hero-section";
@@ -386,7 +387,9 @@ export default function PatientDetailPage() {
                                             </p>
                                         </div>
                                     </div>
-                                    {(report.file_url || report.url) && (
+                                    {report.file_missing ? (
+                                        <MissingFileReupload reportId={report.id} compact />
+                                    ) : (report.file_url || report.url) && (
                                         <a
                                             href={report.file_url || report.url}
                                             target="_blank"

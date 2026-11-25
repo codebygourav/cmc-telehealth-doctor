@@ -287,7 +287,9 @@ export default function PrescriptionListPanel({
                         )}
                         {notes.trim() && (
                             <p>
-                                <span className="font-semibold text-foreground">Notes:</span>{" "}
+                                {/* The patient's own note for this visit: shown for reference, never on the PDF. */}
+                                <span className="font-semibold text-foreground">Patient&apos;s note</span>{" "}
+                                <span className="text-[10px] font-medium text-amber-700">(not printed)</span>:{" "}
                                 <span>{notes.trim()}</span>
                             </p>
                         )}

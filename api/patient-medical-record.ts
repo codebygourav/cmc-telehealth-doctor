@@ -6,6 +6,7 @@ export interface PatientMedicalRecordFile {
   file_name?: string;
   url?: string;
   file_url?: string;
+  file_missing?: boolean;
   type?: string;
   created_at?: string;
   size?: number;

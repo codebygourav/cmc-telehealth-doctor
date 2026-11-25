@@ -1,5 +1,6 @@
 "use client";
 
+import MissingFileReupload from "@/components/common/MissingFileReupload";
 import {
     Card,
     CardContent,
@@ -48,6 +49,9 @@ export default function Reports({ appointment }: { appointment: any }) {
                                 <CardTitle className="text-base flex items-center gap-2 flex-wrap">
                                     <span className="text-sm font-medium break-words whitespace-normal">{report.title}</span>
                                 </CardTitle>
+                                {report.file_missing || !report.file_url ? (
+                                    <MissingFileReupload reportId={report.id} compact />
+                                ) : (
                                 <Button
                                     size="sm"
                                     className="gap-2 cursor-pointer shrink-0"
@@ -58,6 +62,7 @@ export default function Reports({ appointment }: { appointment: any }) {
                                     <ArrowUpRight className="h-4 w-4" />
                                     {report.file_url ? "View" : "File missing"}
                                 </Button>
+                                )}
                             </div>
                         </CardHeader>
 
@@ -118,6 +123,9 @@ export default function Reports({ appointment }: { appointment: any }) {
 
                         {/* Button at bottom on mobile */}
                         <div className="p-3 pt-0 mt-auto">
+                            {report.file_missing || !report.file_url ? (
+                                <MissingFileReupload reportId={report.id} compact />
+                            ) : (
                             <Button
                                 size="sm"
                                 className="gap-1.5 cursor-pointer w-full text-xs h-8"
@@ -128,6 +136,7 @@ export default function Reports({ appointment }: { appointment: any }) {
                                 <ArrowUpRight className="h-3 w-3" />
                                 {report.file_url ? "View" : "File missing"}
                             </Button>
+                            )}
                         </div>
                     </div>
                 </Card>
